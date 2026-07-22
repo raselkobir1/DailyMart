@@ -1,0 +1,65 @@
+.product-form-page {
+  padding: 1rem;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.side-card {
+  width: 260px;
+}
+
+.form-card {
+  flex: 1 1 480px;
+  min-width: 320px;
+}
+
+.image-preview {
+  max-width: 100%;
+  max-height: 140px;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.muted {
+  color: var(--mat-sys-outline, #666);
+}
+
+.barcode-value {
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+
+.row {
+  display: flex;
+  gap: 1rem;
+}
+
+.full-width {
+  width: 100%;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.half-width {
+  flex: 1 1 0;
+  margin-bottom: 0.5rem;
+}
+
+.third-width {
+  flex: 1 1 0;
+  margin-bottom: 0.5rem;
+}
+
+mat-checkbox {
+  display: block;
+  margin: 0.5rem 0 1rem;
+}
+
+.actions {
+  margin-top: 0.5rem;
+}

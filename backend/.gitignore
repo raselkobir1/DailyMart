@@ -1,0 +1,17 @@
+# Build artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+
+# Logs
+src/DailyMart.API/logs/
+
+# Runtime-uploaded files (product images, etc.)
+src/DailyMart.API/wwwroot/
+
+# Local secrets - never commit; see appsettings.Development.json.example
+src/DailyMart.API/appsettings.Development.json
+
+# IDEs
+.vs/
+.idea/

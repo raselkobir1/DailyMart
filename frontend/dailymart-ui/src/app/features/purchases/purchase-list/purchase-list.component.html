@@ -1,0 +1,68 @@
+<div class="purchases-page">
+  <div class="header">
+    <h2>Purchases</h2>
+    <button mat-flat-button color="primary" (click)="create()">Add Purchase</button>
+  </div>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
+      <ng-container matColumnDef="purchaseNumber">
+        <th mat-header-cell *matHeaderCellDef>Purchase #</th>
+        <td mat-cell *matCellDef="let purchase">{{ purchase.purchaseNumber }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="supplierName">
+        <th mat-header-cell *matHeaderCellDef>Supplier</th>
+        <td mat-cell *matCellDef="let purchase">{{ purchase.supplierName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="purchaseDate">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let purchase">{{ purchase.purchaseDate | date: 'short' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="paymentType">
+        <th mat-header-cell *matHeaderCellDef>Payment</th>
+        <td mat-cell *matCellDef="let purchase">{{ purchase.paymentType }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalAmount">
+        <th mat-header-cell *matHeaderCellDef>Total</th>
+        <td mat-cell *matCellDef="let purchase">{{ purchase.totalAmount }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="dueAmount">
+        <th mat-header-cell *matHeaderCellDef>Due</th>
+        <td mat-cell *matCellDef="let purchase">{{ purchase.dueAmount }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let purchase">
+          <button mat-icon-button (click)="viewReturns(purchase)" aria-label="Returns">
+            <mat-icon>assignment_return</mat-icon>
+          </button>
+          <button mat-icon-button (click)="edit(purchase)" aria-label="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button (click)="delete(purchase)" aria-label="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageNumber() - 1"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPageChange($event)"
+    />
+  }
+</div>

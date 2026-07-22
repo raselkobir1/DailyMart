@@ -1,0 +1,19 @@
+{
+  "Jwt": {
+    "Secret": "REPLACE_WITH_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS",
+    "Issuer": "DailyMart",
+    "Audience": "DailyMartClient",
+    "AccessTokenMinutes": 15,
+    "RefreshTokenDays": 7
+  },
+  "Admin": {
+    "DefaultUsername": "admin",
+    "DefaultPassword": "REPLACE_WITH_A_STRONG_LOCAL_DEV_PASSWORD"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}

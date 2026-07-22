@@ -1,0 +1,47 @@
+<div class="audit-log-list">
+  <h2>Audit Log</h2>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else {
+    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
+      <ng-container matColumnDef="performedAt">
+        <th mat-header-cell *matHeaderCellDef>When</th>
+        <td mat-cell *matCellDef="let log">{{ log.performedAt | date: 'short' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef>Action</th>
+        <td mat-cell *matCellDef="let log">{{ log.action }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="entityName">
+        <th mat-header-cell *matHeaderCellDef>Entity</th>
+        <td mat-cell *matCellDef="let log">{{ log.entityName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="entityId">
+        <th mat-header-cell *matHeaderCellDef>Entity Id</th>
+        <td mat-cell *matCellDef="let log">{{ log.entityId }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="performedBy">
+        <th mat-header-cell *matHeaderCellDef>By</th>
+        <td mat-cell *matCellDef="let log">{{ log.performedBy }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageNumber() - 1"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      (page)="onPageChange($event)"
+    />
+  }
+</div>

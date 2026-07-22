@@ -1,0 +1,167 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent)
+  },
+  {
+    path: '',
+    canActivate: [authGuard],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'audit-log' },
+      {
+        path: 'audit-log',
+        loadComponent: () =>
+          import('./features/audit-log/audit-log-list/audit-log-list.component').then(
+            (m) => m.AuditLogListComponent
+          )
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/settings-form/settings-form.component').then(
+            (m) => m.SettingsFormComponent
+          )
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./features/master-data/category/category-list/category-list.component').then(
+            (m) => m.CategoryListComponent
+          )
+      },
+      {
+        path: 'brands',
+        loadComponent: () =>
+          import('./features/master-data/brand/brand-list/brand-list.component').then(
+            (m) => m.BrandListComponent
+          )
+      },
+      {
+        path: 'units',
+        loadComponent: () =>
+          import('./features/master-data/unit/unit-list/unit-list.component').then(
+            (m) => m.UnitListComponent
+          )
+      },
+      {
+        path: 'products',
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/products/product-list/product-list.component').then(
+                (m) => m.ProductListComponent
+              )
+          },
+          {
+            path: 'new',
+            loadComponent: () =>
+              import('./features/products/product-form/product-form.component').then(
+                (m) => m.ProductFormComponent
+              )
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () =>
+              import('./features/products/product-form/product-form.component').then(
+                (m) => m.ProductFormComponent
+              )
+          }
+        ]
+      },
+      {
+        path: 'suppliers',
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/suppliers/supplier-list/supplier-list.component').then(
+                (m) => m.SupplierListComponent
+              )
+          },
+          {
+            path: ':id/ledger',
+            loadComponent: () =>
+              import('./features/suppliers/supplier-ledger/supplier-ledger.component').then(
+                (m) => m.SupplierLedgerComponent
+              )
+          }
+        ]
+      },
+      {
+        path: 'customers',
+        loadComponent: () =>
+          import('./features/customers/customer-list/customer-list.component').then(
+            (m) => m.CustomerListComponent
+          )
+      },
+      {
+        path: 'purchases',
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/purchases/purchase-list/purchase-list.component').then(
+                (m) => m.PurchaseListComponent
+              )
+          },
+          {
+            path: 'new',
+            loadComponent: () =>
+              import('./features/purchases/purchase-form/purchase-form.component').then(
+                (m) => m.PurchaseFormComponent
+              )
+          },
+          {
+            path: ':id/edit',
+            loadComponent: () =>
+              import('./features/purchases/purchase-form/purchase-form.component').then(
+                (m) => m.PurchaseFormComponent
+              )
+          },
+          {
+            path: ':id/returns',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/purchases/returns/purchase-return-list/purchase-return-list.component').then(
+                (m) => m.PurchaseReturnListComponent
+              )
+          },
+          {
+            path: ':id/returns/new',
+            loadComponent: () =>
+              import('./features/purchases/returns/purchase-return-form/purchase-return-form.component').then(
+                (m) => m.PurchaseReturnFormComponent
+              )
+          }
+        ]
+      },
+      {
+        path: 'inventory',
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/inventory/inventory-list/inventory-list.component').then(
+                (m) => m.InventoryListComponent
+              )
+          },
+          {
+            path: 'low-stock',
+            loadComponent: () =>
+              import('./features/inventory/low-stock/low-stock-list.component').then(
+                (m) => m.LowStockListComponent
+              )
+          }
+        ]
+      }
+    ]
+  }
+];

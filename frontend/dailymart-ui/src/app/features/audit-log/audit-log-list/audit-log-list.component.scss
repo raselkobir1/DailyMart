@@ -1,0 +1,11 @@
+.audit-log-list {
+  padding: 1rem;
+
+  table {
+    width: 100%;
+  }
+
+  .error {
+    color: var(--mat-sys-error, #b3261e);
+  }
+}

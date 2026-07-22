@@ -1,0 +1,26 @@
+.products-page {
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-field {
+  width: 100%;
+  max-width: 420px;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+table {
+  width: 100%;
+}

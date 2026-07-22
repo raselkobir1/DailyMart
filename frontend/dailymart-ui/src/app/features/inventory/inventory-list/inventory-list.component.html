@@ -1,0 +1,119 @@
+<div class="inventory-page">
+  <div class="header">
+    <h2>Inventory</h2>
+    <div class="header-actions">
+      <button mat-stroked-button (click)="viewLowStock()">Low Stock</button>
+      <button mat-stroked-button (click)="showAdjustmentForm()">Record Adjustment</button>
+      <button mat-stroked-button (click)="showDamagedForm()">Record Damaged</button>
+    </div>
+  </div>
+
+  @if (activeForm() === 'adjustment') {
+    <form [formGroup]="adjustmentForm" (ngSubmit)="saveAdjustment()" class="inline-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Product</mat-label>
+        <mat-select formControlName="productId">
+          @for (product of products(); track product.id) {
+            <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>New Stock Count</mat-label>
+        <input matInput type="number" formControlName="newStockCount" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Reason</mat-label>
+        <input matInput formControlName="reason" />
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save</button>
+      <button mat-button type="button" (click)="cancelForm()">Cancel</button>
+    </form>
+  }
+
+  @if (activeForm() === 'damaged') {
+    <form [formGroup]="damagedForm" (ngSubmit)="saveDamaged()" class="inline-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Product</mat-label>
+        <mat-select formControlName="productId">
+          @for (product of products(); track product.id) {
+            <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Quantity Damaged</mat-label>
+        <input matInput type="number" formControlName="quantity" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Reason</mat-label>
+        <input matInput formControlName="reason" />
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save</button>
+      <button mat-button type="button" (click)="cancelForm()">Cancel</button>
+    </form>
+  }
+
+  <mat-form-field appearance="outline" class="filter-field">
+    <mat-label>Filter by Product</mat-label>
+    <mat-select [value]="filterProductId()" (selectionChange)="onFilterChange($event)">
+      <mat-option [value]="null">All Products</mat-option>
+      @for (product of products(); track product.id) {
+        <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
+      <ng-container matColumnDef="transactionDate">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.transactionDate | date: 'short' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="productName">
+        <th mat-header-cell *matHeaderCellDef>Product</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.productName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="transactionType">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.transactionType }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="quantityChange">
+        <th mat-header-cell *matHeaderCellDef>Qty Change</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.quantityChange }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="balanceAfter">
+        <th mat-header-cell *matHeaderCellDef>Balance</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.balanceAfter }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="notes">
+        <th mat-header-cell *matHeaderCellDef>Notes</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.notes }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageNumber() - 1"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPageChange($event)"
+    />
+  }
+</div>

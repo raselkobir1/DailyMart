@@ -1,0 +1,52 @@
+.settings-page {
+  padding: 1rem;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.logo-card {
+  width: 280px;
+}
+
+.form-card {
+  flex: 1 1 480px;
+  min-width: 320px;
+}
+
+.logo-preview {
+  max-width: 100%;
+  max-height: 160px;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.no-logo {
+  color: var(--mat-sys-outline, #666);
+  margin-bottom: 0.75rem;
+}
+
+.full-width {
+  width: 100%;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.row {
+  display: flex;
+  gap: 1rem;
+}
+
+.half-width {
+  flex: 1 1 0;
+  margin-bottom: 0.5rem;
+}
+
+mat-checkbox {
+  display: block;
+  margin: 0.5rem 0 1rem;
+}

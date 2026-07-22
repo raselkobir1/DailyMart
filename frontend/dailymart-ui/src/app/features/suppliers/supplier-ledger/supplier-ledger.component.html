@@ -1,0 +1,54 @@
+<div class="ledger-page">
+  <div class="header">
+    <button mat-icon-button (click)="back()" aria-label="Back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h2>
+      Ledger @if (supplier()) {
+        - {{ supplier()!.name }} (Due: {{ supplier()!.currentDue }})
+      }
+    </h2>
+  </div>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
+      <ng-container matColumnDef="transactionDate">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.transactionDate | date: 'short' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="entryType">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.entryType }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.description }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.amount }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="balanceAfter">
+        <th mat-header-cell *matHeaderCellDef>Balance</th>
+        <td mat-cell *matCellDef="let entry">{{ entry.balanceAfter }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageNumber() - 1"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPageChange($event)"
+    />
+  }
+</div>

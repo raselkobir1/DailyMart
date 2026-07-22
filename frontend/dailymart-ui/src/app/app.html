@@ -1,0 +1,22 @@
+@if (authService.isAuthenticated()) {
+  <mat-toolbar color="primary">
+    <span>DailyMart</span>
+    <a mat-button routerLink="/products">Products</a>
+    <a mat-button routerLink="/suppliers">Suppliers</a>
+    <a mat-button routerLink="/customers">Customers</a>
+    <a mat-button routerLink="/purchases">Purchases</a>
+    <a mat-button routerLink="/inventory">Inventory</a>
+    <a mat-button routerLink="/categories">Categories</a>
+    <a mat-button routerLink="/brands">Brands</a>
+    <a mat-button routerLink="/units">Units</a>
+    <a mat-button routerLink="/audit-log">Audit Log</a>
+    <a mat-button routerLink="/settings">Settings</a>
+    <span class="spacer"></span>
+    @if (authService.currentUser()) {
+      <span class="user">{{ authService.currentUser()!.fullName }}</span>
+    }
+    <button mat-button (click)="logout()">Logout</button>
+  </mat-toolbar>
+}
+
+<router-outlet />

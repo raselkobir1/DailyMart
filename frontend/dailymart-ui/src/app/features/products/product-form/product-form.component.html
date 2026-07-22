@@ -1,0 +1,144 @@
+<div class="product-form-page">
+  <h2>{{ isEditMode() ? 'Edit Product' : 'Add Product' }}</h2>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <div class="cards">
+      @if (isEditMode()) {
+        <mat-card class="side-card">
+          <mat-card-header>
+            <mat-card-title>Image</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (imageUrl()) {
+              <img [src]="imageUrl()" alt="Product image" class="image-preview" />
+            } @else {
+              <p class="muted">No image uploaded yet.</p>
+            }
+            <input type="file" accept="image/png,image/jpeg,image/webp" (change)="onImageSelected($event)" [disabled]="uploadingImage()" />
+            @if (uploadingImage()) {
+              <mat-spinner diameter="20" />
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="side-card">
+          <mat-card-header>
+            <mat-card-title>Barcode</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="barcode-value">{{ barcode() }}</p>
+            <button mat-stroked-button (click)="printBarcode()">Print Barcode</button>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <mat-card class="form-card">
+        <mat-card-content>
+          <form [formGroup]="form" (ngSubmit)="save()">
+            <div class="row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Code</mat-label>
+                <input matInput formControlName="code" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Barcode (leave blank to auto-generate)</mat-label>
+                <input matInput formControlName="barcode" />
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" />
+            </mat-form-field>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Category</mat-label>
+                <mat-select formControlName="categoryId">
+                  @for (category of categories(); track category.id) {
+                    <mat-option [value]="category.id">{{ category.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Brand (optional)</mat-label>
+                <mat-select formControlName="brandId">
+                  <mat-option [value]="null">None</mat-option>
+                  @for (brand of brands(); track brand.id) {
+                    <mat-option [value]="brand.id">{{ brand.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Unit</mat-label>
+                <mat-select formControlName="unitId">
+                  @for (unit of units(); track unit.id) {
+                    <mat-option [value]="unit.id">{{ unit.name }} ({{ unit.symbol }})</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Purchase Price</mat-label>
+                <input matInput type="number" formControlName="purchasePrice" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Selling Price</mat-label>
+                <input matInput type="number" formControlName="sellingPrice" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Wholesale Price (optional)</mat-label>
+                <input matInput type="number" formControlName="wholesalePrice" />
+              </mat-form-field>
+            </div>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Discount %</mat-label>
+                <input matInput type="number" formControlName="discountPercentage" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Tax %</mat-label>
+                <input matInput type="number" formControlName="taxPercentage" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Minimum Stock</mat-label>
+                <input matInput type="number" formControlName="minimumStock" />
+              </mat-form-field>
+            </div>
+
+            @if (!isEditMode()) {
+              <mat-form-field appearance="outline" class="third-width">
+                <mat-label>Opening Stock</mat-label>
+                <input matInput type="number" formControlName="currentStock" />
+              </mat-form-field>
+            }
+
+            <mat-checkbox formControlName="allowPriceBelowCost">Allow selling price below purchase price</mat-checkbox>
+
+            <div class="actions">
+              <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+                @if (saving()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Save Product
+                }
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

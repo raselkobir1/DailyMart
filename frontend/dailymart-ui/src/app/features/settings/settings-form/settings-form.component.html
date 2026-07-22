@@ -1,0 +1,132 @@
+<div class="settings-page">
+  <h2>Shop Settings</h2>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <div class="cards">
+      <mat-card class="logo-card">
+        <mat-card-header>
+          <mat-card-title>Shop Logo</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (logoUrl()) {
+            <img [src]="logoUrl()" alt="Shop logo" class="logo-preview" />
+          } @else {
+            <p class="no-logo">No logo uploaded yet.</p>
+          }
+
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            (change)="onLogoSelected($event)"
+            [disabled]="uploadingLogo()"
+          />
+
+          @if (uploadingLogo()) {
+            <mat-spinner diameter="20" />
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="form-card">
+        <mat-card-header>
+          <mat-card-title>Shop Information</mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="form" (ngSubmit)="save()">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Shop Name</mat-label>
+              <input matInput formControlName="shopName" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Address</mat-label>
+              <input matInput formControlName="shopAddress" />
+            </mat-form-field>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Phone</mat-label>
+                <input matInput formControlName="shopPhone" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Email</mat-label>
+                <input matInput formControlName="shopEmail" />
+              </mat-form-field>
+            </div>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Invoice Prefix</mat-label>
+                <input matInput formControlName="invoicePrefix" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Invoice Footer Text</mat-label>
+                <input matInput formControlName="invoiceFooterText" />
+              </mat-form-field>
+            </div>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Currency Code</mat-label>
+                <input matInput formControlName="currencyCode" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Currency Symbol</mat-label>
+                <input matInput formControlName="currencySymbol" />
+              </mat-form-field>
+            </div>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Default VAT %</mat-label>
+                <input matInput type="number" formControlName="defaultVatPercentage" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Default Discount %</mat-label>
+                <input matInput type="number" formControlName="defaultDiscountPercentage" />
+              </mat-form-field>
+            </div>
+
+            <div class="row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Date Format</mat-label>
+                <input matInput formControlName="dateFormat" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Time Zone</mat-label>
+                <input matInput formControlName="timeZone" />
+              </mat-form-field>
+            </div>
+
+            <mat-checkbox formControlName="backupEnabled">Enable backups</mat-checkbox>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Backup Frequency</mat-label>
+              <mat-select formControlName="backupFrequency">
+                @for (frequency of backupFrequencies; track frequency) {
+                  <mat-option [value]="frequency">{{ frequency }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <mat-spinner diameter="20" />
+              } @else {
+                Save Settings
+              }
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

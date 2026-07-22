@@ -1,0 +1,253 @@
+Mini Departmental Store Management System - Complete Business Requirements Document BRD. 
+
+NOTE:
+This text file is intended as the master specification for building the application.
+
+Architecture: Modular Monolith
+Backend: .NET 8 Web API, ASP.NET Core, EF Core, Repository, Service, Unit of Work, Clean Architecture, JWT Authentication. 
+Database: PostgreSQL
+Frontend: Angular (Latest Stable version)
+No CQRS, No MediatR.
+
+========================================
+PROJECT OVERVIEW
+========================================
+Shop Name: DailyMart
+Build a production-ready Mini Departmental Store Management System that manages
+the complete lifecycle of a super shop: suppliers, purchasing, inventory,
+barcode-based POS sales, customer dues, supplier dues, expenses, reports,
+profit/loss, dashboards and audit logs.
+
+The primary goal of this application is to help a shop owner efficiently manage the entire business from purchasing products from suppliers to selling products to customers, maintaining inventory, tracking receivables/payables, calculating daily profit, and generating business reports.
+
+This application should eliminate manual bookkeeping and provide real-time visibility into the overall business through a modern dashboard.
+
+Business Scenario
+
+A departmental shop owner purchases products from different suppliers.
+The products are stored in inventory. Customers visit the shop and purchase products.
+Some customers pay immediately. Some customers purchase on credit (due/baki).
+Similarly, the shop owner may also purchase products from suppliers on credit.
+The owner pays suppliers later.
+
+The owner wants a complete software solution that manages all these operations and provides a real-time overview of the business.
+
+========================================
+MODULES
+========================================
+1. Authentication
+- Admin login/logout
+- JWT
+- Change/reset password
+- Future role extensibility
+
+2. Dashboard
+- Today's sales, purchases, profit, expenses
+- Cash in hand
+- Customer due
+- Supplier due
+- Inventory value
+- Low stock
+- Top selling products
+- Charts
+
+3. Product
+- Code
+- Barcode
+- Name
+- Category
+- Brand
+- Unit
+- Purchase price
+- Selling price
+- Wholesale price
+- Discount
+- Tax
+- Current stock
+- Minimum stock
+- Image
+- CRUD
+- Barcode generation
+- Barcode printing
+- Import/Export
+
+4. Category CRUD- Grocery, Beverage, Cosmetics, Snacks, Household
+5. Brand - CRUD
+6. Unit - CRUD - Piece, kg, Liter, Packet, Box. 
+
+7. Supplier
+- CRUD
+- Opening balance
+- Ledger
+- Due report
+
+8. Customer
+- CRUD
+- Ledger
+- Due report
+
+9. Purchase
+- Purchase Number, Supplier, Date, Items, Purchase price, quantity, discount, vat, 
+- Cash/Credit/Partial (Payment type)
+Features:
+- Purchase entry
+- Purchase update,
+- Purchase Return,
+- Stock increased 
+- Inventory increase
+- Supplier payable
+- Supplier due calculations 
+
+10. POS Sales
+- Barcode scanner
+- Fast billing
+- Search product
+- Customer selection
+- Cash/Credit/Partial ( Payment method)
+- Print invoice
+- Generate Receipts 
+- Sales return
+- Save sales
+- Discount
+- Customer selection(if already exists). 
+- Automatic stock deduction
+- Profit calculation
+The workflow should allow a cashier/shop owner to complete a sale in just a few clicks.
+
+11. Barcode Scanner Workflow
+Scan -> Product auto selected -> Increase qty -> Calculate subtotal -> Complete sale.
+No manual typing should be necessary during sales.
+
+12. Inventory
+- Current stock 
+- Stock in/out
+- Adjustment
+- Damaged stock
+- History
+- Low stock alerts
+
+13. Customer Due
+Track customers who purchase on credit.
+- Receivable ledger
+- Outstanding Due
+- Payment collection
+- Remaining Balance
+
+14. Supplier Due
+- Payable ledger
+- Remaining Due
+- Payment history
+- Purchase History
+
+15. Expense
+- Rent
+- Salary
+- Electricity
+- Internet
+- Miscellaneous
+
+16. Profit & Loss
+Automatically calculate
+- Revenue
+- COGS
+- Gross profit
+- Operating Expense
+- Net profit
+- Daily/weekly/Monthly/Yearly
+
+17. Reports
+- Sales
+- Purchase
+- Inventory
+- Customer due
+- Supplier due
+- Expense
+- P&L
+- Daily Closing Report
+- Monthly Closing Report
+- Yearly Report
+- PDF/Excel/Print
+
+18. Invoice Printing
+Professional printable invoice. 
+
+19. Audit Log
+Track who created/updated/deleted/sold products/Old price and new price.
+
+20. Settings
+- Shop Information
+- Shop Logo
+- Invoice Settings.
+- Currency
+- VAT
+- Default Discount
+- Backup Settings
+- System Preferences
+
+========================================
+BUSINESS RULES
+========================================
+Selling price cannot be lower than purchase price unless explicitly allowed.
+- Barcode unique.
+- Product code unique.
+- No negative stock.
+- Purchase increases stock.
+- Sale decreases stock.
+- Cash sale increases cash balance.
+- Credit sale creates customer due.
+- Credit purchase creates supplier due.
+- Payment reduces supplier payable. 
+- Partial payment updates both cash and due.
+- All stock movement must be traceable.
+- Customer due cannot become negative.
+- Payment history must be preserved. 
+- Supplier due must always match unpaid purchases.
+- Every inventory transaction should have historuy. 
+
+========================================
+NON FUNCTIONAL REQUIREMENTS
+========================================
+Responsive UI
+Pagination
+Filtering
+Sorting
+Logging
+Validation
+Audit
+Global Exception Handling
+Soft Delete
+CreatedBy/UpdatedBy
+Performance optimized SQL
+Fast search
+
+========================================
+FUTURE
+========================================
+Multi branch
+Warehouse
+Multiple users
+Promotions
+Loyalty
+SMS
+Email
+Accounting
+Mobile App
+
+========================================
+CLAUDE DEVELOPMENT INSTRUCTIONS
+========================================
+Implement module by module.
+For each module:
+1. Explain the business process and workflow before writing code. 
+2. Design DB schema for that module. 
+3. Entities and Configure EF Core. 
+4. DTOs
+5. FluentValidation
+6. Repository, Maintain clean architecture, follow SOLID principles 
+7. Service
+8. Controller
+9. Angular UI
+10. Provide clear explanations for design decisions and business rules before implementation.
+11. Integration
+12. Testing
+13. Production-ready before next module.

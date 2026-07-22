@@ -1,0 +1,76 @@
+<div class="products-page">
+  <div class="header">
+    <h2>Products</h2>
+    <div class="header-actions">
+      <button mat-button (click)="exportCsv()">Export CSV</button>
+      <button mat-flat-button color="primary" (click)="addProduct()">Add Product</button>
+    </div>
+  </div>
+
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Search by name, code, or barcode</mat-label>
+    <input matInput [(ngModel)]="searchTerm" (keyup.enter)="search()" />
+    <button matSuffix mat-icon-button (click)="search()" aria-label="Search">
+      <mat-icon>search</mat-icon>
+    </button>
+  </mat-form-field>
+
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
+      <ng-container matColumnDef="code">
+        <th mat-header-cell *matHeaderCellDef>Code</th>
+        <td mat-cell *matCellDef="let product">{{ product.code }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let product">{{ product.name }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="category">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let product">{{ product.categoryName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="brand">
+        <th mat-header-cell *matHeaderCellDef>Brand</th>
+        <td mat-cell *matCellDef="let product">{{ product.brandName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="sellingPrice">
+        <th mat-header-cell *matHeaderCellDef>Selling Price</th>
+        <td mat-cell *matCellDef="let product">{{ product.sellingPrice }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="currentStock">
+        <th mat-header-cell *matHeaderCellDef>Stock</th>
+        <td mat-cell *matCellDef="let product">{{ product.currentStock }} {{ product.unitSymbol }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let product">
+          <button mat-icon-button (click)="editProduct(product)" aria-label="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button (click)="deleteProduct(product)" aria-label="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageNumber() - 1"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPageChange($event)"
+    />
+  }
+</div>

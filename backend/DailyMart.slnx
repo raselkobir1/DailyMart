@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DailyMart.API/DailyMart.API.csproj" />
+    <Project Path="src/DailyMart.Application/DailyMart.Application.csproj" />
+    <Project Path="src/DailyMart.Domain/DailyMart.Domain.csproj" />
+    <Project Path="src/DailyMart.Infrastructure/DailyMart.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DailyMart.UnitTests/DailyMart.UnitTests.csproj" />
+  </Folder>
+</Solution>
