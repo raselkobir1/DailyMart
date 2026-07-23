@@ -95,10 +95,23 @@ export const routes: Routes = [
       },
       {
         path: 'customers',
-        loadComponent: () =>
-          import('./features/customers/customer-list/customer-list.component').then(
-            (m) => m.CustomerListComponent
-          )
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/customers/customer-list/customer-list.component').then(
+                (m) => m.CustomerListComponent
+              )
+          },
+          {
+            path: ':id/ledger',
+            loadComponent: () =>
+              import('./features/customers/customer-ledger/customer-ledger.component').then(
+                (m) => m.CustomerLedgerComponent
+              )
+          }
+        ]
       },
       {
         path: 'purchases',
@@ -138,6 +151,43 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/purchases/returns/purchase-return-form/purchase-return-form.component').then(
                 (m) => m.PurchaseReturnFormComponent
+              )
+          }
+        ]
+      },
+      {
+        path: 'pos',
+        loadComponent: () =>
+          import('./features/pos/pos-billing/pos-billing.component').then((m) => m.PosBillingComponent)
+      },
+      {
+        path: 'sales',
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/pos/sale-list/sale-list.component').then((m) => m.SaleListComponent)
+          },
+          {
+            path: ':id',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/pos/sale-detail/sale-detail.component').then((m) => m.SaleDetailComponent)
+          },
+          {
+            path: ':id/returns',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/pos/returns/sale-return-list/sale-return-list.component').then(
+                (m) => m.SaleReturnListComponent
+              )
+          },
+          {
+            path: ':id/returns/new',
+            loadComponent: () =>
+              import('./features/pos/returns/sale-return-form/sale-return-form.component').then(
+                (m) => m.SaleReturnFormComponent
               )
           }
         ]

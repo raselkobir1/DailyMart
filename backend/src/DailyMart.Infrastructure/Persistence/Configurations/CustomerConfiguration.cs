@@ -16,6 +16,7 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Phone).HasMaxLength(50);
         builder.Property(c => c.Email).HasMaxLength(200);
         builder.Property(c => c.Address).HasMaxLength(500);
+        builder.Property(c => c.CurrentDue).HasColumnType("numeric(12,2)").HasDefaultValue(0m);
 
         // Filtered unique index on Phone, not Name - see Module 6 Step 1's scope decision. Multiple NULLs
         // (customers with no phone on file) never collide in a Postgres unique index by default.

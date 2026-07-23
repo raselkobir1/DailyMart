@@ -30,9 +30,13 @@ export class LoginComponent {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  // Pre-filled with the seeded default admin credentials (see AdminSeeder /
+  // appsettings.Development.json's Admin:DefaultUsername/DefaultPassword) so a first-time user on a
+  // fresh install can just click "Sign in" with no typing - or clear/overwrite these fields first if
+  // they're logging in as an account whose password has since been changed.
   protected readonly form = this.fb.nonNullable.group({
-    username: ['', Validators.required],
-    password: ['', Validators.required]
+    username: ['admin', Validators.required],
+    password: ['Admin@123456', Validators.required]
   });
 
   protected submit(): void {

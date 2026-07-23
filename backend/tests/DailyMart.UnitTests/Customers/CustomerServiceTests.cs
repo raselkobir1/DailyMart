@@ -131,4 +131,40 @@ public class CustomerServiceTests
 
         await Assert.ThrowsAsync<NotFoundException>(() => _sut.DeleteAsync(404));
     }
+
+    [Fact]
+    public async Task AdjustDueAsync_increases_CurrentDue_and_records_the_full_amount_on_a_credit_sale()
+    {
+        var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
+        _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(ledgerRepository.Object);
+
+        var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 0 };
+        _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        await _sut.AdjustDueAsync(1, 100, CustomerLedgerEntryType.Sale, "Sale #SALE-000001");
+
+        Assert.Equal(100, customer.CurrentDue);
+        ledgerRepository.Verify(r => r.AddAsync(
+            It.Is<CustomerLedgerEntry>(e => e.Amount == 100 && e.BalanceAfter == 100), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task AdjustDueAsync_clamps_at_zero_instead_of_going_negative_and_records_only_the_applied_amount()
+    {
+        var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
+        _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(ledgerRepository.Object);
+
+        // Only 40 is owed, but a sale return attempts to reduce due by 100 - CLAUDE.md §8: "customer due
+        // cannot go negative... excess handled as a separate credit, not a negative due".
+        var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 40 };
+        _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        await _sut.AdjustDueAsync(1, -100, CustomerLedgerEntryType.SaleReturn, "Sale return #SRET-000001");
+
+        Assert.Equal(0, customer.CurrentDue);
+        ledgerRepository.Verify(r => r.AddAsync(
+            It.Is<CustomerLedgerEntry>(e => e.Amount == -40 && e.BalanceAfter == 0), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }

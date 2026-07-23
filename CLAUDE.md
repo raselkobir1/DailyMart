@@ -57,6 +57,10 @@ live together within their layer, even though the layer itself is one project.
   extensibility" requirement, but only an Admin role is enforced now.
 - **Global exception handling**: middleware mapping domain/validation exceptions to consistent
   `ProblemDetails` responses.
+- **CORS**: a named policy (`Cors:AllowedOrigins` config, empty by default) restricts cross-origin calls to
+  known frontend origins — needed for the `ng serve` (`:4200`) → API (`:5299`) local dev split. The Docker
+  Compose deployment doesn't need this at all: nginx reverse-proxies `/api/*` to the API container, so the
+  browser only ever sees one origin. See §13.
 - **Logging**: Serilog, structured, request logging + business event logging (sales, stock changes).
 - **Audit log**: a dedicated `AuditLog` module/table capturing entity, action (created/updated/deleted/sold),
   old value, new value, user, timestamp — written via an EF Core `SaveChanges` interceptor so every module gets
@@ -103,6 +107,13 @@ frontend/dailymart-ui/src/app/
 - Reactive Forms for all data entry (product form, purchase entry, POS billing).
 
 ## 7. Modules (from BRD) and Build Order
+
+**Status (2026-07-23):** Modules 0–9 are implemented, tested, and verified — both via `dotnet test`/`ng test`
+and a live pass (real Postgres + real HTTP calls + a full browser click-through) confirming every BRD
+business rule in §8 actually holds at runtime, not just in code. Module 10 (Customer Due) is next; it
+should reuse `ICustomerService.AdjustDueAsync`/`GetLedgerAsync` (added in Module 9) rather than
+re-inventing them — Module 9 already had to build the customer due/ledger plumbing ahead of schedule since
+Sale is what first creates a due.
 
 Build strictly module-by-module, in this order (later modules depend on earlier ones):
 
@@ -184,3 +195,17 @@ For each module, in order, before moving to the next module:
 
 Multi-branch, warehouse, multiple users/roles, promotions, loyalty, SMS, email, accounting integration,
 mobile app. Do not add speculative extensibility for these beyond what's noted in §4 (role field on user).
+
+## 13. Deployment
+
+`docker-compose up --build` at the repo root brings up the whole stack (`db` = Postgres 16, `api` = the .NET
+backend, `web` = the Angular app served by nginx) — see `README.md` for the full quick-start and default
+admin credentials. Two things any future module should keep intact:
+
+- **Auto-migration on startup**: `Program.cs` calls `Database.MigrateAsync()` (with a short retry loop for
+  the Postgres-not-ready-on-first-boot race) before seeding. New migrations just need to exist in the
+  Infrastructure project — nobody has to run `dotnet ef database update` by hand, in Docker or otherwise.
+- **Same-origin `/api` proxy, not CORS**: production (`environment.ts`) uses a relative `apiBaseUrl: '/api'`,
+  and `frontend/dailymart-ui/nginx.conf` proxies `/api/*` to the `api` container. Don't hardcode an absolute
+  API URL in a service or environment file — it would bypass this and reintroduce a cross-origin call that
+  only the dev-only CORS policy (§4) covers.

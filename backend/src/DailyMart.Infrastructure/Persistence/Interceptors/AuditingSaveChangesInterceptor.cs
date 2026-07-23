@@ -84,8 +84,13 @@ public class AuditingSaveChangesInterceptor : SaveChangesInterceptor
                     entry.Entity.UpdatedBy = userName;
                     oldValues = Serialize(ToDictionary(entry, useOriginalValues: true));
                     newValues = Serialize(ToDictionary(entry, useOriginalValues: false));
+                    // Compares actual values rather than trusting IsModified: Repository<T>.Update() calls
+                    // DbSet.Update() on an entity that's already tracked (loaded via GetByIdAsync earlier
+                    // in the same request), which marks every scalar property IsModified regardless of
+                    // whether its value actually changed - that would make ChangedColumns list every
+                    // column on every update instead of only the ones genuinely edited.
                     changedColumns = Serialize(entry.Properties
-                        .Where(p => p.IsModified)
+                        .Where(p => !Equals(entry.OriginalValues[p.Metadata], entry.CurrentValues[p.Metadata]))
                         .Select(p => p.Metadata.Name)
                         .ToList());
                     break;

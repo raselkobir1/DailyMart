@@ -1,0 +1,44 @@
+.return-form-page {
+  padding: 1rem;
+}
+
+.form-card {
+  max-width: 720px;
+}
+
+.third-width {
+  width: 33%;
+  margin-bottom: 0.5rem;
+}
+
+.full-width {
+  width: 100%;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.items-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 1rem 0;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.item-row-header {
+  font-weight: 600;
+  color: var(--mat-sys-outline, #666);
+  font-size: 0.85rem;
+}
+
+.actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}

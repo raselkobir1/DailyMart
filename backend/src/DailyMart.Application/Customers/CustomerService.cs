@@ -17,6 +17,8 @@ public class CustomerService : ICustomerService
 
     private IRepository<Customer> Repository => _unitOfWork.Repository<Customer>();
 
+    private IRepository<CustomerLedgerEntry> LedgerRepository => _unitOfWork.Repository<CustomerLedgerEntry>();
+
     public async Task<PagedResult<CustomerDto>> GetPagedAsync(
         PagedRequest request, CancellationToken cancellationToken = default)
     {
@@ -72,6 +74,73 @@ public class CustomerService : ICustomerService
 
         Repository.Remove(customer);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<CustomerLedgerEntryDto>> GetLedgerAsync(
+        long customerId, PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        if (!await Repository.ExistsAsync(c => c.Id == customerId, cancellationToken))
+        {
+            throw new NotFoundException(nameof(Customer), customerId);
+        }
+
+        var effectiveRequest = string.IsNullOrWhiteSpace(request.SortBy)
+            ? new PagedRequest
+            {
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                SearchTerm = request.SearchTerm,
+                SortBy = nameof(CustomerLedgerEntry.TransactionDate),
+                SortDescending = false
+            }
+            : request;
+
+        var result = await LedgerRepository.GetPagedAsync(
+            effectiveRequest, entry => entry.CustomerId == customerId, cancellationToken);
+
+        return new PagedResult<CustomerLedgerEntryDto>
+        {
+            Items = result.Items.Select(e => e.ToDto()).ToList(),
+            TotalCount = result.TotalCount,
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize
+        };
+    }
+
+    public async Task AdjustDueAsync(
+        long customerId,
+        decimal amount,
+        CustomerLedgerEntryType entryType,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await GetEntityAsync(customerId, cancellationToken);
+
+        var previousDue = customer.CurrentDue;
+        var newDue = previousDue + amount;
+        if (newDue < 0)
+        {
+            // Clamp rather than throw - CLAUDE.md §8: "collection is capped at outstanding due... not a
+            // negative due." The ledger entry below records what was actually applied (appliedAmount), not
+            // the raw requested amount, so CurrentDue always reconciles to the sum of its ledger entries.
+            newDue = 0;
+        }
+        var appliedAmount = newDue - previousDue;
+
+        customer.CurrentDue = newDue;
+        Repository.Update(customer);
+
+        var entry = new CustomerLedgerEntry
+        {
+            CustomerId = customerId,
+            EntryType = entryType,
+            Description = description,
+            Amount = appliedAmount,
+            BalanceAfter = customer.CurrentDue,
+            TransactionDate = DateTimeOffset.UtcNow
+        };
+
+        await LedgerRepository.AddAsync(entry, cancellationToken);
     }
 
     private async Task<Customer> GetEntityAsync(long id, CancellationToken cancellationToken) =>

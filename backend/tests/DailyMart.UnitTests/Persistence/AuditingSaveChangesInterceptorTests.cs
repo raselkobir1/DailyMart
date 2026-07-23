@@ -50,6 +50,34 @@ public class AuditingSaveChangesInterceptorTests
         Assert.Contains("Name", log.ChangedColumns);
     }
 
+    /// <summary>
+    /// Reproduces the real service pattern (Repository&lt;T&gt;.Update calls DbSet.Update on an entity
+    /// that's already tracked, e.g. loaded via GetByIdAsync earlier in the same request) rather than this
+    /// suite's other test, which mutates a tracked entity directly without an explicit Update() call.
+    /// DbSet.Update() marks the whole entry Modified, which used to make every scalar property report
+    /// IsModified = true regardless of whether its value actually changed - ChangedColumns must only ever
+    /// list columns whose value is genuinely different, not every column on the entity.
+    /// </summary>
+    [Fact]
+    public async Task ChangedColumns_only_lists_columns_whose_value_actually_changed_even_via_explicit_Update()
+    {
+        await using var context = TestDbContextFactory.Create();
+
+        var widget = new TestWidget { Name = "Original" };
+        context.Widgets.Add(widget);
+        await context.SaveChangesAsync();
+
+        widget.Name = "Renamed";
+        context.Widgets.Update(widget);
+        await context.SaveChangesAsync();
+
+        var log = context.AuditLogs.Local.Single(l => l.Action == AuditAction.Updated);
+        Assert.Contains("Name", log.ChangedColumns);
+        Assert.DoesNotContain("CreatedAt", log.ChangedColumns);
+        Assert.DoesNotContain("CreatedBy", log.ChangedColumns);
+        Assert.DoesNotContain("IsDeleted", log.ChangedColumns);
+    }
+
     [Fact]
     public async Task Removing_entity_converts_to_soft_delete_instead_of_a_real_delete()
     {

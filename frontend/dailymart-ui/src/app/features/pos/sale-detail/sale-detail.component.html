@@ -1,0 +1,71 @@
+<div class="sale-detail-page">
+  @if (loading()) {
+    <mat-spinner diameter="32" />
+  } @else if (sale()) {
+    <div class="header no-print">
+      <button mat-icon-button (click)="back()" aria-label="Back">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h2>Sale {{ sale()!.saleNumber }}</h2>
+      <span class="spacer"></span>
+      <button mat-button (click)="viewReturns()">Returns</button>
+      <button mat-stroked-button (click)="print()">Print Invoice</button>
+      <button mat-flat-button color="primary" (click)="newSale()">New Sale</button>
+    </div>
+
+    <mat-card class="invoice-card">
+      <mat-card-content>
+        <h2 class="invoice-title">Invoice {{ sale()!.saleNumber }}</h2>
+
+        <div class="meta-row">
+          <div>Date: {{ sale()!.saleDate | date: 'medium' }}</div>
+          <div>Customer: {{ sale()!.customerName ?? 'Walk-in customer' }}</div>
+          <div>Payment: {{ sale()!.paymentType }}</div>
+        </div>
+
+        <table mat-table [dataSource]="sale()!.items" class="mat-elevation-z1">
+          <ng-container matColumnDef="productName">
+            <th mat-header-cell *matHeaderCellDef>Product</th>
+            <td mat-cell *matCellDef="let item">{{ item.productName }} ({{ item.productCode }})</td>
+          </ng-container>
+
+          <ng-container matColumnDef="quantity">
+            <th mat-header-cell *matHeaderCellDef>Qty</th>
+            <td mat-cell *matCellDef="let item">{{ item.quantity }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="unitPrice">
+            <th mat-header-cell *matHeaderCellDef>Unit Price</th>
+            <td mat-cell *matCellDef="let item">{{ item.unitPrice }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="discountAmount">
+            <th mat-header-cell *matHeaderCellDef>Discount</th>
+            <td mat-cell *matCellDef="let item">{{ item.discountAmount }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="lineTotal">
+            <th mat-header-cell *matHeaderCellDef>Line Total</th>
+            <td mat-cell *matCellDef="let item">{{ item.lineTotal }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+
+        <div class="totals">
+          <div>Subtotal: {{ sale()!.subtotalAmount }}</div>
+          <div>Discount: {{ sale()!.discountAmount }}</div>
+          <div>VAT: {{ sale()!.vatAmount }}</div>
+          <div class="grand-total">Total: {{ sale()!.totalAmount }}</div>
+          <div>Paid: {{ sale()!.paidAmount }}</div>
+          <div>Due: {{ sale()!.dueAmount }}</div>
+        </div>
+
+        @if (sale()!.notes) {
+          <p class="notes">Notes: {{ sale()!.notes }}</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

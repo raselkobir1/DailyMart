@@ -21,6 +21,12 @@ export class ProductService {
     return this.http.get<ProductDto>(`/products/${id}`);
   }
 
+  /** What the POS barcode-scanner workflow calls - the backend returns 404 (surfaced by errorInterceptor)
+   * when nothing matches, same "missing" contract as getById. */
+  getByBarcode(barcode: string): Observable<ProductDto> {
+    return this.http.get<ProductDto>(`/products/barcode/${barcode}`);
+  }
+
   create(request: CreateProductRequest): Observable<ProductDto> {
     return this.http.post<ProductDto>('/products', request);
   }

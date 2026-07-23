@@ -5,6 +5,7 @@ using DailyMart.Application.Inventory;
 using DailyMart.Application.MasterData;
 using DailyMart.Application.Products;
 using DailyMart.Application.Purchases;
+using DailyMart.Application.Sales;
 using DailyMart.Application.Settings;
 using DailyMart.Application.Suppliers;
 using FluentValidation;
@@ -28,6 +29,8 @@ public static class DependencyInjection
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IPurchaseService, PurchaseService>();
         services.AddScoped<IPurchaseReturnService, PurchaseReturnService>();
+        services.AddScoped<ISaleService, SaleService>();
+        services.AddScoped<ISaleReturnService, SaleReturnService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;

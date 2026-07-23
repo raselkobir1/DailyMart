@@ -4,9 +4,11 @@ using DailyMart.API.Filters;
 using DailyMart.Application;
 using DailyMart.Application.Common.Options;
 using DailyMart.Infrastructure;
+using DailyMart.Infrastructure.Persistence;
 using DailyMart.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -52,6 +54,22 @@ try
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
 
+    // The Angular app runs on its own origin (ng serve on :4200) against this API (:5299 in dev) - without
+    // an explicit CORS policy every browser request is blocked by the browser itself, silently, before it
+    // ever reaches a controller. No dev proxy exists to route around this instead, so this is required for
+    // the UI to function at all, not just a nice-to-have.
+    var corsAllowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("DefaultCorsPolicy", policy =>
+        {
+            if (corsAllowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(corsAllowedOrigins).AllowAnyHeader().AllowAnyMethod();
+            }
+        });
+    });
+
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -87,6 +105,13 @@ try
 
     using (var scope = app.Services.CreateScope())
     {
+        // Applies any pending EF Core migrations before anything else runs - so `docker-compose up` on a
+        // fresh machine needs no manual `dotnet ef database update` step. Retries with a short backoff:
+        // Postgres's healthcheck reports "accepting connections" slightly before it's actually ready for
+        // every kind of query on a cold volume, and this is cheap insurance against that race.
+        var dbContext = scope.ServiceProvider.GetRequiredService<DailyMartDbContext>();
+        await MigrateWithRetryAsync(dbContext, app.Logger);
+
         var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
         await adminSeeder.SeedAsync();
 
@@ -109,12 +134,35 @@ try
     // at the relative URL that gets stored in ShopSettings.ShopLogoUrl.
     app.UseStaticFiles();
 
+    app.UseCors("DefaultCorsPolicy");
+
     app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();
 
     app.Run();
+
+    static async Task MigrateWithRetryAsync(DailyMartDbContext dbContext, Microsoft.Extensions.Logging.ILogger logger)
+    {
+        const int maxAttempts = 10;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await dbContext.Database.MigrateAsync();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                logger.LogWarning(ex,
+                    "Database not ready yet (attempt {Attempt}/{MaxAttempts}) - retrying in 3s...",
+                    attempt, maxAttempts);
+                await Task.Delay(TimeSpan.FromSeconds(3));
+            }
+        }
+    }
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {

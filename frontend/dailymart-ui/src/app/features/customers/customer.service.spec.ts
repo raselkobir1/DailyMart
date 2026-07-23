@@ -13,7 +13,8 @@ describe('CustomerService', () => {
     name: 'Karim Ahmed',
     phone: '01711111111',
     email: null,
-    address: null
+    address: null,
+    currentDue: 0
   };
 
   beforeEach(() => {

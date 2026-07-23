@@ -10,7 +10,8 @@ internal static class CustomerMappingExtensions
         Name = customer.Name,
         Phone = customer.Phone,
         Email = customer.Email,
-        Address = customer.Address
+        Address = customer.Address,
+        CurrentDue = customer.CurrentDue
     };
 
     public static Customer ToEntity(this CustomerRequestDto request) => new()
@@ -28,4 +29,15 @@ internal static class CustomerMappingExtensions
         customer.Email = request.Email;
         customer.Address = request.Address;
     }
+
+    public static CustomerLedgerEntryDto ToDto(this CustomerLedgerEntry entry) => new()
+    {
+        Id = entry.Id,
+        CustomerId = entry.CustomerId,
+        EntryType = entry.EntryType.ToString(),
+        Description = entry.Description,
+        Amount = entry.Amount,
+        BalanceAfter = entry.BalanceAfter,
+        TransactionDate = entry.TransactionDate
+    };
 }

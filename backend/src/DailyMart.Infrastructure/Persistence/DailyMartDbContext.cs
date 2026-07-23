@@ -5,6 +5,7 @@ using DailyMart.Domain.Inventory;
 using DailyMart.Domain.MasterData;
 using DailyMart.Domain.Products;
 using DailyMart.Domain.Purchases;
+using DailyMart.Domain.Sales;
 using DailyMart.Domain.Settings;
 using DailyMart.Domain.Suppliers;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +41,8 @@ public class DailyMartDbContext : DbContext
 
     public DbSet<Customer> Customers => Set<Customer>();
 
+    public DbSet<CustomerLedgerEntry> CustomerLedgerEntries => Set<CustomerLedgerEntry>();
+
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
 
     public DbSet<InventoryAdjustment> InventoryAdjustments => Set<InventoryAdjustment>();
@@ -51,6 +54,14 @@ public class DailyMartDbContext : DbContext
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
 
     public DbSet<PurchaseReturnItem> PurchaseReturnItems => Set<PurchaseReturnItem>();
+
+    public DbSet<Sale> Sales => Set<Sale>();
+
+    public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+
+    public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
+
+    public DbSet<SaleReturnItem> SaleReturnItems => Set<SaleReturnItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

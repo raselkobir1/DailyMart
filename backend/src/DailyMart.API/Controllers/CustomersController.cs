@@ -49,4 +49,13 @@ public class CustomersController : ControllerBase
         await _customerService.DeleteAsync(id, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>Only ever shows Sale/SaleReturn entries until Module 10's payment collection also starts
+    /// adding Payment entries to the same table.</summary>
+    [HttpGet("{id:long}/ledger")]
+    public async Task<ActionResult<PagedResult<CustomerLedgerEntryDto>>> GetLedger(
+        long id, [FromQuery] PagedRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await _customerService.GetLedgerAsync(id, request, cancellationToken));
+    }
 }

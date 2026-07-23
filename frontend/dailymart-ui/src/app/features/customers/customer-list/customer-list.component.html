@@ -58,9 +58,17 @@
         <td mat-cell *matCellDef="let customer">{{ customer.email }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="currentDue">
+        <th mat-header-cell *matHeaderCellDef>Current Due</th>
+        <td mat-cell *matCellDef="let customer">{{ customer.currentDue }}</td>
+      </ng-container>
+
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let customer">
+          <button mat-icon-button (click)="viewLedger(customer)" aria-label="Ledger">
+            <mat-icon>receipt_long</mat-icon>
+          </button>
           <button mat-icon-button (click)="startEdit(customer)" aria-label="Edit">
             <mat-icon>edit</mat-icon>
           </button>

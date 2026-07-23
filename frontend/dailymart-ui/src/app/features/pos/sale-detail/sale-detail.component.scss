@@ -1,0 +1,54 @@
+.sale-detail-page {
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.invoice-card {
+  max-width: 800px;
+}
+
+.invoice-title {
+  text-align: center;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  color: var(--mat-sys-outline, #666);
+}
+
+.totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin-top: 1rem;
+}
+
+.grand-total {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.notes {
+  margin-top: 1rem;
+  color: var(--mat-sys-outline, #666);
+}
+
+@media print {
+  .no-print {
+    display: none;
+  }
+}

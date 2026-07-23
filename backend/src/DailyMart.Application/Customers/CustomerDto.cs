@@ -11,4 +11,6 @@ public class CustomerDto
     public string? Email { get; init; }
 
     public string? Address { get; init; }
+
+    public decimal CurrentDue { get; init; }
 }

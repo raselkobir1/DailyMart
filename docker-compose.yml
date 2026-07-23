@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dailymart
+    volumes:
+      - dailymart_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dailymart"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: src/DailyMart.API/Dockerfile
+    environment:
+      # appsettings.Development.json is gitignored (it's a local secrets file - see
+      # backend/.gitignore and its .example template), so it will NOT exist on a fresh clone/build
+      # machine. Every value the app needs to actually start (JWT secret, seeded admin credentials, CORS
+      # origin) is therefore supplied explicitly here instead of assumed to come from that file - this is
+      # what makes `docker-compose up --build` work on a brand new checkout with zero manual setup.
+      # Override any of these via a top-level ".env" file (docker compose reads it automatically) rather
+      # than editing this file directly - especially JWT_SECRET/ADMIN_PASSWORD if this ever leaves a
+      # single trusted machine.
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=dailymart;Username=postgres;Password=postgres"
+      Jwt__Secret: ${JWT_SECRET:-LFh+51qdDMsLmVWSCWiP3GvHTcICuDtpX7wj47FxuWIVvUIVaMe7/KbSiVlfme6u}
+      Jwt__Issuer: DailyMart
+      Jwt__Audience: DailyMartClient
+      Jwt__AccessTokenMinutes: "15"
+      Jwt__RefreshTokenDays: "7"
+      Admin__DefaultUsername: ${ADMIN_USERNAME:-admin}
+      Admin__DefaultPassword: ${ADMIN_PASSWORD:-Admin@123456}
+      Cors__AllowedOrigins__0: http://localhost:4200
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5299:8080"
+    volumes:
+      - dailymart_uploads:/app/wwwroot/uploads
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend/dailymart-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  dailymart_pgdata:
+  dailymart_uploads:

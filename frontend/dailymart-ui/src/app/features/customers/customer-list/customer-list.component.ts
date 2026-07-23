@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,8 +12,8 @@ import { MatTableModule } from '@angular/material/table';
 import { CustomerDto } from '../customer.model';
 import { CustomerService } from '../customer.service';
 
-/** Inline add/edit form, no MatDialog - same pattern as Modules 3/5. No "ledger" action here - there's
- * nothing to show yet (Module 6 Step 1 - a customer only accrues due once Sale/Module 9 exists). */
+/** Inline add/edit form, no MatDialog - same pattern as Modules 3/5. currentDue/Ledger were added in
+ * Module 9 (POS Sales) once a customer could actually accrue due via a credit sale. */
 @Component({
   selector: 'app-customer-list',
   standalone: true,
@@ -33,9 +34,10 @@ import { CustomerService } from '../customer.service';
 export class CustomerListComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly customerService = inject(CustomerService);
+  private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly displayedColumns = ['name', 'phone', 'email', 'actions'];
+  protected readonly displayedColumns = ['name', 'phone', 'email', 'currentDue', 'actions'];
   protected readonly items = signal<CustomerDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -87,6 +89,10 @@ export class CustomerListComponent implements OnInit {
 
   protected cancelEdit(): void {
     this.formVisible.set(false);
+  }
+
+  protected viewLedger(customer: CustomerDto): void {
+    this.router.navigateByUrl(`/customers/${customer.id}/ledger`);
   }
 
   protected save(): void {
