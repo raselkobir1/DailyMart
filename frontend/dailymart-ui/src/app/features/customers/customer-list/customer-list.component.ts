@@ -131,6 +131,10 @@ export class CustomerListComponent implements OnInit {
     this.router.navigateByUrl(`/customers/${customer.id}/ledger`);
   }
 
+  protected viewDueReport(): void {
+    this.router.navigateByUrl('/customers/due-report');
+  }
+
   private load(): void {
     this.loading.set(true);
 

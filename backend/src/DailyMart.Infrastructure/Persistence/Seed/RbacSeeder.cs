@@ -24,6 +24,7 @@ public class RbacSeeder
     /// SortOrder mirrors the intended sidebar order.</summary>
     private static readonly (string Key, string Label, string Route, string Icon, int SortOrder)[] SeedMenus =
     [
+        ("dashboard", "Dashboard", "/dashboard", "📊", 5),
         ("products", "Products", "/products", "🛍️", 10),
         ("categories", "Categories", "/categories", "🏷️", 20),
         ("brands", "Brands", "/brands", "🔖", 30),

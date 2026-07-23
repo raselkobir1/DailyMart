@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PagedRequest, PagedResult } from '../../shared/models/paged-result.model';
-import { CustomerDto, CustomerLedgerEntryDto, CustomerRequest } from './customer.model';
+import { CollectCustomerPaymentRequest, CustomerDto, CustomerLedgerEntryDto, CustomerRequest } from './customer.model';
 
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
@@ -39,5 +39,18 @@ export class CustomerService {
     if (request.pageSize) params = params.set('pageSize', request.pageSize);
 
     return this.http.get<PagedResult<CustomerLedgerEntryDto>>(`/customers/${id}/ledger`, { params });
+  }
+
+  collectPayment(id: number, request: CollectCustomerPaymentRequest): Observable<CustomerDto> {
+    return this.http.post<CustomerDto>(`/customers/${id}/payments`, request);
+  }
+
+  getDueReport(request: PagedRequest): Observable<PagedResult<CustomerDto>> {
+    let params = new HttpParams();
+    if (request.pageNumber) params = params.set('pageNumber', request.pageNumber);
+    if (request.pageSize) params = params.set('pageSize', request.pageSize);
+    if (request.searchTerm) params = params.set('searchTerm', request.searchTerm);
+
+    return this.http.get<PagedResult<CustomerDto>>('/customers/due-report', { params });
   }
 }

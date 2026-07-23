@@ -64,7 +64,7 @@ export class LoginComponent {
       },
       error: () => {
         this.loading.set(false);
-        this.router.navigateByUrl('/audit-log');
+        this.router.navigateByUrl('/dashboard');
       }
     });
   }

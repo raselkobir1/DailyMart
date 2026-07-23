@@ -167,4 +167,93 @@ public class CustomerServiceTests
             It.Is<CustomerLedgerEntry>(e => e.Amount == -40 && e.BalanceAfter == 0), It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task CollectPaymentAsync_reduces_due_and_records_a_Payment_ledger_entry()
+    {
+        var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
+        _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(ledgerRepository.Object);
+
+        var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 100 };
+        _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        var result = await _sut.CollectPaymentAsync(1, new CollectCustomerPaymentRequestDto { Amount = 60 });
+
+        Assert.Equal(40, customer.CurrentDue);
+        Assert.Equal(40, result.CurrentDue);
+        ledgerRepository.Verify(r => r.AddAsync(
+            It.Is<CustomerLedgerEntry>(e =>
+                e.EntryType == CustomerLedgerEntryType.Payment && e.Amount == -60 && e.BalanceAfter == 40),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CollectPaymentAsync_caps_an_overpayment_at_the_outstanding_due()
+    {
+        var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
+        _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(ledgerRepository.Object);
+
+        var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 40 };
+        _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        var result = await _sut.CollectPaymentAsync(1, new CollectCustomerPaymentRequestDto { Amount = 500 });
+
+        Assert.Equal(0, customer.CurrentDue);
+        Assert.Equal(0, result.CurrentDue);
+        ledgerRepository.Verify(r => r.AddAsync(
+            It.Is<CustomerLedgerEntry>(e => e.Amount == -40 && e.BalanceAfter == 0), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CollectPaymentAsync_rejects_collection_when_there_is_no_outstanding_due()
+    {
+        var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 0 };
+        _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(
+            () => _sut.CollectPaymentAsync(1, new CollectCustomerPaymentRequestDto { Amount = 10 }));
+
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetDueReportAsync_only_includes_customers_with_a_positive_due()
+    {
+        Expression<Func<Customer, bool>>? capturedPredicate = null;
+        _repository
+            .Setup(r => r.GetPagedAsync(It.IsAny<PagedRequest>(), It.IsAny<Expression<Func<Customer, bool>>?>(), It.IsAny<CancellationToken>()))
+            .Callback<PagedRequest, Expression<Func<Customer, bool>>?, CancellationToken>((_, predicate, _) => capturedPredicate = predicate)
+            .ReturnsAsync(new PagedResult<Customer>
+            {
+                Items = [new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 100 }],
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 20
+            });
+
+        var result = await _sut.GetDueReportAsync(new PagedRequest());
+
+        var isIncluded = capturedPredicate!.Compile();
+        Assert.True(isIncluded(new Customer { CurrentDue = 100 }));
+        Assert.False(isIncluded(new Customer { CurrentDue = 0 }));
+        Assert.Single(result.Items);
+    }
+
+    [Fact]
+    public async Task GetDueReportAsync_defaults_to_sorting_by_CurrentDue_descending()
+    {
+        PagedRequest? capturedRequest = null;
+        _repository
+            .Setup(r => r.GetPagedAsync(It.IsAny<PagedRequest>(), It.IsAny<Expression<Func<Customer, bool>>?>(), It.IsAny<CancellationToken>()))
+            .Callback<PagedRequest, Expression<Func<Customer, bool>>?, CancellationToken>((request, _, _) => capturedRequest = request)
+            .ReturnsAsync(new PagedResult<Customer> { Items = [], TotalCount = 0, PageNumber = 1, PageSize = 20 });
+
+        await _sut.GetDueReportAsync(new PagedRequest());
+
+        Assert.Equal(nameof(Customer.CurrentDue), capturedRequest!.SortBy);
+        Assert.True(capturedRequest.SortDescending);
+    }
 }

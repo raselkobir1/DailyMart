@@ -12,7 +12,31 @@
       }
     </div>
   </div>
+  @if (customer() && customer()!.currentDue > 0 && perms.can('customers', 'edit')) {
+    <button class="btn btn-primary" (click)="startCollectPayment()">Collect Payment</button>
+  }
 </div>
+
+@if (paymentFormVisible()) {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 480px">
+    <form [formGroup]="paymentForm" (ngSubmit)="collectPayment()">
+      <div class="row">
+        <div class="field">
+          <label>Amount</label>
+          <input class="input" type="number" step="0.01" formControlName="amount" />
+        </div>
+        <div class="field grow">
+          <label>Notes (optional)</label>
+          <input class="input" formControlName="notes" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="collectingPayment()">Save Payment</button>
+        <button class="btn" type="button" (click)="cancelCollectPayment()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
 
 @if (loading()) {
   <div class="spinner-page"><span class="spinner lg"></span></div>

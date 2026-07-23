@@ -1,0 +1,70 @@
+<div class="page-head">
+  <div>
+    <h2>Customer Due Report</h2>
+    <div class="subtitle">{{ totalCount() }} customers with an outstanding due</div>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th class="num">Current Due</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (customer of items(); track customer.id) {
+            <tr>
+              <td>{{ customer.name }}</td>
+              <td>{{ customer.phone }}</td>
+              <td class="num"><span class="badge low">{{ customer.currentDue }}</span></td>
+              <td>
+                <button class="btn btn-icon" (click)="viewLedger(customer)" aria-label="Ledger">📒</button>
+                @if (perms.can('customers', 'edit')) {
+                  <button class="btn btn-sm" (click)="startCollectPayment(customer)">Collect Payment</button>
+                }
+              </td>
+            </tr>
+            @if (collectingForId() === customer.id) {
+              <tr>
+                <td colspan="4">
+                  <form [formGroup]="paymentForm" (ngSubmit)="collectPayment(customer)" class="row">
+                    <div class="field">
+                      <label>Amount</label>
+                      <input class="input" type="number" step="0.01" formControlName="amount" />
+                    </div>
+                    <div class="field grow">
+                      <label>Notes (optional)</label>
+                      <input class="input" formControlName="notes" />
+                    </div>
+                    <div class="actions" style="align-self: flex-end">
+                      <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+                      <button class="btn" type="button" (click)="cancelCollectPayment()">Cancel</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr class="empty-row"><td colspan="4">No customers currently owe any money.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

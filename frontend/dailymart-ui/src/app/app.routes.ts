@@ -10,7 +10,13 @@ export const routes: Routes = [
     path: '',
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'audit-log' },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        canActivate: [canView('dashboard')],
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent)
+      },
       {
         path: 'audit-log',
         canActivate: [canView('audit-log')],
@@ -110,6 +116,13 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/customers/customer-list/customer-list.component').then(
                 (m) => m.CustomerListComponent
+              )
+          },
+          {
+            path: 'due-report',
+            loadComponent: () =>
+              import('./features/customers/customer-due-report/customer-due-report.component').then(
+                (m) => m.CustomerDueReportComponent
               )
           },
           {

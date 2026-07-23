@@ -1,0 +1,131 @@
+<div class="page-head">
+  <h2>Dashboard</h2>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else if (error()) {
+  <p class="field error">{{ error() }}</p>
+} @else if (summary(); as s) {
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Today's Sales</div>
+      <div class="kpi-value">{{ s.todaySales | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Today's Purchases</div>
+      <div class="kpi-value">{{ s.todayPurchases | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">Today's Profit</div>
+      <div class="kpi-value">{{ s.todayProfit | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">Today's Expense</div>
+      <div class="kpi-value">{{ s.todayExpense | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card" [class.accent-sky]="s.cashInHand >= 0" [class.accent-red]="s.cashInHand < 0">
+      <div class="kpi-label">Cash in Hand</div>
+      <div class="kpi-value">{{ s.cashInHand | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-red clickable" (click)="goTo('/customers')">
+      <div class="kpi-label">Customer Due</div>
+      <div class="kpi-value">{{ s.totalCustomerDue | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-red clickable" (click)="goTo('/suppliers')">
+      <div class="kpi-label">Supplier Due</div>
+      <div class="kpi-value">{{ s.totalSupplierDue | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card clickable" (click)="goTo('/inventory')">
+      <div class="kpi-label">Inventory Value</div>
+      <div class="kpi-value">{{ s.inventoryValue | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-amber clickable" (click)="goTo('/inventory/low-stock')">
+      <div class="kpi-label">Low Stock Items</div>
+      <div class="kpi-value">{{ s.lowStockCount }}</div>
+    </div>
+  </div>
+
+  <div class="dash-row">
+    <div class="card card-pad chart-card">
+      <div class="card-head">
+        <h3>Last 7 Days</h3>
+        <div class="legend">
+          <span class="legend-item"><span class="dot sales"></span> Sales</span>
+          <span class="legend-item"><span class="dot purchases"></span> Purchases</span>
+        </div>
+      </div>
+      <div class="trend-chart">
+        @for (point of s.salesTrend; track point.date) {
+          <div class="trend-day">
+            <div class="bars">
+              <div class="bar sales" [style.height.%]="barHeight(point.sales)" [title]="'Sales: ' + point.sales"></div>
+              <div class="bar purchases" [style.height.%]="barHeight(point.purchases)" [title]="'Purchases: ' + point.purchases"></div>
+            </div>
+            <div class="trend-label">{{ point.date | date: 'MMM d' }}</div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-row two-col">
+    <div class="card card-pad">
+      <div class="card-head">
+        <h3>Low Stock Products</h3>
+        <button class="btn btn-sm" (click)="goTo('/inventory/low-stock')">View all</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="num">Stock</th>
+              <th class="num">Minimum</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of s.lowStockProducts; track p.productId) {
+              <tr>
+                <td>{{ p.productName }}</td>
+                <td class="num"><span class="badge low">{{ p.currentStock }}</span></td>
+                <td class="num">{{ p.minimumStock }}</td>
+              </tr>
+            } @empty {
+              <tr class="empty-row"><td colspan="3">No low stock products.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card card-pad">
+      <div class="card-head">
+        <h3>Top Selling Products</h3>
+        <span class="subtitle">Last 30 days</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="num">Qty Sold</th>
+              <th class="num">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of s.topSellingProducts; track p.productId) {
+              <tr>
+                <td>{{ p.productName }}</td>
+                <td class="num">{{ p.quantitySold }}</td>
+                <td class="num">{{ p.revenue | number: '1.0-2' }}</td>
+              </tr>
+            } @empty {
+              <tr class="empty-row"><td colspan="3">No sales yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+}

@@ -143,6 +143,55 @@ public class CustomerService : ICustomerService
         await LedgerRepository.AddAsync(entry, cancellationToken);
     }
 
+    public async Task<CustomerDto> CollectPaymentAsync(
+        long customerId,
+        CollectCustomerPaymentRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await GetEntityAsync(customerId, cancellationToken);
+        if (customer.CurrentDue <= 0)
+        {
+            throw new BusinessRuleException($"Customer '{customer.Name}' has no outstanding due to collect.");
+        }
+
+        var description = string.IsNullOrWhiteSpace(request.Notes) ? "Payment collected" : request.Notes;
+        await AdjustDueAsync(customerId, -request.Amount, CustomerLedgerEntryType.Payment, description!, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return customer.ToDto();
+    }
+
+    public async Task<PagedResult<CustomerDto>> GetDueReportAsync(
+        PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        Expression<Func<Customer, bool>> predicate = string.IsNullOrWhiteSpace(request.SearchTerm)
+            ? customer => customer.CurrentDue > 0
+            : customer => customer.CurrentDue > 0
+                && (customer.Name.Contains(request.SearchTerm)
+                    || (customer.Phone != null && customer.Phone.Contains(request.SearchTerm)));
+
+        var effectiveRequest = string.IsNullOrWhiteSpace(request.SortBy)
+            ? new PagedRequest
+            {
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                SearchTerm = request.SearchTerm,
+                SortBy = nameof(Customer.CurrentDue),
+                SortDescending = true
+            }
+            : request;
+
+        var result = await Repository.GetPagedAsync(effectiveRequest, predicate, cancellationToken);
+
+        return new PagedResult<CustomerDto>
+        {
+            Items = result.Items.Select(c => c.ToDto()).ToList(),
+            TotalCount = result.TotalCount,
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize
+        };
+    }
+
     private async Task<Customer> GetEntityAsync(long id, CancellationToken cancellationToken) =>
         await Repository.GetByIdAsync(id, cancellationToken) ?? throw new NotFoundException(nameof(Customer), id);
 

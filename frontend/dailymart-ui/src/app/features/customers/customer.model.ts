@@ -25,3 +25,8 @@ export interface CustomerLedgerEntryDto {
   balanceAfter: number;
   transactionDate: string;
 }
+
+export interface CollectCustomerPaymentRequest {
+  amount: number;
+  notes: string | null;
+}

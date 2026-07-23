@@ -32,4 +32,18 @@ public interface ICustomerService
         CustomerLedgerEntryType entryType,
         string description,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Module 10's payment-collection endpoint - built on top of AdjustDueAsync (Payment entry
+    /// type, amount applied negative and clamped at zero exactly like a sale return). Unlike AdjustDueAsync,
+    /// this one commits (SaveChangesAsync) itself, since a payment is a standalone action, not staged
+    /// alongside a larger unit of work the way a sale is.</summary>
+    Task<CustomerDto> CollectPaymentAsync(
+        long customerId,
+        CollectCustomerPaymentRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Customers with CurrentDue &gt; 0, sorted highest-due-first by default - the "who owes money"
+    /// report Module 10's BRD text calls for.</summary>
+    Task<PagedResult<CustomerDto>> GetDueReportAsync(
+        PagedRequest request, CancellationToken cancellationToken = default);
 }
