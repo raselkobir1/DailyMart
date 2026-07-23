@@ -1,7 +1,2 @@
-.spacer {
-  flex: 1 1 auto;
-}
-
-.user {
-  margin-right: 1rem;
-}
+/* Layout classes (.shell, .sidebar, .topbar, .content, etc.) live in the global styles.scss design
+   system, not here - they're shared with every other component that needs them (e.g. the login page). */

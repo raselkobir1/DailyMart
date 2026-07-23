@@ -1,32 +1,18 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Perms } from '../../../core/perms';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { SupplierDto } from '../supplier.model';
 import { SupplierService } from '../supplier.service';
 
-/** Inline add/edit form, no MatDialog - same pattern as Module 3's master data pages. OpeningBalance is
+/** Inline add/edit form, no modal - same pattern as Module 3's master data pages. OpeningBalance is
  * only shown while creating - it's write-once server-side (Module 5 Step 1). */
 @Component({
   selector: 'app-supplier-list',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule, PaginationComponent],
   templateUrl: './supplier-list.component.html',
   styleUrl: './supplier-list.component.scss'
 })
@@ -34,9 +20,9 @@ export class SupplierListComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly supplierService = inject(SupplierService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
-  protected readonly displayedColumns = ['name', 'contactPerson', 'phone', 'currentDue', 'actions'];
   protected readonly items = signal<SupplierDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -59,9 +45,14 @@ export class SupplierListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -113,12 +104,12 @@ export class SupplierListComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.formVisible.set(false);
-        this.snackBar.open('Supplier saved.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Supplier saved.');
         this.load();
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not save supplier.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not save supplier.');
       }
     });
   }
@@ -130,10 +121,10 @@ export class SupplierListComponent implements OnInit {
 
     this.supplierService.delete(supplier.id).subscribe({
       next: () => {
-        this.snackBar.open('Supplier deleted.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Supplier deleted.');
         this.load();
       },
-      error: () => this.snackBar.open('Could not delete supplier.', 'Dismiss')
+      error: () => this.toast.error('Could not delete supplier.')
     });
   }
 
@@ -152,7 +143,7 @@ export class SupplierListComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load suppliers.', 'Dismiss');
+        this.toast.error('Could not load suppliers.');
       }
     });
   }

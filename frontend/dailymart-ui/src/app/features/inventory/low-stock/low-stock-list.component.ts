@@ -1,8 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { ProductDto } from '../../products/product.model';
 import { ProductService } from '../../products/product.service';
 
@@ -11,15 +9,14 @@ import { ProductService } from '../../products/product.service';
 @Component({
   selector: 'app-low-stock-list',
   standalone: true,
-  imports: [MatTableModule, MatPaginatorModule, MatProgressSpinnerModule],
+  imports: [PaginationComponent],
   templateUrl: './low-stock-list.component.html',
   styleUrl: './low-stock-list.component.scss'
 })
 export class LowStockListComponent implements OnInit {
   private readonly productService = inject(ProductService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
-  protected readonly displayedColumns = ['code', 'name', 'currentStock', 'minimumStock'];
   protected readonly items = signal<ProductDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -30,9 +27,14 @@ export class LowStockListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -47,7 +49,7 @@ export class LowStockListComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load low stock products.', 'Dismiss');
+        this.toast.error('Could not load low stock products.');
       }
     });
   }

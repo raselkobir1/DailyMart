@@ -2,14 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../../core/toast';
 import { ProductDto } from '../../products/product.model';
 import { ProductService } from '../../products/product.service';
 import { SupplierDto } from '../../suppliers/supplier.model';
@@ -22,16 +15,7 @@ import { PurchaseService } from '../purchase.service';
 @Component({
   selector: 'app-purchase-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule],
   templateUrl: './purchase-form.component.html',
   styleUrl: './purchase-form.component.scss'
 })
@@ -42,9 +26,12 @@ export class PurchaseFormComponent implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   protected readonly paymentTypes = PAYMENT_TYPES;
+  /** Exposed so the template can convert a <select>'s string value back to a number - Angular template
+   * expressions only resolve against the component instance, not the global scope. */
+  protected readonly Number = Number;
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -161,12 +148,12 @@ export class PurchaseFormComponent implements OnInit {
     result$.subscribe({
       next: (purchase) => {
         this.saving.set(false);
-        this.snackBar.open('Purchase saved.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Purchase saved.');
         this.router.navigateByUrl(`/purchases/${purchase.id}/edit`);
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not save purchase.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not save purchase.');
       }
     });
   }
@@ -193,7 +180,7 @@ export class PurchaseFormComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load purchase.', 'Dismiss');
+        this.toast.error('Could not load purchase.');
       }
     });
   }

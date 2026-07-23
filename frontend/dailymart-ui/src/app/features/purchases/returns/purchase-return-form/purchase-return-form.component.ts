@@ -1,12 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../../../core/toast';
 import { PurchaseDto, PurchaseItemDto } from '../../purchase.model';
 import { PurchaseService } from '../../purchase.service';
 import { PurchaseReturnRequest } from '../purchase-return.model';
@@ -18,7 +13,7 @@ import { PurchaseReturnService } from '../purchase-return.service';
 @Component({
   selector: 'app-purchase-return-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './purchase-return-form.component.html',
   styleUrl: './purchase-return-form.component.scss'
 })
@@ -28,7 +23,7 @@ export class PurchaseReturnFormComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly purchaseService = inject(PurchaseService);
   private readonly purchaseReturnService = inject(PurchaseReturnService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   private readonly purchaseId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -55,7 +50,7 @@ export class PurchaseReturnFormComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load purchase.', 'Dismiss');
+        this.toast.error('Could not load purchase.');
       }
     });
   }
@@ -71,7 +66,7 @@ export class PurchaseReturnFormComponent implements OnInit {
       .map((item) => ({ purchaseItemId: item.purchaseItemId, quantity: item.quantity }));
 
     if (items.length === 0) {
-      this.snackBar.open('Enter a return quantity for at least one item.', 'Dismiss');
+      this.toast.error('Enter a return quantity for at least one item.');
       return;
     }
 
@@ -86,12 +81,12 @@ export class PurchaseReturnFormComponent implements OnInit {
     this.purchaseReturnService.create(this.purchaseId, request).subscribe({
       next: () => {
         this.saving.set(false);
-        this.snackBar.open('Return recorded.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Return recorded.');
         this.router.navigateByUrl(`/purchases/${this.purchaseId}/returns`);
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not record return.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not record return.');
       }
     });
   }

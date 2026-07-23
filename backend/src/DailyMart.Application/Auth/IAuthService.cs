@@ -1,3 +1,5 @@
+using DailyMart.Application.Rbac;
+
 namespace DailyMart.Application.Auth;
 
 public interface IAuthService
@@ -12,4 +14,10 @@ public interface IAuthService
     /// a user can only change their own password.</summary>
     Task ChangePasswordAsync(
         long userId, ChangePasswordRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>The CanView=true subset of this user's role's permission matrix, ordered by SortOrder -
+    /// drives the frontend's dynamic sidebar and per-route canView(menuKey) guard. Deliberately NOT baked
+    /// into the JWT (see JwtTokenGenerator's doc comment) - called at app bootstrap and right after login,
+    /// so a permission change takes effect without needing to re-issue anyone's token.</summary>
+    Task<IReadOnlyList<MenuPermissionDto>> GetMyPermissionsAsync(long userId, CancellationToken cancellationToken = default);
 }

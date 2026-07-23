@@ -1,15 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule, MatSelectChange } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
 import { Router } from '@angular/router';
+import { Perms } from '../../../core/perms';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { ProductDto } from '../../products/product.model';
 import { ProductService } from '../../products/product.service';
 import { InventoryTransactionDto } from '../inventory.model';
@@ -22,17 +17,7 @@ type ActiveForm = 'adjustment' | 'damaged' | null;
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    DatePipe
-  ],
+  imports: [ReactiveFormsModule, DatePipe, PaginationComponent],
   templateUrl: './inventory-list.component.html',
   styleUrl: './inventory-list.component.scss'
 })
@@ -41,16 +26,9 @@ export class InventoryListComponent implements OnInit {
   private readonly inventoryService = inject(InventoryService);
   private readonly productService = inject(ProductService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
-  protected readonly displayedColumns = [
-    'transactionDate',
-    'productName',
-    'transactionType',
-    'quantityChange',
-    'balanceAfter',
-    'notes'
-  ];
   protected readonly products = signal<ProductDto[]>([]);
   protected readonly items = signal<InventoryTransactionDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -78,14 +56,20 @@ export class InventoryListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
     this.load();
   }
 
-  protected onFilterChange(event: MatSelectChange): void {
-    this.filterProductId.set(event.value);
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
+    this.load();
+  }
+
+  protected onFilterChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.filterProductId.set(value ? Number(value) : null);
     this.pageNumber.set(1);
     this.load();
   }
@@ -119,12 +103,12 @@ export class InventoryListComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.activeForm.set(null);
-        this.snackBar.open('Stock adjustment recorded.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Stock adjustment recorded.');
         this.load();
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not record adjustment.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not record adjustment.');
       }
     });
   }
@@ -140,12 +124,12 @@ export class InventoryListComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.activeForm.set(null);
-        this.snackBar.open('Damaged stock recorded.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Damaged stock recorded.');
         this.load();
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not record damaged stock.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not record damaged stock.');
       }
     });
   }
@@ -163,7 +147,7 @@ export class InventoryListComponent implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Could not load transaction history.', 'Dismiss');
+          this.toast.error('Could not load transaction history.');
         }
       });
   }

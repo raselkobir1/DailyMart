@@ -1,76 +1,80 @@
-<div class="products-page">
-  <div class="header">
+<div class="page-head">
+  <div>
     <h2>Products</h2>
-    <div class="header-actions">
-      <button mat-button (click)="exportCsv()">Export CSV</button>
-      <button mat-flat-button color="primary" (click)="addProduct()">Add Product</button>
-    </div>
+    <div class="subtitle">{{ totalCount() }} products</div>
   </div>
-
-  <mat-form-field appearance="outline" class="search-field">
-    <mat-label>Search by name, code, or barcode</mat-label>
-    <input matInput [(ngModel)]="searchTerm" (keyup.enter)="search()" />
-    <button matSuffix mat-icon-button (click)="search()" aria-label="Search">
-      <mat-icon>search</mat-icon>
-    </button>
-  </mat-form-field>
-
-  @if (loading()) {
-    <mat-spinner diameter="32" />
-  } @else {
-    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
-      <ng-container matColumnDef="code">
-        <th mat-header-cell *matHeaderCellDef>Code</th>
-        <td mat-cell *matCellDef="let product">{{ product.code }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let product">{{ product.name }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="category">
-        <th mat-header-cell *matHeaderCellDef>Category</th>
-        <td mat-cell *matCellDef="let product">{{ product.categoryName }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="brand">
-        <th mat-header-cell *matHeaderCellDef>Brand</th>
-        <td mat-cell *matCellDef="let product">{{ product.brandName }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="sellingPrice">
-        <th mat-header-cell *matHeaderCellDef>Selling Price</th>
-        <td mat-cell *matCellDef="let product">{{ product.sellingPrice }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="currentStock">
-        <th mat-header-cell *matHeaderCellDef>Stock</th>
-        <td mat-cell *matCellDef="let product">{{ product.currentStock }} {{ product.unitSymbol }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let product">
-          <button mat-icon-button (click)="editProduct(product)" aria-label="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button mat-icon-button (click)="deleteProduct(product)" aria-label="Delete">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-
-    <mat-paginator
-      [length]="totalCount()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageNumber() - 1"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPageChange($event)"
-    />
-  }
+  <div style="display: flex; gap: 0.5rem">
+    <button class="btn" (click)="exportCsv()">Export CSV</button>
+    @if (perms.can('products', 'create')) {
+      <button class="btn btn-primary" (click)="addProduct()">Add Product</button>
+    }
+  </div>
 </div>
+
+<div class="toolbar">
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+    <input class="input" placeholder="Search by name, code, or barcode" [(ngModel)]="searchTerm" (keyup.enter)="search()" />
+  </div>
+  <button class="btn btn-sm" (click)="search()">Search</button>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Brand</th>
+            <th class="num">Selling Price</th>
+            <th class="num">Stock</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of items(); track product.id) {
+            <tr>
+              <td>{{ product.code }}</td>
+              <td>{{ product.name }}</td>
+              <td>{{ product.categoryName }}</td>
+              <td>{{ product.brandName }}</td>
+              <td class="num">{{ product.sellingPrice }}</td>
+              <td class="num">
+                {{ product.currentStock }} {{ product.unitSymbol }}
+                @if (product.currentStock <= product.minimumStock) {
+                  <span class="badge low">Low</span>
+                }
+              </td>
+              <td>
+                @if (perms.can('products', 'edit')) {
+                  <button class="btn btn-icon" (click)="editProduct(product)" aria-label="Edit">✏️</button>
+                }
+                @if (perms.can('products', 'delete')) {
+                  <button class="btn btn-icon" (click)="deleteProduct(product)" aria-label="Delete">🗑️</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="7">No products yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

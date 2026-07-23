@@ -6,7 +6,10 @@ Source of truth for architecture, conventions, and build order. Full requirement
 
 Production-ready management system for a single departmental shop ("DailyMart"): suppliers, purchasing,
 inventory, barcode POS sales, customer/supplier dues, expenses, P&L, reports, dashboard, audit log.
-Single shop, single admin user for now (multi-branch/multi-user are explicitly Future scope — do not build for them).
+Single shop for now (multi-branch is explicitly Future scope — do not build for it). Multiple staff users
+**with role-based menu permissions** are in scope (see §4's RBAC bullet) — this supersedes the original
+"single admin user" decision, once a real shop turned out to need a cashier/manager split, not just one
+admin login.
 
 ## 2. Tech Stack
 
@@ -53,8 +56,23 @@ live together within their layer, even though the layer itself is one project.
 - **DTOs**: separate Request/Response DTOs per operation, no leaking of EF entities across the API boundary.
 - **Validation**: FluentValidation validators per DTO, run via a validation filter/pipeline behavior in the API layer.
 - **Auth**: JWT bearer tokens; `[Authorize]` by default; password hashing via ASP.NET Core `IPasswordHasher`
-  (no external identity provider). Role field on the user modeled from day one for the "future role
-  extensibility" requirement, but only an Admin role is enforced now.
+  (no external identity provider). `User.Role` is a plain string (matches the JWT's `ClaimTypes.Role`
+  claim), not a foreign key.
+- **RBAC (Role/Menu/Permission)**: `Role`, `Menu` (the nav item/screen, `Key`+`Route`+`Icon`+`SortOrder`,
+  optional `ParentId` for nesting), and `RoleMenuPermission` (one row per role×menu, four independent
+  `CanView`/`CanCreate`/`CanEdit`/`CanDelete` flags — not a generic action-string list). The JWT only ever
+  carries the user's role *name* (coarse `[Authorize(Roles="Admin")]` checks); the fine-grained permitted-menu
+  list is fetched separately via `GET /api/auth/me/permissions`, so changing a role's permissions takes
+  effect immediately without re-issuing tokens. `RolesController`/`MenusController`/`UsersController` are
+  `[Authorize(Roles = "Admin")]` — the only controllers in this codebase with an explicit role requirement,
+  since letting any authenticated user manage roles/permissions directly would let them self-escalate
+  regardless of what the frontend hides. Every other business controller (Products, Purchases, ...) stays on
+  the global "any authenticated user" fallback policy — per-menu CRUD enforcement for those is a frontend
+  concern (hide the button/route), not a backend one; don't add per-endpoint permission checks there without
+  discussing the tradeoff first, since that's a deliberate scope line, not an oversight.
+  A `RbacSeeder` runs on every startup (not just once) and grants the system "Admin" role full CRUD on every
+  menu, including ones added after initial seed — add a new module's `Menu` row to its seed list and it's
+  visible to Admin with no manual permissions step.
 - **Global exception handling**: middleware mapping domain/validation exceptions to consistent
   `ProblemDetails` responses.
 - **CORS**: a named policy (`Cors:AllowedOrigins` config, empty by default) restricts cross-origin calls to
@@ -81,8 +99,9 @@ live together within their layer, even though the layer itself is one project.
 
 ```
 frontend/dailymart-ui/src/app/
-├─ core/            # auth service, JWT interceptor, auth guard (functional), error interceptor
-├─ shared/          # shared UI components (data table, barcode input, money pipe), pipes, models
+├─ core/            # auth service, JWT interceptor, auth guard (functional), error interceptor,
+│                    # perms.ts (RBAC permission signals), theme.ts (light/dark + accent), toast.ts
+├─ shared/          # pagination component, toast-container, barcode-print util, models
 ├─ features/
 │  ├─ auth/
 │  ├─ dashboard/
@@ -95,15 +114,31 @@ frontend/dailymart-ui/src/app/
 │  ├─ expenses/
 │  ├─ reports/       # P&L, sales/purchase/inventory/due reports, closing reports
 │  ├─ audit-log/
-│  └─ settings/
-└─ app.routes.ts    # lazy-loaded per feature
+│  ├─ settings/
+│  ├─ users/        # RBAC: user management (Admin-only)
+│  ├─ roles/        # RBAC: role management (Admin-only)
+│  ├─ menus/         # RBAC: menu/screen management (Admin-only)
+│  └─ permissions/   # RBAC: the role-selector + View/Create/Edit/Delete matrix screen
+└─ app.routes.ts    # lazy-loaded per feature; every route (besides /login) has a canView(menuKey) guard
 ```
 
 - Standalone components, `inject()` over constructor DI, signals for local/component state.
 - One `HttpClient`-based API service per module, typed request/response models matching backend DTOs.
-- Functional route guards + HTTP interceptor for attaching JWT / handling 401.
-- UI component library: **Angular Material** as the default choice for forms/tables/dialogs (revisit only if
-  a specific module needs richer data-grid features than Material provides, e.g. POS line-item grid).
+- Functional route guards + HTTP interceptor for attaching JWT / handling 401. `authGuard` gates the whole
+  authenticated layout (must be signed in **and** have ≥1 visible menu); `canView(menuKey)` is a per-route
+  factory guard that redirects to the user's first permitted menu if denied.
+- **No UI component library** — no Angular Material, no PrimeNG. Hand-written CSS in `src/styles.scss`:
+  CSS custom-property design tokens (`--brand`, `--ink`, `--panel`, ...) overridden under
+  `[data-theme="dark"]`, soft tint colors derived at runtime via `color-mix()` so they auto-adapt to
+  light/dark and to a runtime-selectable accent color (`core/theme.ts`) with no second palette to maintain.
+  Reusable utility classes (`.card`, `.card-pad`, `.table-wrap table`, `.btn`/`.btn-primary`, `.field`/`.input`,
+  `.badge`, `.chip`, `.spinner`, ...) are consumed directly in templates — there is no wrapping Angular
+  component for a button or a card. The two exceptions that ARE real shared components:
+  `shared/pagination/pagination.component.ts` (replaces `mat-paginator`) and
+  `shared/toast-container/toast-container.component.ts` + `core/toast.ts` (replaces `MatSnackBar`).
+  List pages are an inline form-card above a `.card > table`, not a modal; forms are dedicated routes, not
+  dialogs. Icons are emoji for nav/action buttons and small inline SVGs for chrome (search icon, etc.) — no
+  icon font/library dependency.
 - Reactive Forms for all data entry (product form, purchase entry, POS billing).
 
 ## 7. Modules (from BRD) and Build Order
@@ -114,6 +149,13 @@ business rule in §8 actually holds at runtime, not just in code. Module 10 (Cus
 should reuse `ICustomerService.AdjustDueAsync`/`GetLedgerAsync` (added in Module 9) rather than
 re-inventing them — Module 9 already had to build the customer due/ledger plumbing ahead of schedule since
 Sale is what first creates a due.
+
+A cross-cutting RBAC system (Users/Roles/Menus/Permissions — see §4) and a full UI redesign (no Angular
+Material, hand-written design system — see §6) were also completed on top of Modules 0-9, verified the same
+way (live Postgres + HTTP + browser click-through, including logging in as a deliberately restricted
+"Cashier" role and confirming both the frontend sidebar/buttons AND the backend API itself reject what that
+role can't do). Every future module's Angular UI should follow §6's design system from the start, and its
+seed/setup should add a `Menu` row (see `RbacSeeder`) so Admin can see it immediately.
 
 Build strictly module-by-module, in this order (later modules depend on earlier ones):
 
@@ -193,8 +235,11 @@ For each module, in order, before moving to the next module:
 
 ## 12. Future (explicitly out of scope for now)
 
-Multi-branch, warehouse, multiple users/roles, promotions, loyalty, SMS, email, accounting integration,
-mobile app. Do not add speculative extensibility for these beyond what's noted in §4 (role field on user).
+Multi-branch, warehouse, promotions, loyalty, SMS, email, accounting integration, mobile app. Multi-user
+role-based permissions are no longer on this list — see §4's RBAC bullet — but per-field/per-action
+permissions beyond the four CanView/CanCreate/CanEdit/CanDelete flags, and backend-enforced (not just
+frontend-hidden) per-menu authorization on business controllers, both still are; don't add either without
+discussing the tradeoff first.
 
 ## 13. Deployment
 

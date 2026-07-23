@@ -1,12 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { SaleDto } from '../sale.model';
 import { SaleService } from '../sale.service';
 
@@ -14,25 +10,15 @@ import { SaleService } from '../sale.service';
 @Component({
   selector: 'app-sale-list',
   standalone: true,
-  imports: [MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, DatePipe],
+  imports: [DatePipe, PaginationComponent],
   templateUrl: './sale-list.component.html',
   styleUrl: './sale-list.component.scss'
 })
 export class SaleListComponent implements OnInit {
   private readonly saleService = inject(SaleService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
-  protected readonly displayedColumns = [
-    'saleNumber',
-    'customerName',
-    'saleDate',
-    'paymentType',
-    'totalAmount',
-    'dueAmount',
-    'profitAmount',
-    'actions'
-  ];
   protected readonly items = signal<SaleDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -43,9 +29,14 @@ export class SaleListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -72,7 +63,7 @@ export class SaleListComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load sales.', 'Dismiss');
+        this.toast.error('Could not load sales.');
       }
     });
   }

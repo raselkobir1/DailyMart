@@ -1,24 +1,77 @@
 @if (authService.isAuthenticated()) {
-  <mat-toolbar color="primary">
-    <span>DailyMart</span>
-    <a mat-button routerLink="/products">Products</a>
-    <a mat-button routerLink="/suppliers">Suppliers</a>
-    <a mat-button routerLink="/customers">Customers</a>
-    <a mat-button routerLink="/purchases">Purchases</a>
-    <a mat-button routerLink="/inventory">Inventory</a>
-    <a mat-button routerLink="/pos">POS</a>
-    <a mat-button routerLink="/sales">Sales</a>
-    <a mat-button routerLink="/categories">Categories</a>
-    <a mat-button routerLink="/brands">Brands</a>
-    <a mat-button routerLink="/units">Units</a>
-    <a mat-button routerLink="/audit-log">Audit Log</a>
-    <a mat-button routerLink="/settings">Settings</a>
-    <span class="spacer"></span>
-    @if (authService.currentUser()) {
-      <span class="user">{{ authService.currentUser()!.fullName }}</span>
-    }
-    <button mat-button (click)="logout()">Logout</button>
-  </mat-toolbar>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span>🏪</span> DailyMart</div>
+
+      <div class="section-label">Menu</div>
+      <nav>
+        @for (item of navTree(); track item.menuId) {
+          <a class="nav-link" [routerLink]="item.route" routerLinkActive="active">
+            <span class="icon">{{ item.icon }}</span> {{ item.label }}
+          </a>
+          @for (child of item.children; track child.menuId) {
+            <a class="nav-link" style="padding-left: 2.5rem" [routerLink]="child.route" routerLinkActive="active">
+              <span class="icon">{{ child.icon }}</span> {{ child.label }}
+            </a>
+          }
+        }
+      </nav>
+
+      <div class="user-card">
+        <span class="avatar sm">{{ initials() }}</span>
+        <div>
+          <div class="name">{{ authService.currentUser()?.fullName }}</div>
+          <div class="role">{{ authService.currentUser()?.role }}</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-column">
+      <header class="topbar">
+        <div class="greeting">
+          Welcome back, {{ authService.currentUser()?.fullName }} 👋
+          <div class="subtitle">Have a productive day.</div>
+        </div>
+
+        <div class="topbar-actions">
+          <button type="button" class="icon-btn" (click)="toggleTheme()" [attr.aria-label]="'Toggle theme'">
+            {{ theme.getMode() === 'dark' ? '☀️' : '🌙' }}
+          </button>
+
+          <div style="position: relative">
+            <button type="button" class="icon-btn" (click)="toggleUserMenu()" aria-label="Account menu">
+              <span class="avatar sm">{{ initials() }}</span>
+            </button>
+
+            @if (userMenuOpen()) {
+              <div class="card" style="position: absolute; right: 0; top: 2.75rem; width: 220px; z-index: 20; padding: 0.75rem">
+                <div style="font-weight: 600; margin-bottom: 0.5rem">{{ authService.currentUser()?.fullName }}</div>
+                <div style="display: flex; gap: 0.4rem; margin-bottom: 0.75rem">
+                  @for (accent of accents; track accent) {
+                    <button
+                      type="button"
+                      class="accent-swatch"
+                      [class.active]="theme.getAccent() === accent"
+                      [style.background]="accentPreview[accent]"
+                      (click)="setAccent(accent); closeUserMenu()"
+                      [attr.aria-label]="accent"
+                    ></button>
+                  }
+                </div>
+                <button type="button" class="btn btn-sm" style="width: 100%" (click)="logout()">Sign out</button>
+              </div>
+            }
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <router-outlet />
+      </main>
+    </div>
+  </div>
+} @else {
+  <router-outlet />
 }
 
-<router-outlet />
+<app-toast-container />

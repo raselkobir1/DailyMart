@@ -27,8 +27,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
             new Claim(ClaimTypes.Name, user.Username),
-            // Role claim now, so future modules can use [Authorize(Roles = "...")] without any JWT
-            // changes - only "Admin" is issued today (CLAUDE.md's "future role extensibility").
+            // Role claim only - deliberately not the user's permitted-menu list too. That's fetched
+            // separately via GET /api/auth/me/permissions (IAuthService.GetMyPermissionsAsync) at app
+            // bootstrap and right after login, so changing a role's permissions takes effect immediately
+            // without needing to re-issue every affected user's token.
             new Claim(ClaimTypes.Role, user.Role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };

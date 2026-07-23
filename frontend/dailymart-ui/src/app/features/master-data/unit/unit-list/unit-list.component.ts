@@ -1,38 +1,24 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Perms } from '../../../../core/perms';
+import { Toast } from '../../../../core/toast';
+import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
 import { UnitDto } from '../unit.model';
 import { UnitService } from '../unit.service';
 
 @Component({
   selector: 'app-unit-list',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule, PaginationComponent],
   templateUrl: './unit-list.component.html',
   styleUrl: './unit-list.component.scss'
 })
 export class UnitListComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly unitService = inject(UnitService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
-  protected readonly displayedColumns = ['name', 'symbol', 'actions'];
   protected readonly items = signal<UnitDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -51,9 +37,14 @@ export class UnitListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -89,12 +80,12 @@ export class UnitListComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.formVisible.set(false);
-        this.snackBar.open('Unit saved.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Unit saved.');
         this.load();
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not save unit.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not save unit.');
       }
     });
   }
@@ -106,10 +97,10 @@ export class UnitListComponent implements OnInit {
 
     this.unitService.delete(unit.id).subscribe({
       next: () => {
-        this.snackBar.open('Unit deleted.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Unit deleted.');
         this.load();
       },
-      error: () => this.snackBar.open('Could not delete unit.', 'Dismiss')
+      error: () => this.toast.error('Could not delete unit.')
     });
   }
 
@@ -124,7 +115,7 @@ export class UnitListComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load units.', 'Dismiss');
+        this.toast.error('Could not load units.');
       }
     });
   }

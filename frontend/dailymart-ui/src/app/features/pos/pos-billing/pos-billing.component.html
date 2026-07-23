@@ -1,129 +1,104 @@
 <div class="pos-page">
   <h2>New Sale</h2>
 
-  <mat-card class="scan-card">
-    <mat-card-content>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Scan or enter barcode</mat-label>
-        <input
-          #barcodeInput
-          matInput
-          [(ngModel)]="barcode"
-          [ngModelOptions]="{ standalone: true }"
-          (keyup.enter)="onBarcodeEnter()"
-          autofocus
-        />
-        <mat-icon matSuffix>qr_code_scanner</mat-icon>
-      </mat-form-field>
-    </mat-card-content>
-  </mat-card>
+  <div class="card card-pad scan-card">
+    <div class="field" style="margin-bottom: 0">
+      <label>Scan or enter barcode</label>
+      <input #barcodeInput class="input" [(ngModel)]="barcode" [ngModelOptions]="{ standalone: true }" (keyup.enter)="onBarcodeEnter()" autofocus />
+    </div>
+  </div>
 
-  <mat-card class="form-card">
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="save()">
-        <div formArrayName="items" class="items-table">
-          <div class="item-row item-row-header">
-            <span>Product</span>
-            <span>Quantity</span>
-            <span>Unit Price</span>
-            <span>Discount</span>
-            <span>Line Total</span>
-            <span></span>
+  <div class="card card-pad form-card">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div formArrayName="items" class="items-table">
+        <div class="item-row item-row-header">
+          <span>Product</span>
+          <span>Quantity</span>
+          <span>Unit Price</span>
+          <span>Discount</span>
+          <span>Line Total</span>
+          <span></span>
+        </div>
+
+        @if (itemsArray.length === 0) {
+          <p class="empty-state" style="padding: 1rem 0">Scan a product barcode to begin.</p>
+        }
+
+        @for (control of itemsArray.controls; track control; let i = $index) {
+          <div [formGroupName]="i" class="item-row">
+            <span style="font-weight: 500">{{ control.controls.productName.value }} ({{ control.controls.productCode.value }})</span>
+
+            <input class="input" type="number" formControlName="quantity" />
+            <input class="input" type="number" formControlName="unitPrice" />
+            <input class="input" type="number" formControlName="discountAmount" />
+
+            <span class="num">{{ lineTotal(i) }}</span>
+
+            <button class="btn btn-icon" type="button" (click)="removeItem(i)" aria-label="Remove item">🗑️</button>
           </div>
+        }
+      </div>
 
-          @if (itemsArray.length === 0) {
-            <p class="empty-cart">Scan a product barcode to begin.</p>
-          }
-
-          @for (control of itemsArray.controls; track control; let i = $index) {
-            <div [formGroupName]="i" class="item-row">
-              <span class="product-name">{{ control.controls.productName.value }} ({{ control.controls.productCode.value }})</span>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Qty</mat-label>
-                <input matInput type="number" formControlName="quantity" />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Unit Price</mat-label>
-                <input matInput type="number" formControlName="unitPrice" />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Discount</mat-label>
-                <input matInput type="number" formControlName="discountAmount" />
-              </mat-form-field>
-
-              <span class="line-total">{{ lineTotal(i) }}</span>
-
-              <button mat-icon-button type="button" (click)="removeItem(i)" aria-label="Remove item">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </div>
-          }
-        </div>
-
-        <div class="row">
-          <mat-form-field appearance="outline" class="third-width">
-            <mat-label>Customer {{ customerRequired() ? '(required)' : '(optional - walk-in)' }}</mat-label>
-            <mat-select formControlName="customerId">
-              <mat-option [value]="0">Walk-in customer</mat-option>
-              @for (customer of customers(); track customer.id) {
-                <mat-option [value]="customer.id">{{ customer.name }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="third-width">
-            <mat-label>Payment Type</mat-label>
-            <mat-select formControlName="paymentType">
-              @for (pt of paymentTypes; track pt.value) {
-                <mat-option [value]="pt.value">{{ pt.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="third-width">
-            <mat-label>Discount</mat-label>
-            <input matInput type="number" formControlName="discountAmount" />
-          </mat-form-field>
-        </div>
-
-        <div class="row">
-          <mat-form-field appearance="outline" class="third-width">
-            <mat-label>VAT</mat-label>
-            <input matInput type="number" formControlName="vatAmount" />
-          </mat-form-field>
-
-          @if (formValue().paymentType === 2) {
-            <mat-form-field appearance="outline" class="third-width">
-              <mat-label>Paid Amount</mat-label>
-              <input matInput type="number" formControlName="paidAmount" />
-            </mat-form-field>
-          }
-
-          <mat-form-field appearance="outline" class="third-width">
-            <mat-label>Notes</mat-label>
-            <input matInput formControlName="notes" />
-          </mat-form-field>
-        </div>
-
-        <div class="summary">
-          <div>Subtotal: {{ subtotal() }}</div>
-          <div>Total: {{ total() }}</div>
-          <div>Due: {{ due() }}</div>
-        </div>
-
-        <div class="actions">
-          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-            @if (saving()) {
-              <mat-spinner diameter="20" />
-            } @else {
-              Complete Sale
+      <div class="row">
+        <div class="field">
+          <label>Customer {{ customerRequired() ? '(required)' : '(optional - walk-in)' }}</label>
+          <select class="input" formControlName="customerId">
+            <option [value]="0">Walk-in customer</option>
+            @for (customer of customers(); track customer.id) {
+              <option [value]="customer.id">{{ customer.name }}</option>
             }
-          </button>
+          </select>
         </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+
+        <div class="field">
+          <label>Payment Type</label>
+          <select class="input" formControlName="paymentType">
+            @for (pt of paymentTypes; track pt.value) {
+              <option [value]="pt.value">{{ pt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Discount</label>
+          <input class="input" type="number" formControlName="discountAmount" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>VAT</label>
+          <input class="input" type="number" formControlName="vatAmount" />
+        </div>
+
+        @if (formValue().paymentType === 2) {
+          <div class="field">
+            <label>Paid Amount</label>
+            <input class="input" type="number" formControlName="paidAmount" />
+          </div>
+        }
+
+        <div class="field grow">
+          <label>Notes</label>
+          <input class="input" formControlName="notes" />
+        </div>
+      </div>
+
+      <div class="row" style="font-weight: 600; margin: 0.5rem 0 1rem">
+        <div>Subtotal: {{ subtotal() }}</div>
+        <div>Total: {{ total() }}</div>
+        <div>Due: {{ due() }}</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">
+          @if (saving()) {
+            <span class="spinner"></span>
+          } @else {
+            Complete Sale
+          }
+        </button>
+      </div>
+    </form>
+  </div>
 </div>

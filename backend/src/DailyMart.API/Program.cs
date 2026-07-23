@@ -117,6 +117,11 @@ try
 
         var shopSettingsSeeder = scope.ServiceProvider.GetRequiredService<ShopSettingsSeeder>();
         await shopSettingsSeeder.SeedAsync();
+
+        // Runs after AdminSeeder (needs the seeded admin's Role="Admin" to line up with the Role row it
+        // creates) and on every boot, not just once - see RbacSeeder's doc comment.
+        var rbacSeeder = scope.ServiceProvider.GetRequiredService<RbacSeeder>();
+        await rbacSeeder.SeedAsync();
     }
 
     app.UseExceptionHandler();

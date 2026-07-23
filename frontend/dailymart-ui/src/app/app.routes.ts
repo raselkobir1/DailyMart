@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard, canView } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -13,6 +13,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'audit-log' },
       {
         path: 'audit-log',
+        canActivate: [canView('audit-log')],
         loadComponent: () =>
           import('./features/audit-log/audit-log-list/audit-log-list.component').then(
             (m) => m.AuditLogListComponent
@@ -20,6 +21,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [canView('settings')],
         loadComponent: () =>
           import('./features/settings/settings-form/settings-form.component').then(
             (m) => m.SettingsFormComponent
@@ -27,6 +29,7 @@ export const routes: Routes = [
       },
       {
         path: 'categories',
+        canActivate: [canView('categories')],
         loadComponent: () =>
           import('./features/master-data/category/category-list/category-list.component').then(
             (m) => m.CategoryListComponent
@@ -34,6 +37,7 @@ export const routes: Routes = [
       },
       {
         path: 'brands',
+        canActivate: [canView('brands')],
         loadComponent: () =>
           import('./features/master-data/brand/brand-list/brand-list.component').then(
             (m) => m.BrandListComponent
@@ -41,6 +45,7 @@ export const routes: Routes = [
       },
       {
         path: 'units',
+        canActivate: [canView('units')],
         loadComponent: () =>
           import('./features/master-data/unit/unit-list/unit-list.component').then(
             (m) => m.UnitListComponent
@@ -48,6 +53,7 @@ export const routes: Routes = [
       },
       {
         path: 'products',
+        canActivate: [canView('products')],
         children: [
           {
             path: '',
@@ -75,6 +81,7 @@ export const routes: Routes = [
       },
       {
         path: 'suppliers',
+        canActivate: [canView('suppliers')],
         children: [
           {
             path: '',
@@ -95,6 +102,7 @@ export const routes: Routes = [
       },
       {
         path: 'customers',
+        canActivate: [canView('customers')],
         children: [
           {
             path: '',
@@ -115,6 +123,7 @@ export const routes: Routes = [
       },
       {
         path: 'purchases',
+        canActivate: [canView('purchases')],
         children: [
           {
             path: '',
@@ -157,11 +166,13 @@ export const routes: Routes = [
       },
       {
         path: 'pos',
+        canActivate: [canView('pos')],
         loadComponent: () =>
           import('./features/pos/pos-billing/pos-billing.component').then((m) => m.PosBillingComponent)
       },
       {
         path: 'sales',
+        canActivate: [canView('sales')],
         children: [
           {
             path: '',
@@ -194,6 +205,7 @@ export const routes: Routes = [
       },
       {
         path: 'inventory',
+        canActivate: [canView('inventory')],
         children: [
           {
             path: '',
@@ -211,6 +223,27 @@ export const routes: Routes = [
               )
           }
         ]
+      },
+      {
+        path: 'users',
+        canActivate: [canView('users')],
+        loadComponent: () => import('./features/users/user-list/user-list.component').then((m) => m.UserListComponent)
+      },
+      {
+        path: 'roles',
+        canActivate: [canView('roles')],
+        loadComponent: () => import('./features/roles/role-list/role-list.component').then((m) => m.RoleListComponent)
+      },
+      {
+        path: 'menus',
+        canActivate: [canView('menus')],
+        loadComponent: () => import('./features/menus/menu-list/menu-list.component').then((m) => m.MenuListComponent)
+      },
+      {
+        path: 'permissions',
+        canActivate: [canView('permissions')],
+        loadComponent: () =>
+          import('./features/permissions/permissions.component').then((m) => m.PermissionsComponent)
       }
     ]
   }

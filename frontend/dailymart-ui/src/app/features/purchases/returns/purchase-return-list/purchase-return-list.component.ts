@@ -1,12 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Perms } from '../../../../core/perms';
+import { Toast } from '../../../../core/toast';
+import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
 import { PurchaseDto } from '../../purchase.model';
 import { PurchaseService } from '../../purchase.service';
 import { PurchaseReturnDto } from '../purchase-return.model';
@@ -16,7 +13,7 @@ import { PurchaseReturnService } from '../purchase-return.service';
 @Component({
   selector: 'app-purchase-return-list',
   standalone: true,
-  imports: [MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, DatePipe],
+  imports: [DatePipe, PaginationComponent],
   templateUrl: './purchase-return-list.component.html',
   styleUrl: './purchase-return-list.component.scss'
 })
@@ -25,11 +22,11 @@ export class PurchaseReturnListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly purchaseService = inject(PurchaseService);
   private readonly purchaseReturnService = inject(PurchaseReturnService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
   private readonly purchaseId = Number(this.route.snapshot.paramMap.get('id'));
 
-  protected readonly displayedColumns = ['returnNumber', 'returnDate', 'totalAmount', 'notes'];
   protected readonly purchase = signal<PurchaseDto | null>(null);
   protected readonly items = signal<PurchaseReturnDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -40,15 +37,20 @@ export class PurchaseReturnListComponent implements OnInit {
   ngOnInit(): void {
     this.purchaseService.getById(this.purchaseId).subscribe({
       next: (purchase) => this.purchase.set(purchase),
-      error: () => this.snackBar.open('Could not load purchase.', 'Dismiss')
+      error: () => this.toast.error('Could not load purchase.')
     });
 
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -73,7 +75,7 @@ export class PurchaseReturnListComponent implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Could not load returns.', 'Dismiss');
+          this.toast.error('Could not load returns.');
         }
       });
   }

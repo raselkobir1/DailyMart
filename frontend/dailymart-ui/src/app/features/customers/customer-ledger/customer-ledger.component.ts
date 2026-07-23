@@ -1,12 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { CustomerDto, CustomerLedgerEntryDto } from '../customer.model';
 import { CustomerService } from '../customer.service';
 
@@ -15,7 +11,7 @@ import { CustomerService } from '../customer.service';
 @Component({
   selector: 'app-customer-ledger',
   standalone: true,
-  imports: [MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, DatePipe],
+  imports: [DatePipe, PaginationComponent],
   templateUrl: './customer-ledger.component.html',
   styleUrl: './customer-ledger.component.scss'
 })
@@ -23,11 +19,10 @@ export class CustomerLedgerComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly customerService = inject(CustomerService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   private readonly customerId = Number(this.route.snapshot.paramMap.get('id'));
 
-  protected readonly displayedColumns = ['transactionDate', 'entryType', 'description', 'amount', 'balanceAfter'];
   protected readonly customer = signal<CustomerDto | null>(null);
   protected readonly items = signal<CustomerLedgerEntryDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -38,15 +33,20 @@ export class CustomerLedgerComponent implements OnInit {
   ngOnInit(): void {
     this.customerService.getById(this.customerId).subscribe({
       next: (customer) => this.customer.set(customer),
-      error: () => this.snackBar.open('Could not load customer.', 'Dismiss')
+      error: () => this.toast.error('Could not load customer.')
     });
 
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -65,7 +65,7 @@ export class CustomerLedgerComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load the ledger.', 'Dismiss');
+        this.toast.error('Could not load the ledger.');
       }
     });
   }

@@ -1,7 +1,9 @@
 using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Options;
+using DailyMart.Application.Rbac;
 using DailyMart.Domain.Auth;
+using DailyMart.Domain.Rbac;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
@@ -116,6 +118,52 @@ public class AuthService : IAuthService
         await _refreshTokenRepository.RevokeAllActiveForUserAsync(userId, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MenuPermissionDto>> GetMyPermissionsAsync(
+        long userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new AuthenticationFailedException("User not found.");
+
+        var role = (await _unitOfWork.Repository<Role>().FindAsync(r => r.Name == user.Role, cancellationToken))
+            .FirstOrDefault();
+        if (role is null)
+        {
+            // The role name on this user doesn't match any existing Role row (e.g. the role was deleted
+            // out from under them, which RoleService.DeleteAsync should already prevent - this is a
+            // defensive fallback, not the expected path) - no permitted menus rather than an error, same
+            // "no access" outcome the reference app's "no admin access" logout produces.
+            return [];
+        }
+
+        var menus = await _unitOfWork.Repository<Menu>().GetAllAsync(cancellationToken);
+        var permissions = await _unitOfWork.Repository<RoleMenuPermission>()
+            .FindAsync(p => p.RoleId == role.Id && p.CanView, cancellationToken);
+        var permissionsByMenu = permissions.ToDictionary(p => p.MenuId);
+
+        return menus
+            .Where(m => permissionsByMenu.ContainsKey(m.Id))
+            .OrderBy(m => m.SortOrder)
+            .Select(m =>
+            {
+                var permission = permissionsByMenu[m.Id];
+                return new MenuPermissionDto
+                {
+                    MenuId = m.Id,
+                    MenuKey = m.Key,
+                    Label = m.Label,
+                    Route = m.Route,
+                    Icon = m.Icon,
+                    SortOrder = m.SortOrder,
+                    ParentId = m.ParentId,
+                    CanView = permission.CanView,
+                    CanCreate = permission.CanCreate,
+                    CanEdit = permission.CanEdit,
+                    CanDelete = permission.CanDelete
+                };
+            })
+            .ToList();
     }
 
     private async Task<AuthResponseDto> IssueTokensAsync(User user, CancellationToken cancellationToken)

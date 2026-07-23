@@ -1,93 +1,101 @@
-<div class="customers-page">
-  <div class="header">
+<div class="page-head">
+  <div>
     <h2>Customers</h2>
-    <button mat-flat-button color="primary" (click)="startCreate()">Add Customer</button>
+    <div class="subtitle">{{ totalCount() }} customers</div>
   </div>
-
-  <mat-form-field appearance="outline" class="search-field">
-    <mat-label>Search by name or phone</mat-label>
-    <input matInput [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" (keyup.enter)="search()" />
-    <button matSuffix mat-icon-button (click)="search()" aria-label="Search">
-      <mat-icon>search</mat-icon>
-    </button>
-  </mat-form-field>
-
-  @if (formVisible()) {
-    <form [formGroup]="form" (ngSubmit)="save()" class="inline-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Name</mat-label>
-        <input matInput formControlName="name" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Phone</mat-label>
-        <input matInput formControlName="phone" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput formControlName="email" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="grow">
-        <mat-label>Address</mat-label>
-        <input matInput formControlName="address" />
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save</button>
-      <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
-    </form>
-  }
-
-  @if (loading()) {
-    <mat-spinner diameter="32" />
-  } @else {
-    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let customer">{{ customer.name }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="phone">
-        <th mat-header-cell *matHeaderCellDef>Phone</th>
-        <td mat-cell *matCellDef="let customer">{{ customer.phone }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="email">
-        <th mat-header-cell *matHeaderCellDef>Email</th>
-        <td mat-cell *matCellDef="let customer">{{ customer.email }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="currentDue">
-        <th mat-header-cell *matHeaderCellDef>Current Due</th>
-        <td mat-cell *matCellDef="let customer">{{ customer.currentDue }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let customer">
-          <button mat-icon-button (click)="viewLedger(customer)" aria-label="Ledger">
-            <mat-icon>receipt_long</mat-icon>
-          </button>
-          <button mat-icon-button (click)="startEdit(customer)" aria-label="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button mat-icon-button (click)="delete(customer)" aria-label="Delete">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-
-    <mat-paginator
-      [length]="totalCount()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageNumber() - 1"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPageChange($event)"
-    />
+  @if (perms.can('customers', 'create')) {
+    <button class="btn btn-primary" (click)="startCreate()">Add Customer</button>
   }
 </div>
+
+<div class="toolbar">
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+    <input class="input" placeholder="Search by name or phone" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" (keyup.enter)="search()" />
+  </div>
+  <button class="btn btn-sm" (click)="search()">Search</button>
+</div>
+
+@if (formVisible()) {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 640px">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="row">
+        <div class="field">
+          <label>Name</label>
+          <input class="input" formControlName="name" />
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input class="input" formControlName="phone" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Email</label>
+          <input class="input" formControlName="email" />
+        </div>
+        <div class="field grow">
+          <label>Address</label>
+          <input class="input" formControlName="address" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th class="num">Current Due</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (customer of items(); track customer.id) {
+            <tr>
+              <td>{{ customer.name }}</td>
+              <td>{{ customer.phone }}</td>
+              <td>{{ customer.email }}</td>
+              <td class="num">{{ customer.currentDue }}</td>
+              <td>
+                <button class="btn btn-icon" (click)="viewLedger(customer)" aria-label="Ledger">📒</button>
+                @if (perms.can('customers', 'edit')) {
+                  <button class="btn btn-icon" (click)="startEdit(customer)" aria-label="Edit">✏️</button>
+                }
+                @if (perms.can('customers', 'delete')) {
+                  <button class="btn btn-icon" (click)="delete(customer)" aria-label="Delete">🗑️</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="5">No customers yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

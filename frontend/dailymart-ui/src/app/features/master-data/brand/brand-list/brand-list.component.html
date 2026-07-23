@@ -1,62 +1,75 @@
-<div class="master-data-page">
-  <div class="header">
+<div class="page-head">
+  <div>
     <h2>Brands</h2>
-    <button mat-flat-button color="primary" (click)="startCreate()">Add Brand</button>
+    <div class="subtitle">{{ totalCount() }} brands</div>
   </div>
-
-  @if (formVisible()) {
-    <form [formGroup]="form" (ngSubmit)="save()" class="inline-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Name</mat-label>
-        <input matInput formControlName="name" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="grow">
-        <mat-label>Description</mat-label>
-        <input matInput formControlName="description" />
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save</button>
-      <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
-    </form>
-  }
-
-  @if (loading()) {
-    <mat-spinner diameter="32" />
-  } @else {
-    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let brand">{{ brand.name }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="description">
-        <th mat-header-cell *matHeaderCellDef>Description</th>
-        <td mat-cell *matCellDef="let brand">{{ brand.description }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let brand">
-          <button mat-icon-button (click)="startEdit(brand)" aria-label="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button mat-icon-button (click)="delete(brand)" aria-label="Delete">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-
-    <mat-paginator
-      [length]="totalCount()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageNumber() - 1"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPageChange($event)"
-    />
+  @if (perms.can('brands', 'create')) {
+    <button class="btn btn-primary" (click)="startCreate()">Add Brand</button>
   }
 </div>
+
+@if (formVisible()) {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 640px">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="row">
+        <div class="field">
+          <label>Name</label>
+          <input class="input" formControlName="name" />
+        </div>
+        <div class="field grow">
+          <label>Description</label>
+          <input class="input" formControlName="description" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (brand of items(); track brand.id) {
+            <tr>
+              <td>{{ brand.name }}</td>
+              <td>{{ brand.description }}</td>
+              <td>
+                @if (perms.can('brands', 'edit')) {
+                  <button class="btn btn-icon" (click)="startEdit(brand)" aria-label="Edit">✏️</button>
+                }
+                @if (perms.can('brands', 'delete')) {
+                  <button class="btn btn-icon" (click)="delete(brand)" aria-label="Delete">🗑️</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="3">No brands yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

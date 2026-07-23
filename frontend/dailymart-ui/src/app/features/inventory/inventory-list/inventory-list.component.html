@@ -1,119 +1,128 @@
-<div class="inventory-page">
-  <div class="header">
+<div class="page-head">
+  <div>
     <h2>Inventory</h2>
-    <div class="header-actions">
-      <button mat-stroked-button (click)="viewLowStock()">Low Stock</button>
-      <button mat-stroked-button (click)="showAdjustmentForm()">Record Adjustment</button>
-      <button mat-stroked-button (click)="showDamagedForm()">Record Damaged</button>
-    </div>
+    <div class="subtitle">Stock movement history</div>
   </div>
-
-  @if (activeForm() === 'adjustment') {
-    <form [formGroup]="adjustmentForm" (ngSubmit)="saveAdjustment()" class="inline-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Product</mat-label>
-        <mat-select formControlName="productId">
-          @for (product of products(); track product.id) {
-            <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>New Stock Count</mat-label>
-        <input matInput type="number" formControlName="newStockCount" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="grow">
-        <mat-label>Reason</mat-label>
-        <input matInput formControlName="reason" />
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save</button>
-      <button mat-button type="button" (click)="cancelForm()">Cancel</button>
-    </form>
-  }
-
-  @if (activeForm() === 'damaged') {
-    <form [formGroup]="damagedForm" (ngSubmit)="saveDamaged()" class="inline-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Product</mat-label>
-        <mat-select formControlName="productId">
-          @for (product of products(); track product.id) {
-            <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Quantity Damaged</mat-label>
-        <input matInput type="number" formControlName="quantity" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="grow">
-        <mat-label>Reason</mat-label>
-        <input matInput formControlName="reason" />
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Save</button>
-      <button mat-button type="button" (click)="cancelForm()">Cancel</button>
-    </form>
-  }
-
-  <mat-form-field appearance="outline" class="filter-field">
-    <mat-label>Filter by Product</mat-label>
-    <mat-select [value]="filterProductId()" (selectionChange)="onFilterChange($event)">
-      <mat-option [value]="null">All Products</mat-option>
-      @for (product of products(); track product.id) {
-        <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-
-  @if (loading()) {
-    <mat-spinner diameter="32" />
-  } @else {
-    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
-      <ng-container matColumnDef="transactionDate">
-        <th mat-header-cell *matHeaderCellDef>Date</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.transactionDate | date: 'short' }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="productName">
-        <th mat-header-cell *matHeaderCellDef>Product</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.productName }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="transactionType">
-        <th mat-header-cell *matHeaderCellDef>Type</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.transactionType }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="quantityChange">
-        <th mat-header-cell *matHeaderCellDef>Qty Change</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.quantityChange }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="balanceAfter">
-        <th mat-header-cell *matHeaderCellDef>Balance</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.balanceAfter }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="notes">
-        <th mat-header-cell *matHeaderCellDef>Notes</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.notes }}</td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-
-    <mat-paginator
-      [length]="totalCount()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageNumber() - 1"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPageChange($event)"
-    />
-  }
+  <div style="display: flex; gap: 0.5rem">
+    <button class="btn" (click)="viewLowStock()">Low Stock</button>
+    @if (perms.can('inventory', 'create')) {
+      <button class="btn" (click)="showAdjustmentForm()">Record Adjustment</button>
+      <button class="btn" (click)="showDamagedForm()">Record Damaged</button>
+    }
+  </div>
 </div>
+
+@if (activeForm() === 'adjustment') {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 720px">
+    <form [formGroup]="adjustmentForm" (ngSubmit)="saveAdjustment()">
+      <div class="row">
+        <div class="field">
+          <label>Product</label>
+          <select class="input" formControlName="productId">
+            <option [value]="0" disabled>Select a product</option>
+            @for (product of products(); track product.id) {
+              <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label>New Stock Count</label>
+          <input class="input" type="number" formControlName="newStockCount" />
+        </div>
+        <div class="field grow">
+          <label>Reason</label>
+          <input class="input" formControlName="reason" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (activeForm() === 'damaged') {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 720px">
+    <form [formGroup]="damagedForm" (ngSubmit)="saveDamaged()">
+      <div class="row">
+        <div class="field">
+          <label>Product</label>
+          <select class="input" formControlName="productId">
+            <option [value]="0" disabled>Select a product</option>
+            @for (product of products(); track product.id) {
+              <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label>Quantity Damaged</label>
+          <input class="input" type="number" formControlName="quantity" />
+        </div>
+        <div class="field grow">
+          <label>Reason</label>
+          <input class="input" formControlName="reason" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+<div class="field" style="max-width: 320px">
+  <label>Filter by Product</label>
+  <select class="input" (change)="onFilterChange($event)">
+    <option value="">All Products</option>
+    @for (product of products(); track product.id) {
+      <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+    }
+  </select>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Type</th>
+            <th class="num">Qty Change</th>
+            <th class="num">Balance</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of items(); track entry.id) {
+            <tr>
+              <td>{{ entry.transactionDate | date: 'short' }}</td>
+              <td>{{ entry.productName }}</td>
+              <td><span class="chip">{{ entry.transactionType }}</span></td>
+              <td class="num">{{ entry.quantityChange }}</td>
+              <td class="num">{{ entry.balanceAfter }}</td>
+              <td>{{ entry.notes }}</td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="6">No transactions yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

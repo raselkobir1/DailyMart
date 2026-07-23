@@ -5,6 +5,7 @@ using DailyMart.Application.Inventory;
 using DailyMart.Application.MasterData;
 using DailyMart.Application.Products;
 using DailyMart.Application.Purchases;
+using DailyMart.Application.Rbac;
 using DailyMart.Application.Sales;
 using DailyMart.Application.Settings;
 using DailyMart.Application.Suppliers;
@@ -19,6 +20,9 @@ public static class DependencyInjection
     {
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<IShopSettingsService, ShopSettingsService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IBrandService, BrandService>();

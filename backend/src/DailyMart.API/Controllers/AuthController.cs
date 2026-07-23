@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using DailyMart.Application.Auth;
+using DailyMart.Application.Rbac;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,5 +50,13 @@ public class AuthController : ControllerBase
         var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         await _authService.ChangePasswordAsync(userId, request, cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>Drives the dynamic sidebar and route guards - see IAuthService.GetMyPermissionsAsync.</summary>
+    [HttpGet("me/permissions")]
+    public async Task<ActionResult<IReadOnlyList<MenuPermissionDto>>> GetMyPermissions(CancellationToken cancellationToken)
+    {
+        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return Ok(await _authService.GetMyPermissionsAsync(userId, cancellationToken));
     }
 }

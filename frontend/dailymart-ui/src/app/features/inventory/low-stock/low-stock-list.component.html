@@ -1,40 +1,42 @@
-<div class="low-stock-page">
+<div class="page-head">
   <h2>Low Stock</h2>
-
-  @if (loading()) {
-    <mat-spinner diameter="32" />
-  } @else {
-    <table mat-table [dataSource]="items()" class="mat-elevation-z1">
-      <ng-container matColumnDef="code">
-        <th mat-header-cell *matHeaderCellDef>Code</th>
-        <td mat-cell *matCellDef="let product">{{ product.code }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let product">{{ product.name }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="currentStock">
-        <th mat-header-cell *matHeaderCellDef>Current Stock</th>
-        <td mat-cell *matCellDef="let product">{{ product.currentStock }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="minimumStock">
-        <th mat-header-cell *matHeaderCellDef>Minimum Stock</th>
-        <td mat-cell *matCellDef="let product">{{ product.minimumStock }}</td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-
-    <mat-paginator
-      [length]="totalCount()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageNumber() - 1"
-      [pageSizeOptions]="[10, 20, 50]"
-      (page)="onPageChange($event)"
-    />
-  }
 </div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th class="num">Current Stock</th>
+            <th class="num">Minimum Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of items(); track product.id) {
+            <tr>
+              <td>{{ product.code }}</td>
+              <td>{{ product.name }}</td>
+              <td class="num"><span class="badge low">{{ product.currentStock }}</span></td>
+              <td class="num">{{ product.minimumStock }}</td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="4">Nothing is running low.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

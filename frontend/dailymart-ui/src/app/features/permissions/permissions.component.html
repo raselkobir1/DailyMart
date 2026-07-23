@@ -1,0 +1,70 @@
+<div class="page-head">
+  <div>
+    <h2>Permissions</h2>
+    <div class="subtitle">Pick a role, then set which menus it can view, create, edit, and delete in.</div>
+  </div>
+</div>
+
+@if (loadingRoles()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 320px">
+    <div class="field" style="margin-bottom: 0">
+      <label>Role</label>
+      <select class="input" [value]="selectedRoleId()" (change)="onRoleChange($event)">
+        @for (role of roles(); track role.id) {
+          <option [value]="role.id">{{ role.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (loadingPermissions()) {
+    <div class="spinner-page"><span class="spinner lg"></span></div>
+  } @else if (selectedRoleId() !== null) {
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Menu</th>
+              <th style="text-align: center">View</th>
+              <th style="text-align: center">Create</th>
+              <th style="text-align: center">Edit</th>
+              <th style="text-align: center">Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.menuId) {
+              <tr>
+                <td>{{ row.depth > 0 ? '↳ ' : '' }}{{ row.icon }} {{ row.label }}</td>
+                <td style="text-align: center">
+                  <input type="checkbox" [checked]="row.canView" (change)="toggle(row, 'canView')" />
+                </td>
+                <td style="text-align: center">
+                  <input type="checkbox" [checked]="row.canCreate" (change)="toggle(row, 'canCreate')" />
+                </td>
+                <td style="text-align: center">
+                  <input type="checkbox" [checked]="row.canEdit" (change)="toggle(row, 'canEdit')" />
+                </td>
+                <td style="text-align: center">
+                  <input type="checkbox" [checked]="row.canDelete" (change)="toggle(row, 'canDelete')" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving()">
+        @if (saving()) {
+          <span class="spinner"></span>
+        } @else {
+          Save changes
+        }
+      </button>
+    </div>
+  }
+}

@@ -26,40 +26,10 @@
 }
 
 .muted {
-  color: var(--mat-sys-outline, #666);
+  color: var(--muted);
 }
 
 .barcode-value {
   font-family: monospace;
   font-size: 1.1rem;
-}
-
-.row {
-  display: flex;
-  gap: 1rem;
-}
-
-.full-width {
-  width: 100%;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.half-width {
-  flex: 1 1 0;
-  margin-bottom: 0.5rem;
-}
-
-.third-width {
-  flex: 1 1 0;
-  margin-bottom: 0.5rem;
-}
-
-mat-checkbox {
-  display: block;
-  margin: 0.5rem 0 1rem;
-}
-
-.actions {
-  margin-top: 0.5rem;
 }

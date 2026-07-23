@@ -1,36 +1,20 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../../core/toast';
 import { BackupFrequency, ShopSettingsDto } from '../settings.model';
 import { SettingsService } from '../settings.service';
 
 @Component({
   selector: 'app-settings-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    MatButtonModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule],
   templateUrl: './settings-form.component.html',
   styleUrl: './settings-form.component.scss'
 })
 export class SettingsFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly settingsService = inject(SettingsService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -64,7 +48,7 @@ export class SettingsFormComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load settings.', 'Dismiss');
+        this.toast.error('Could not load settings.');
       }
     });
   }
@@ -80,11 +64,11 @@ export class SettingsFormComponent implements OnInit {
       next: (settings) => {
         this.applySettings(settings);
         this.saving.set(false);
-        this.snackBar.open('Settings saved.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Settings saved.');
       },
       error: () => {
         this.saving.set(false);
-        this.snackBar.open('Could not save settings.', 'Dismiss');
+        this.toast.error('Could not save settings.');
       }
     });
   }
@@ -101,11 +85,11 @@ export class SettingsFormComponent implements OnInit {
       next: (settings) => {
         this.applySettings(settings);
         this.uploadingLogo.set(false);
-        this.snackBar.open('Logo updated.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Logo updated.');
       },
       error: () => {
         this.uploadingLogo.set(false);
-        this.snackBar.open('Could not upload logo.', 'Dismiss');
+        this.toast.error('Could not upload logo.');
       }
     });
 

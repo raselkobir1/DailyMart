@@ -1,0 +1,84 @@
+<div class="page-head">
+  <div>
+    <h2>Roles</h2>
+    <div class="subtitle">{{ totalCount() }} roles</div>
+  </div>
+  @if (perms.can('roles', 'create')) {
+    <button class="btn btn-primary" (click)="startCreate()">Add Role</button>
+  }
+</div>
+
+@if (formVisible()) {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 640px">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="row">
+        <div class="field">
+          <label>Name</label>
+          <input class="input" formControlName="name" />
+        </div>
+        <div class="field grow">
+          <label>Description</label>
+          <input class="input" formControlName="description" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (role of items(); track role.id) {
+            <tr>
+              <td>{{ role.name }}</td>
+              <td>{{ role.description }}</td>
+              <td>
+                @if (role.isSystem) {
+                  <span class="chip">System</span>
+                } @else {
+                  <span class="chip">Custom</span>
+                }
+              </td>
+              <td>
+                <button class="btn btn-icon" (click)="managePermissions(role)" aria-label="Permissions">🔐</button>
+                @if (perms.can('roles', 'edit')) {
+                  <button class="btn btn-icon" (click)="startEdit(role)" aria-label="Edit">✏️</button>
+                }
+                @if (perms.can('roles', 'delete') && !role.isSystem) {
+                  <button class="btn btn-icon" (click)="delete(role)" aria-label="Delete">🗑️</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="4">No roles yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

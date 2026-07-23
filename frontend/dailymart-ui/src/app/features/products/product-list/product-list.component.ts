@@ -1,47 +1,25 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Perms } from '../../../core/perms';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { ProductDto } from '../product.model';
 import { ProductService } from '../product.service';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [FormsModule, PaginationComponent],
   templateUrl: './product-list.component.html',
   styleUrl: './product-list.component.scss'
 })
 export class ProductListComponent implements OnInit {
   private readonly productService = inject(ProductService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
-  protected readonly displayedColumns = [
-    'code',
-    'name',
-    'category',
-    'brand',
-    'sellingPrice',
-    'currentStock',
-    'actions'
-  ];
   protected readonly items = signal<ProductDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -53,9 +31,14 @@ export class ProductListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -79,10 +62,10 @@ export class ProductListComponent implements OnInit {
 
     this.productService.delete(product.id).subscribe({
       next: () => {
-        this.snackBar.open('Product deleted.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Product deleted.');
         this.load();
       },
-      error: () => this.snackBar.open('Could not delete product.', 'Dismiss')
+      error: () => this.toast.error('Could not delete product.')
     });
   }
 
@@ -96,7 +79,7 @@ export class ProductListComponent implements OnInit {
         link.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.snackBar.open('Could not export products.', 'Dismiss')
+      error: () => this.toast.error('Could not export products.')
     });
   }
 
@@ -113,7 +96,7 @@ export class ProductListComponent implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Could not load products.', 'Dismiss');
+          this.toast.error('Could not load products.');
         }
       });
   }

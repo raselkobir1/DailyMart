@@ -1,0 +1,98 @@
+<div class="page-head">
+  <div>
+    <h2>Menus</h2>
+    <div class="subtitle">{{ menus().length }} menus</div>
+  </div>
+  @if (perms.can('menus', 'create')) {
+    <button class="btn btn-primary" (click)="startCreate()">Add Menu</button>
+  }
+</div>
+
+@if (formVisible()) {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 720px">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="row">
+        <div class="field">
+          <label>Key</label>
+          <input class="input" formControlName="key" />
+        </div>
+        <div class="field grow">
+          <label>Label</label>
+          <input class="input" formControlName="label" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field grow">
+          <label>Route</label>
+          <input class="input" formControlName="route" placeholder="/example" />
+        </div>
+        <div class="field">
+          <label>Icon (emoji)</label>
+          <input class="input" formControlName="icon" />
+        </div>
+        <div class="field">
+          <label>Sort Order</label>
+          <input class="input" type="number" formControlName="sortOrder" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Parent Menu (optional)</label>
+        <select class="input" formControlName="parentId">
+          <option [ngValue]="null">None (top-level)</option>
+          @for (option of parentOptions(); track option.id) {
+            <option [ngValue]="option.id">{{ '—'.repeat(option.depth) }} {{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Label</th>
+            <th>Route</th>
+            <th>Icon</th>
+            <th class="num">Sort</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.key }}</td>
+              <td>{{ row.depth > 0 ? '↳ ' : '' }}{{ row.label }}</td>
+              <td>{{ row.route }}</td>
+              <td>{{ row.icon }}</td>
+              <td class="num">{{ row.sortOrder }}</td>
+              <td>
+                @if (perms.can('menus', 'edit')) {
+                  <button class="btn btn-icon" (click)="startEdit(row)" aria-label="Edit">✏️</button>
+                }
+                @if (perms.can('menus', 'delete')) {
+                  <button class="btn btn-icon" (click)="delete(row)" aria-label="Delete">🗑️</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="6">No menus yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

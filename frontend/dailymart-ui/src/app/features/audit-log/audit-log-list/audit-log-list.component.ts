@@ -1,8 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { AuditLogDto } from '../audit-log.model';
 import { AuditLogService } from '../audit-log.service';
 
@@ -14,14 +12,13 @@ import { AuditLogService } from '../audit-log.service';
 @Component({
   selector: 'app-audit-log-list',
   standalone: true,
-  imports: [MatTableModule, MatPaginatorModule, MatProgressSpinnerModule, DatePipe],
+  imports: [DatePipe, PaginationComponent],
   templateUrl: './audit-log-list.component.html',
   styleUrl: './audit-log-list.component.scss'
 })
 export class AuditLogListComponent implements OnInit {
   private readonly auditLogService = inject(AuditLogService);
 
-  protected readonly displayedColumns = ['performedAt', 'action', 'entityName', 'entityId', 'performedBy'];
   protected readonly items = signal<AuditLogDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -33,9 +30,14 @@ export class AuditLogListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 

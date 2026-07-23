@@ -2,52 +2,47 @@
   <h2>Add Return @if (sale()) { - {{ sale()!.saleNumber }} }</h2>
 
   @if (loading()) {
-    <mat-spinner diameter="32" />
+    <div class="spinner-page"><span class="spinner lg"></span></div>
   } @else {
-    <mat-card class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="save()">
-          <mat-form-field appearance="outline" class="third-width">
-            <mat-label>Return Date</mat-label>
-            <input matInput type="date" formControlName="returnDate" />
-          </mat-form-field>
+    <div class="card card-pad form-card">
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="field" style="max-width: 220px">
+          <label>Return Date</label>
+          <input class="input" type="date" formControlName="returnDate" />
+        </div>
 
-          <div formArrayName="items" class="items-table">
-            <div class="item-row item-row-header">
-              <span>Product</span>
-              <span>Sold Qty</span>
-              <span>Return Qty</span>
+        <div formArrayName="items" class="items-table">
+          <div class="item-row item-row-header">
+            <span>Product</span>
+            <span>Sold Qty</span>
+            <span>Return Qty</span>
+          </div>
+
+          @for (control of itemsArray.controls; track control; let i = $index) {
+            <div [formGroupName]="i" class="item-row">
+              <span>{{ sale()!.items[i].productName }}</span>
+              <span>{{ sale()!.items[i].quantity }}</span>
+              <input class="input" type="number" formControlName="quantity" />
             </div>
+          }
+        </div>
 
-            @for (control of itemsArray.controls; track control; let i = $index) {
-              <div [formGroupName]="i" class="item-row">
-                <span>{{ sale()!.items[i].productName }}</span>
-                <span>{{ sale()!.items[i].quantity }}</span>
-                <mat-form-field appearance="outline">
-                  <mat-label>Return Qty</mat-label>
-                  <input matInput type="number" formControlName="quantity" />
-                </mat-form-field>
-              </div>
+        <div class="field">
+          <label>Notes</label>
+          <input class="input" formControlName="notes" />
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner"></span>
+            } @else {
+              Save Return
             }
-          </div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Notes</mat-label>
-            <input matInput formControlName="notes" />
-          </mat-form-field>
-
-          <div class="actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20" />
-              } @else {
-                Save Return
-              }
-            </button>
-            <button mat-button type="button" (click)="back()">Cancel</button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+          </button>
+          <button class="btn" type="button" (click)="back()">Cancel</button>
+        </div>
+      </form>
+    </div>
   }
 </div>

@@ -1,0 +1,102 @@
+<div class="page-head">
+  <div>
+    <h2>Users</h2>
+    <div class="subtitle">{{ totalCount() }} accounts</div>
+  </div>
+  @if (perms.can('users', 'create')) {
+    <button class="btn btn-primary" (click)="startCreate()">Add User</button>
+  }
+</div>
+
+@if (formVisible()) {
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 640px">
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="row">
+        <div class="field">
+          <label>Username</label>
+          <input class="input" formControlName="username" />
+        </div>
+        <div class="field">
+          <label>Password {{ editingId() !== null ? '(leave blank to keep current)' : '' }}</label>
+          <input class="input" type="password" formControlName="password" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Full Name</label>
+          <input class="input" formControlName="fullName" />
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select class="input" formControlName="role">
+            <option value="" disabled>Select a role</option>
+            @for (role of roles(); track role.id) {
+              <option [value]="role.name">{{ role.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (editingId() !== null) {
+        <div class="checkbox-row" style="margin-bottom: 0.9rem">
+          <input type="checkbox" formControlName="isActive" id="user-active" />
+          <label for="user-active">Active</label>
+        </div>
+      }
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+        <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of items(); track user.id) {
+            <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.fullName }}</td>
+              <td><span class="chip" [class.admin]="user.role === 'Admin'">{{ user.role }}</span></td>
+              <td><span class="badge" [class.on]="user.isActive" [class.off]="!user.isActive">{{ user.isActive ? 'Active' : 'Disabled' }}</span></td>
+              <td>
+                @if (perms.can('users', 'edit')) {
+                  <button class="btn btn-icon" (click)="startEdit(user)" aria-label="Edit">✏️</button>
+                }
+                @if (perms.can('users', 'delete')) {
+                  <button class="btn btn-icon" (click)="delete(user)" aria-label="Delete">🗑️</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="5">No users yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

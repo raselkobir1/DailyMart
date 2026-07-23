@@ -5,6 +5,7 @@ using DailyMart.Domain.Inventory;
 using DailyMart.Domain.MasterData;
 using DailyMart.Domain.Products;
 using DailyMart.Domain.Purchases;
+using DailyMart.Domain.Rbac;
 using DailyMart.Domain.Sales;
 using DailyMart.Domain.Settings;
 using DailyMart.Domain.Suppliers;
@@ -24,6 +25,12 @@ public class DailyMartDbContext : DbContext
     public DbSet<User> Users => Set<User>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<Menu> Menus => Set<Menu>();
+
+    public DbSet<RoleMenuPermission> RoleMenuPermissions => Set<RoleMenuPermission>();
 
     public DbSet<ShopSettings> ShopSettings => Set<ShopSettings>();
 

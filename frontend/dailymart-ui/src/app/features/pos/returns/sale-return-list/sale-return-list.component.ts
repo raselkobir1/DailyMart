@@ -1,12 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Perms } from '../../../../core/perms';
+import { Toast } from '../../../../core/toast';
+import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
 import { SaleDto } from '../../sale.model';
 import { SaleService } from '../../sale.service';
 import { SaleReturnDto } from '../sale-return.model';
@@ -16,7 +13,7 @@ import { SaleReturnService } from '../sale-return.service';
 @Component({
   selector: 'app-sale-return-list',
   standalone: true,
-  imports: [MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, DatePipe],
+  imports: [DatePipe, PaginationComponent],
   templateUrl: './sale-return-list.component.html',
   styleUrl: './sale-return-list.component.scss'
 })
@@ -25,11 +22,11 @@ export class SaleReturnListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly saleService = inject(SaleService);
   private readonly saleReturnService = inject(SaleReturnService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
   private readonly saleId = Number(this.route.snapshot.paramMap.get('id'));
 
-  protected readonly displayedColumns = ['returnNumber', 'returnDate', 'totalAmount', 'notes'];
   protected readonly sale = signal<SaleDto | null>(null);
   protected readonly items = signal<SaleReturnDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -40,15 +37,20 @@ export class SaleReturnListComponent implements OnInit {
   ngOnInit(): void {
     this.saleService.getById(this.saleId).subscribe({
       next: (sale) => this.sale.set(sale),
-      error: () => this.snackBar.open('Could not load sale.', 'Dismiss')
+      error: () => this.toast.error('Could not load sale.')
     });
 
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -73,7 +75,7 @@ export class SaleReturnListComponent implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Could not load returns.', 'Dismiss');
+          this.toast.error('Could not load returns.');
         }
       });
   }

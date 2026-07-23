@@ -2,14 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } fr
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../../core/toast';
 import { CustomerDto } from '../../customers/customer.model';
 import { CustomerService } from '../../customers/customer.service';
 import { ProductService } from '../../products/product.service';
@@ -25,17 +18,7 @@ import { SaleService } from '../sale.service';
 @Component({
   selector: 'app-pos-billing',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule, FormsModule],
   templateUrl: './pos-billing.component.html',
   styleUrl: './pos-billing.component.scss'
 })
@@ -47,7 +30,7 @@ export class PosBillingComponent implements OnInit {
   private readonly customerService = inject(CustomerService);
   private readonly productService = inject(ProductService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   protected readonly paymentTypes = PAYMENT_TYPES;
   protected readonly customers = signal<CustomerDto[]>([]);
@@ -112,7 +95,7 @@ export class PosBillingComponent implements OnInit {
         this.focusBarcodeInput();
       },
       error: () => {
-        this.snackBar.open(`No product found for barcode "${code}".`, 'Dismiss', { duration: 3000 });
+        this.toast.error(`No product found for barcode "${code}".`);
         this.barcode = '';
         this.focusBarcodeInput();
       }
@@ -133,7 +116,7 @@ export class PosBillingComponent implements OnInit {
 
   protected save(): void {
     if (this.itemsArray.length === 0) {
-      this.snackBar.open('Scan at least one product before completing the sale.', 'Dismiss');
+      this.toast.error('Scan at least one product before completing the sale.');
       return;
     }
 
@@ -145,7 +128,7 @@ export class PosBillingComponent implements OnInit {
     const raw = this.form.getRawValue();
 
     if (raw.paymentType !== 0 && !raw.customerId) {
-      this.snackBar.open('A customer is required for Credit or Partial sales.', 'Dismiss');
+      this.toast.error('A customer is required for Credit or Partial sales.');
       return;
     }
 
@@ -171,12 +154,12 @@ export class PosBillingComponent implements OnInit {
     this.saleService.create(request).subscribe({
       next: (sale) => {
         this.saving.set(false);
-        this.snackBar.open(`Sale ${sale.saleNumber} completed.`, 'Dismiss', { duration: 3000 });
+        this.toast.success(`Sale ${sale.saleNumber} completed.`);
         this.router.navigateByUrl(`/sales/${sale.id}`);
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? error.error ?? 'Could not complete sale.', 'Dismiss');
+        this.toast.error(error.error?.title ?? error.error ?? 'Could not complete sale.');
       }
     });
   }

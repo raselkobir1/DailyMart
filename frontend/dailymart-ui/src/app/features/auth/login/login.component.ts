@@ -1,30 +1,20 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/auth/auth.service';
+import { Perms } from '../../../core/perms';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly perms = inject(Perms);
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
@@ -49,13 +39,32 @@ export class LoginComponent {
     this.error.set(null);
 
     this.authService.login(this.form.getRawValue()).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.router.navigateByUrl('/audit-log');
-      },
+      next: () => this.afterLogin(),
       error: () => {
         this.loading.set(false);
         this.error.set('Invalid username or password.');
+      }
+    });
+  }
+
+  private afterLogin(): void {
+    this.perms.load().subscribe({
+      next: (menus) => {
+        this.loading.set(false);
+
+        if (menus.length === 0) {
+          // Mirrors the reference app: a role with no visible menus is barred from the admin app
+          // entirely, even though the credentials themselves were valid.
+          this.authService.clearSession();
+          this.error.set('This account has no admin access.');
+          return;
+        }
+
+        this.router.navigateByUrl(menus[0].route);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.router.navigateByUrl('/audit-log');
       }
     });
   }

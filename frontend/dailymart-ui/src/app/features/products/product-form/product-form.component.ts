@@ -1,14 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Toast } from '../../../core/toast';
 import { printBarcode } from '../../../shared/utils/barcode-print';
 import { BrandDto } from '../../master-data/brand/brand.model';
 import { BrandService } from '../../master-data/brand/brand.service';
@@ -28,16 +21,7 @@ import { ProductService } from '../product.service';
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    MatButtonModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule],
   templateUrl: './product-form.component.html',
   styleUrl: './product-form.component.scss'
 })
@@ -49,7 +33,7 @@ export class ProductFormComponent implements OnInit {
   private readonly unitService = inject(UnitService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -115,7 +99,7 @@ export class ProductFormComponent implements OnInit {
     result$.subscribe({
       next: (product) => {
         this.saving.set(false);
-        this.snackBar.open('Product saved.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Product saved.');
 
         if (id === null) {
           // Land on the edit page - that's where image upload and barcode printing become available.
@@ -126,7 +110,7 @@ export class ProductFormComponent implements OnInit {
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not save product.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not save product.');
       }
     });
   }
@@ -144,11 +128,11 @@ export class ProductFormComponent implements OnInit {
       next: (product) => {
         this.uploadingImage.set(false);
         this.applyProduct(product);
-        this.snackBar.open('Image updated.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Image updated.');
       },
       error: () => {
         this.uploadingImage.set(false);
-        this.snackBar.open('Could not upload image.', 'Dismiss');
+        this.toast.error('Could not upload image.');
       }
     });
 
@@ -176,7 +160,7 @@ export class ProductFormComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Could not load product.', 'Dismiss');
+        this.toast.error('Could not load product.');
       }
     });
   }

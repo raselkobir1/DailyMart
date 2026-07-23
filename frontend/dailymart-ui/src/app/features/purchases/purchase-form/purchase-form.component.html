@@ -2,131 +2,117 @@
   <h2>{{ isEditMode() ? 'Edit Purchase' : 'Add Purchase' }}</h2>
 
   @if (loading()) {
-    <mat-spinner diameter="32" />
+    <div class="spinner-page"><span class="spinner lg"></span></div>
   } @else {
-    <mat-card class="form-card">
-      <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="save()">
-          <div class="row">
-            <mat-form-field appearance="outline" class="third-width">
-              <mat-label>Supplier</mat-label>
-              <mat-select formControlName="supplierId">
-                @for (supplier of suppliers(); track supplier.id) {
-                  <mat-option [value]="supplier.id">{{ supplier.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="third-width">
-              <mat-label>Purchase Date</mat-label>
-              <input matInput type="date" formControlName="purchaseDate" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="third-width">
-              <mat-label>Payment Type</mat-label>
-              <mat-select formControlName="paymentType">
-                @for (pt of paymentTypes; track pt.value) {
-                  <mat-option [value]="pt.value">{{ pt.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-
-          <h3>Items</h3>
-          <div formArrayName="items" class="items-table">
-            <div class="item-row item-row-header">
-              <span>Product</span>
-              <span>Quantity</span>
-              <span>Unit Price</span>
-              <span>Discount</span>
-              <span>Line Total</span>
-              <span></span>
-            </div>
-
-            @for (control of itemsArray.controls; track control; let i = $index) {
-              <div [formGroupName]="i" class="item-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Product</mat-label>
-                  <mat-select formControlName="productId" (selectionChange)="onProductChange(i, $event.value)">
-                    @for (product of products(); track product.id) {
-                      <mat-option [value]="product.id">{{ product.name }} ({{ product.code }})</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Qty</mat-label>
-                  <input matInput type="number" formControlName="quantity" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Unit Price</mat-label>
-                  <input matInput type="number" formControlName="unitPrice" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Discount</mat-label>
-                  <input matInput type="number" formControlName="discountAmount" />
-                </mat-form-field>
-
-                <span class="line-total">{{ lineTotal(i) }}</span>
-
-                <button
-                  mat-icon-button
-                  type="button"
-                  (click)="removeItem(i)"
-                  [disabled]="itemsArray.length === 1"
-                  aria-label="Remove item"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            }
-          </div>
-
-          <button mat-stroked-button type="button" (click)="addItem()">Add Item</button>
-
-          <div class="row totals-row">
-            <mat-form-field appearance="outline" class="third-width">
-              <mat-label>Discount</mat-label>
-              <input matInput type="number" formControlName="discountAmount" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="third-width">
-              <mat-label>VAT</mat-label>
-              <input matInput type="number" formControlName="vatAmount" />
-            </mat-form-field>
-
-            @if (formValue().paymentType === 2) {
-              <mat-form-field appearance="outline" class="third-width">
-                <mat-label>Paid Amount</mat-label>
-                <input matInput type="number" formControlName="paidAmount" />
-              </mat-form-field>
-            }
-          </div>
-
-          <div class="summary">
-            <div>Subtotal: {{ subtotal() }}</div>
-            <div>Total: {{ total() }}</div>
-            <div>Due: {{ due() }}</div>
-          </div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Notes</mat-label>
-            <input matInput formControlName="notes" />
-          </mat-form-field>
-
-          <div class="actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
-              @if (saving()) {
-                <mat-spinner diameter="20" />
-              } @else {
-                Save Purchase
+    <div class="card card-pad form-card">
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="row">
+          <div class="field">
+            <label>Supplier</label>
+            <select class="input" formControlName="supplierId">
+              <option [value]="0" disabled>Select a supplier</option>
+              @for (supplier of suppliers(); track supplier.id) {
+                <option [value]="supplier.id">{{ supplier.name }}</option>
               }
-            </button>
+            </select>
           </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+
+          <div class="field">
+            <label>Purchase Date</label>
+            <input class="input" type="date" formControlName="purchaseDate" />
+          </div>
+
+          <div class="field">
+            <label>Payment Type</label>
+            <select class="input" formControlName="paymentType">
+              @for (pt of paymentTypes; track pt.value) {
+                <option [value]="pt.value">{{ pt.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <h3 style="margin: 1rem 0 0.5rem">Items</h3>
+        <div formArrayName="items" class="items-table">
+          <div class="item-row item-row-header">
+            <span>Product</span>
+            <span>Quantity</span>
+            <span>Unit Price</span>
+            <span>Discount</span>
+            <span>Line Total</span>
+            <span></span>
+          </div>
+
+          @for (control of itemsArray.controls; track control; let i = $index) {
+            <div [formGroupName]="i" class="item-row">
+              <select class="input" formControlName="productId" (change)="onProductChange(i, Number($any($event.target).value))">
+                <option [value]="0" disabled>Select a product</option>
+                @for (product of products(); track product.id) {
+                  <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+                }
+              </select>
+
+              <input class="input" type="number" formControlName="quantity" placeholder="Qty" />
+              <input class="input" type="number" formControlName="unitPrice" placeholder="Unit Price" />
+              <input class="input" type="number" formControlName="discountAmount" placeholder="Discount" />
+
+              <span class="num">{{ lineTotal(i) }}</span>
+
+              <button
+                class="btn btn-icon"
+                type="button"
+                (click)="removeItem(i)"
+                [disabled]="itemsArray.length === 1"
+                aria-label="Remove item"
+              >
+                🗑️
+              </button>
+            </div>
+          }
+        </div>
+
+        <button class="btn btn-sm" type="button" (click)="addItem()">Add Item</button>
+
+        <div class="row" style="margin-top: 1rem">
+          <div class="field">
+            <label>Discount</label>
+            <input class="input" type="number" formControlName="discountAmount" />
+          </div>
+
+          <div class="field">
+            <label>VAT</label>
+            <input class="input" type="number" formControlName="vatAmount" />
+          </div>
+
+          @if (formValue().paymentType === 2) {
+            <div class="field">
+              <label>Paid Amount</label>
+              <input class="input" type="number" formControlName="paidAmount" />
+            </div>
+          }
+        </div>
+
+        <div class="row" style="font-weight: 600; margin: 0.5rem 0 1rem">
+          <div>Subtotal: {{ subtotal() }}</div>
+          <div>Total: {{ total() }}</div>
+          <div>Due: {{ due() }}</div>
+        </div>
+
+        <div class="field">
+          <label>Notes</label>
+          <input class="input" formControlName="notes" />
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner"></span>
+            } @else {
+              Save Purchase
+            }
+          </button>
+        </div>
+      </form>
+    </div>
   }
 </div>

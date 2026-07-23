@@ -1,33 +1,18 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
+import { Perms } from '../../../core/perms';
+import { Toast } from '../../../core/toast';
+import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { CustomerDto } from '../customer.model';
 import { CustomerService } from '../customer.service';
 
-/** Inline add/edit form, no MatDialog - same pattern as Modules 3/5. currentDue/Ledger were added in
+/** Inline add/edit form, no modal - same pattern as Modules 3/5. currentDue/Ledger were added in
  * Module 9 (POS Sales) once a customer could actually accrue due via a credit sale. */
 @Component({
   selector: 'app-customer-list',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    FormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule
-  ],
+  imports: [ReactiveFormsModule, FormsModule, PaginationComponent],
   templateUrl: './customer-list.component.html',
   styleUrl: './customer-list.component.scss'
 })
@@ -35,9 +20,9 @@ export class CustomerListComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly customerService = inject(CustomerService);
   private readonly router = inject(Router);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
-  protected readonly displayedColumns = ['name', 'phone', 'email', 'currentDue', 'actions'];
   protected readonly items = signal<CustomerDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
@@ -59,9 +44,14 @@ export class CustomerListComponent implements OnInit {
     this.load();
   }
 
-  protected onPageChange(event: PageEvent): void {
-    this.pageNumber.set(event.pageIndex + 1);
-    this.pageSize.set(event.pageSize);
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.load();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
     this.load();
   }
 
@@ -91,10 +81,6 @@ export class CustomerListComponent implements OnInit {
     this.formVisible.set(false);
   }
 
-  protected viewLedger(customer: CustomerDto): void {
-    this.router.navigateByUrl(`/customers/${customer.id}/ledger`);
-  }
-
   protected save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -117,12 +103,12 @@ export class CustomerListComponent implements OnInit {
       next: () => {
         this.saving.set(false);
         this.formVisible.set(false);
-        this.snackBar.open('Customer saved.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Customer saved.');
         this.load();
       },
       error: (error) => {
         this.saving.set(false);
-        this.snackBar.open(error.error?.title ?? 'Could not save customer.', 'Dismiss');
+        this.toast.error(error.error?.title ?? 'Could not save customer.');
       }
     });
   }
@@ -134,11 +120,15 @@ export class CustomerListComponent implements OnInit {
 
     this.customerService.delete(customer.id).subscribe({
       next: () => {
-        this.snackBar.open('Customer deleted.', 'Dismiss', { duration: 3000 });
+        this.toast.success('Customer deleted.');
         this.load();
       },
-      error: () => this.snackBar.open('Could not delete customer.', 'Dismiss')
+      error: () => this.toast.error('Could not delete customer.')
     });
+  }
+
+  protected viewLedger(customer: CustomerDto): void {
+    this.router.navigateByUrl(`/customers/${customer.id}/ledger`);
   }
 
   private load(): void {
@@ -154,7 +144,7 @@ export class CustomerListComponent implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Could not load customers.', 'Dismiss');
+          this.toast.error('Could not load customers.');
         }
       });
   }
