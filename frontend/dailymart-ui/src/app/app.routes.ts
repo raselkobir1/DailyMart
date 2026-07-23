@@ -230,6 +230,12 @@ export const routes: Routes = [
           import('./features/expenses/expense-list/expense-list.component').then((m) => m.ExpenseListComponent)
       },
       {
+        path: 'profit-loss',
+        canActivate: [canView('profit-loss')],
+        loadComponent: () =>
+          import('./features/profit-loss/profit-loss.component').then((m) => m.ProfitLossComponent)
+      },
+      {
         path: 'inventory',
         canActivate: [canView('inventory')],
         children: [

@@ -1,0 +1,81 @@
+<div class="page-head">
+  <h2>Profit &amp; Loss</h2>
+</div>
+
+<div class="card card-pad" style="margin-bottom: 1.25rem">
+  <div class="toolbar" style="margin-bottom: 0">
+    <button class="btn btn-sm" [class.btn-primary]="activePeriod() === 'today'" (click)="selectPeriod('today')">Today</button>
+    <button class="btn btn-sm" [class.btn-primary]="activePeriod() === 'week'" (click)="selectPeriod('week')">This Week</button>
+    <button class="btn btn-sm" [class.btn-primary]="activePeriod() === 'month'" (click)="selectPeriod('month')">This Month</button>
+    <button class="btn btn-sm" [class.btn-primary]="activePeriod() === 'year'" (click)="selectPeriod('year')">This Year</button>
+
+    <div class="field" style="margin-left: 1rem">
+      <label>From</label>
+      <input class="input" type="date" [(ngModel)]="fromDate" [ngModelOptions]="{ standalone: true }" />
+    </div>
+    <div class="field">
+      <label>To</label>
+      <input class="input" type="date" [(ngModel)]="toDate" [ngModelOptions]="{ standalone: true }" />
+    </div>
+    <button class="btn btn-sm" [class.btn-primary]="activePeriod() === 'custom'" (click)="applyCustomRange()">Apply</button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else if (summary(); as s) {
+  <div class="kpi-grid">
+    <div class="kpi-card accent-sky">
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-value">{{ s.revenue | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">COGS</div>
+      <div class="kpi-value">{{ s.cogs | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value">{{ s.grossProfit | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-red">
+      <div class="kpi-label">Operating Expense</div>
+      <div class="kpi-value">{{ s.operatingExpense | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card" [class.accent-green]="s.netProfit >= 0" [class.accent-red]="s.netProfit < 0">
+      <div class="kpi-label">Net Profit</div>
+      <div class="kpi-value">{{ s.netProfit | number: '1.0-2' }}</div>
+    </div>
+  </div>
+
+  <div class="card card-pad">
+    <p class="subtitle">
+      Period: {{ s.fromDate | date: 'mediumDate' }} &ndash; {{ s.toDate | date: 'mediumDate' }}
+    </p>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td class="num">{{ s.revenue | number: '1.0-2' }}</td>
+          </tr>
+          <tr>
+            <td>Cost of Goods Sold (COGS)</td>
+            <td class="num">- {{ s.cogs | number: '1.0-2' }}</td>
+          </tr>
+          <tr>
+            <td><strong>Gross Profit</strong></td>
+            <td class="num"><strong>{{ s.grossProfit | number: '1.0-2' }}</strong></td>
+          </tr>
+          <tr>
+            <td>Operating Expense</td>
+            <td class="num">- {{ s.operatingExpense | number: '1.0-2' }}</td>
+          </tr>
+          <tr>
+            <td><strong>Net Profit</strong></td>
+            <td class="num"><strong>{{ s.netProfit | number: '1.0-2' }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

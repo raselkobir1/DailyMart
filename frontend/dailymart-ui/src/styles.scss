@@ -415,6 +415,61 @@ textarea.input:focus {
   color: var(--amber);
 }
 
+/* ---------- KPI cards (Dashboard, Profit & Loss, ...) ---------- */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpi-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem;
+  border-left: 4px solid var(--brand);
+}
+
+.kpi-card.clickable {
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.kpi-card.clickable:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-card.accent-green {
+  border-left-color: var(--green);
+}
+
+.kpi-card.accent-amber {
+  border-left-color: var(--amber);
+}
+
+.kpi-card.accent-sky {
+  border-left-color: var(--sky);
+}
+
+.kpi-card.accent-red {
+  border-left-color: var(--red);
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
 /* ---------- Avatars ---------- */
 
 .avatar {
