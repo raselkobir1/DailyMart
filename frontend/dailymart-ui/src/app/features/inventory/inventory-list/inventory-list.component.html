@@ -1,9 +1,11 @@
-<div class="page-head">
+<div class="page-head no-print">
   <div>
     <h2>Inventory</h2>
     <div class="subtitle">Stock movement history</div>
   </div>
   <div style="display: flex; gap: 0.5rem">
+    <button class="btn btn-sm" (click)="exportCsv()">Export CSV</button>
+    <button class="btn btn-sm" (click)="print()">Print</button>
     <button class="btn" (click)="viewLowStock()">Low Stock</button>
     @if (perms.can('inventory', 'create')) {
       <button class="btn" (click)="showAdjustmentForm()">Record Adjustment</button>
@@ -74,7 +76,7 @@
   </div>
 }
 
-<div class="field" style="max-width: 320px">
+<div class="field no-print" style="max-width: 320px">
   <label>Filter by Product</label>
   <select class="input" (change)="onFilterChange($event)">
     <option value="">All Products</option>
@@ -118,6 +120,7 @@
     </div>
 
     <app-pagination
+      class="no-print"
       [total]="totalCount()"
       [pageNumber]="pageNumber()"
       [pageSize]="pageSize()"

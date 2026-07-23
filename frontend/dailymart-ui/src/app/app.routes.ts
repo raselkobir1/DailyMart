@@ -236,6 +236,25 @@ export const routes: Routes = [
           import('./features/profit-loss/profit-loss.component').then((m) => m.ProfitLossComponent)
       },
       {
+        path: 'reports',
+        canActivate: [canView('reports')],
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/reports/reports-hub/reports-hub.component').then((m) => m.ReportsHubComponent)
+          },
+          {
+            path: 'closing',
+            loadComponent: () =>
+              import('./features/reports/closing-report/closing-report.component').then(
+                (m) => m.ClosingReportComponent
+              )
+          }
+        ]
+      },
+      {
         path: 'inventory',
         canActivate: [canView('inventory')],
         children: [

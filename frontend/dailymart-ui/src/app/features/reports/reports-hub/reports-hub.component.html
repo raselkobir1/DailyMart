@@ -1,0 +1,15 @@
+<div class="page-head">
+  <h2>Reports</h2>
+</div>
+
+<div class="report-grid">
+  @for (link of visibleLinks(); track link.key) {
+    <div class="card card-pad report-card" (click)="open(link.route)">
+      <div class="report-icon">{{ link.icon }}</div>
+      <div class="report-title">{{ link.title }}</div>
+      <div class="report-description">{{ link.description }}</div>
+    </div>
+  } @empty {
+    <p class="subtitle">No reports are visible for your account.</p>
+  }
+</div>

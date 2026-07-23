@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { downloadCsv } from '../../../shared/utils/csv-export';
+import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
 import { ProductDto } from '../../products/product.model';
 import { ProductService } from '../../products/product.service';
 import { InventoryTransactionDto } from '../inventory.model';
@@ -131,6 +133,25 @@ export class InventoryListComponent implements OnInit {
         this.saving.set(false);
         this.toast.error(error.error?.title ?? 'Could not record damaged stock.');
       }
+    });
+  }
+
+  protected print(): void {
+    window.print();
+  }
+
+  protected exportCsv(): void {
+    fetchAllPages((pageNumber) =>
+      this.inventoryService.getTransactionHistory({ pageNumber, pageSize: 100 }, this.filterProductId())
+    ).subscribe({
+      next: (items) => {
+        downloadCsv(
+          `inventory-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['Date', 'Product', 'Type', 'Qty Change', 'Balance', 'Notes'],
+          items.map((e) => [e.transactionDate, e.productName, e.transactionType, e.quantityChange, e.balanceAfter, e.notes])
+        );
+      },
+      error: () => this.toast.error('Could not export inventory transactions.')
     });
   }
 

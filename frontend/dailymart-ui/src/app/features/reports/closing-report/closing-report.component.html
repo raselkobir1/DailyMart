@@ -1,0 +1,78 @@
+<div class="page-head no-print">
+  <h2>Closing Report</h2>
+</div>
+
+<div class="card card-pad no-print" style="margin-bottom: 1.25rem">
+  <div class="toolbar" style="margin-bottom: 0">
+    <button class="btn btn-sm" [class.btn-primary]="period() === 'Day'" (click)="selectPeriod('Day')">Daily</button>
+    <button class="btn btn-sm" [class.btn-primary]="period() === 'Month'" (click)="selectPeriod('Month')">Monthly</button>
+    <button class="btn btn-sm" [class.btn-primary]="period() === 'Year'" (click)="selectPeriod('Year')">Yearly</button>
+
+    <div class="field" style="margin-left: 1rem">
+      <label>Date</label>
+      <input class="input" type="date" [(ngModel)]="date" (change)="onDateChange()" />
+    </div>
+
+    <div class="grow"></div>
+    <button class="btn btn-sm" (click)="exportCsv()">Export CSV</button>
+    <button class="btn btn-sm" (click)="print()">Print</button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page no-print"><span class="spinner lg"></span></div>
+} @else if (report(); as r) {
+  <h3>{{ r.periodType }} Closing Report</h3>
+  <p class="subtitle">{{ r.fromDate | date: 'medium' }} &ndash; {{ r.toDate | date: 'medium' }}</p>
+
+  <div class="kpi-grid">
+    <div class="kpi-card accent-sky">
+      <div class="kpi-label">Revenue ({{ r.salesCount }} sales)</div>
+      <div class="kpi-value">{{ r.revenue | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">COGS</div>
+      <div class="kpi-value">{{ r.cogs | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-green">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value">{{ r.grossProfit | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Purchases ({{ r.purchasesCount }})</div>
+      <div class="kpi-value">{{ r.totalPurchases | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card accent-red">
+      <div class="kpi-label">Expenses</div>
+      <div class="kpi-value">{{ r.totalExpenses | number: '1.0-2' }}</div>
+    </div>
+    <div class="kpi-card" [class.accent-green]="r.netProfit >= 0" [class.accent-red]="r.netProfit < 0">
+      <div class="kpi-label">Net Profit</div>
+      <div class="kpi-value">{{ r.netProfit | number: '1.0-2' }}</div>
+    </div>
+  </div>
+
+  <div class="card card-pad">
+    <div class="card-head" style="padding: 0; border: none; margin-bottom: 0.75rem">
+      <h3 style="margin: 0">Cash Flow</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr>
+            <td>Cash In (payments collected)</td>
+            <td class="num">{{ r.cashIn | number: '1.0-2' }}</td>
+          </tr>
+          <tr>
+            <td>Cash Out (purchases paid + expenses)</td>
+            <td class="num">- {{ r.cashOut | number: '1.0-2' }}</td>
+          </tr>
+          <tr>
+            <td><strong>Net Cash Flow</strong></td>
+            <td class="num"><strong>{{ r.netCashFlow | number: '1.0-2' }}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

@@ -4,6 +4,8 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { downloadCsv } from '../../../shared/utils/csv-export';
+import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
 import { EXPENSE_CATEGORIES, ExpenseDto } from '../expense.model';
 import { ExpenseService } from '../expense.service';
 
@@ -136,6 +138,31 @@ export class ExpenseListComponent implements OnInit {
         this.load();
       },
       error: () => this.toast.error('Could not delete expense.')
+    });
+  }
+
+  protected print(): void {
+    window.print();
+  }
+
+  protected exportCsv(): void {
+    fetchAllPages((pageNumber) =>
+      this.expenseService.getPaged({
+        pageNumber,
+        pageSize: 100,
+        category: this.filterCategory === '' ? null : Number(this.filterCategory),
+        fromDate: this.filterFromDate || null,
+        toDate: this.filterToDate || null
+      })
+    ).subscribe({
+      next: (items) => {
+        downloadCsv(
+          `expenses-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['Date', 'Category', 'Description', 'Amount'],
+          items.map((e) => [e.expenseDate, e.category, e.description, e.amount])
+        );
+      },
+      error: () => this.toast.error('Could not export expenses.')
     });
   }
 

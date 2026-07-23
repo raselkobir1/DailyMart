@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { downloadCsv } from '../../../shared/utils/csv-export';
+import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
 import { SupplierDto } from '../supplier.model';
 import { SupplierService } from '../supplier.service';
 
@@ -83,6 +85,23 @@ export class SupplierDueReportComponent implements OnInit {
 
   protected viewLedger(supplier: SupplierDto): void {
     this.router.navigateByUrl(`/suppliers/${supplier.id}/ledger`);
+  }
+
+  protected print(): void {
+    window.print();
+  }
+
+  protected exportCsv(): void {
+    fetchAllPages((pageNumber) => this.supplierService.getDueReport({ pageNumber, pageSize: 100 })).subscribe({
+      next: (items) => {
+        downloadCsv(
+          `supplier-due-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['Name', 'Contact Person', 'Current Due'],
+          items.map((s) => [s.name, s.contactPerson, s.currentDue])
+        );
+      },
+      error: () => this.toast.error('Could not export the due report.')
+    });
   }
 
   private load(): void {

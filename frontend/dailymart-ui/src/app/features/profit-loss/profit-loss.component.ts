@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Toast } from '../../core/toast';
+import { downloadCsv } from '../../shared/utils/csv-export';
 import { ProfitLossSummary } from './profit-loss.model';
 import { ProfitLossService } from './profit-loss.service';
 
@@ -54,6 +55,27 @@ export class ProfitLossComponent implements OnInit {
   protected applyCustomRange(): void {
     this.activePeriod.set('custom');
     this.load();
+  }
+
+  protected print(): void {
+    window.print();
+  }
+
+  protected exportCsv(): void {
+    const s = this.summary();
+    if (!s) {
+      return;
+    }
+
+    downloadCsv(`profit-loss-${this.fromDate}-to-${this.toDate}.csv`, ['Metric', 'Value'], [
+      ['From', s.fromDate],
+      ['To', s.toDate],
+      ['Revenue', s.revenue],
+      ['COGS', s.cogs],
+      ['Gross Profit', s.grossProfit],
+      ['Operating Expense', s.operatingExpense],
+      ['Net Profit', s.netProfit]
+    ]);
   }
 
   private load(): void {

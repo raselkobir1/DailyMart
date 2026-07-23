@@ -1,14 +1,18 @@
-<div class="page-head">
+<div class="page-head no-print">
   <div>
     <h2>Expenses</h2>
     <div class="subtitle">{{ totalCount() }} expenses</div>
   </div>
-  @if (perms.can('expenses', 'create')) {
-    <button class="btn btn-primary" (click)="startCreate()">Add Expense</button>
-  }
+  <div style="display: flex; gap: 0.5rem">
+    <button class="btn btn-sm" (click)="exportCsv()">Export CSV</button>
+    <button class="btn btn-sm" (click)="print()">Print</button>
+    @if (perms.can('expenses', 'create')) {
+      <button class="btn btn-primary" (click)="startCreate()">Add Expense</button>
+    }
+  </div>
 </div>
 
-<div class="toolbar">
+<div class="toolbar no-print">
   <div class="field">
     <label>Category</label>
     <select class="input" [(ngModel)]="filterCategory" [ngModelOptions]="{ standalone: true }">
@@ -105,6 +109,7 @@
     </div>
 
     <app-pagination
+      class="no-print"
       [total]="totalCount()"
       [pageNumber]="pageNumber()"
       [pageSize]="pageSize()"

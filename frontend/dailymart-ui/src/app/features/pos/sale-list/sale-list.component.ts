@@ -3,6 +3,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { downloadCsv } from '../../../shared/utils/csv-export';
+import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
 import { SaleDto } from '../sale.model';
 import { SaleService } from '../sale.service';
 
@@ -50,6 +52,23 @@ export class SaleListComponent implements OnInit {
 
   protected viewReturns(sale: SaleDto): void {
     this.router.navigateByUrl(`/sales/${sale.id}/returns`);
+  }
+
+  protected print(): void {
+    window.print();
+  }
+
+  protected exportCsv(): void {
+    fetchAllPages((pageNumber) => this.saleService.getPaged({ pageNumber, pageSize: 100 })).subscribe({
+      next: (items) => {
+        downloadCsv(
+          `sales-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['Sale #', 'Customer', 'Date', 'Payment', 'Total', 'Due', 'Profit'],
+          items.map((s) => [s.saleNumber, s.customerName ?? 'Walk-in', s.saleDate, s.paymentType, s.totalAmount, s.dueAmount, s.profitAmount])
+        );
+      },
+      error: () => this.toast.error('Could not export sales.')
+    });
   }
 
   private load(): void {

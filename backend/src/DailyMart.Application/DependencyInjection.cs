@@ -9,6 +9,7 @@ using DailyMart.Application.Products;
 using DailyMart.Application.ProfitLoss;
 using DailyMart.Application.Purchases;
 using DailyMart.Application.Rbac;
+using DailyMart.Application.Reports;
 using DailyMart.Application.Sales;
 using DailyMart.Application.Settings;
 using DailyMart.Application.Suppliers;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<ISaleService, SaleService>();
         services.AddScoped<ISaleReturnService, SaleReturnService>();
         services.AddScoped<IProfitLossService, ProfitLossService>();
+        services.AddScoped<IReportService, ReportService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;

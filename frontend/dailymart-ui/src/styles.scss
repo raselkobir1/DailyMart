@@ -899,3 +899,11 @@ textarea.input:focus {
 .accent-swatch.active {
   box-shadow: 0 0 0 2px var(--brand);
 }
+
+/* ---------- Print ---------- */
+
+@media print {
+  .no-print {
+    display: none;
+  }
+}

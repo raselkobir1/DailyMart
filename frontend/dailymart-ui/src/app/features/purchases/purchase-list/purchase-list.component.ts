@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { downloadCsv } from '../../../shared/utils/csv-export';
+import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
 import { PurchaseDto } from '../purchase.model';
 import { PurchaseService } from '../purchase.service';
 
@@ -64,6 +66,23 @@ export class PurchaseListComponent implements OnInit {
         this.load();
       },
       error: () => this.toast.error('Could not delete purchase.')
+    });
+  }
+
+  protected print(): void {
+    window.print();
+  }
+
+  protected exportCsv(): void {
+    fetchAllPages((pageNumber) => this.purchaseService.getPaged({ pageNumber, pageSize: 100 })).subscribe({
+      next: (items) => {
+        downloadCsv(
+          `purchases-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['Purchase #', 'Supplier', 'Date', 'Payment', 'Total', 'Due'],
+          items.map((p) => [p.purchaseNumber, p.supplierName, p.purchaseDate, p.paymentType, p.totalAmount, p.dueAmount])
+        );
+      },
+      error: () => this.toast.error('Could not export purchases.')
     });
   }
 
