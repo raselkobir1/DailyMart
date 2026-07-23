@@ -34,4 +34,20 @@ public interface ISupplierService
         SupplierLedgerEntryType entryType,
         string description,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Module 11's payment endpoint - the shop owner paying down what's owed to a supplier, built
+    /// on the same AdjustDueAsync used by Purchase. Deliberately does NOT clamp at zero the way
+    /// CustomerService.CollectPaymentAsync does: overpaying a supplier is a valid real state (a credit/
+    /// advance balance to apply against a future purchase), and CLAUDE.md's "due cannot go negative" rule
+    /// is scoped to customer due only. Commits itself (SaveChangesAsync), since a payment is a standalone
+    /// action, not staged alongside a larger unit of work the way a purchase is.</summary>
+    Task<SupplierDto> PaySupplierAsync(
+        long supplierId,
+        PaySupplierRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Suppliers with CurrentDue &gt; 0, sorted highest-due-first - the "who do we owe money to"
+    /// report Module 11's BRD text calls for.</summary>
+    Task<PagedResult<SupplierDto>> GetDueReportAsync(
+        PagedRequest request, CancellationToken cancellationToken = default);
 }

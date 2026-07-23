@@ -1,0 +1,70 @@
+<div class="page-head">
+  <div>
+    <h2>Supplier Due Report</h2>
+    <div class="subtitle">{{ totalCount() }} suppliers with an outstanding due</div>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact Person</th>
+            <th class="num">Current Due</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (supplier of items(); track supplier.id) {
+            <tr>
+              <td>{{ supplier.name }}</td>
+              <td>{{ supplier.contactPerson }}</td>
+              <td class="num"><span class="badge low">{{ supplier.currentDue }}</span></td>
+              <td>
+                <button class="btn btn-icon" (click)="viewLedger(supplier)" aria-label="Ledger">📒</button>
+                @if (perms.can('suppliers', 'edit')) {
+                  <button class="btn btn-sm" (click)="startPaySupplier(supplier)">Pay Supplier</button>
+                }
+              </td>
+            </tr>
+            @if (payingForId() === supplier.id) {
+              <tr>
+                <td colspan="4">
+                  <form [formGroup]="paymentForm" (ngSubmit)="paySupplier(supplier)" class="row">
+                    <div class="field">
+                      <label>Amount</label>
+                      <input class="input" type="number" step="0.01" formControlName="amount" />
+                    </div>
+                    <div class="field grow">
+                      <label>Notes (optional)</label>
+                      <input class="input" formControlName="notes" />
+                    </div>
+                    <div class="actions" style="align-self: flex-end">
+                      <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+                      <button class="btn" type="button" (click)="cancelPaySupplier()">Cancel</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr class="empty-row"><td colspan="4">No suppliers currently owed any money.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

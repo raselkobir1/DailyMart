@@ -31,3 +31,8 @@ export interface SupplierLedgerEntryDto {
   balanceAfter: number;
   transactionDate: string;
 }
+
+export interface PaySupplierRequest {
+  amount: number;
+  notes: string | null;
+}

@@ -1,25 +1,31 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { SupplierDto, SupplierLedgerEntryDto } from '../supplier.model';
 import { SupplierService } from '../supplier.service';
 
-/** Read-only for now - only ever shows an OpeningBalance entry until Purchase (Module 7) and Supplier
- * Due's payment side (Module 11) start adding rows here too. */
+/** Module 11 added the "Pay Supplier" form here - the natural place to record a payment since the
+ * ledger is already open and shows CurrentDue right above it. Unlike the customer ledger's "Collect
+ * Payment", this button is always shown regardless of CurrentDue - overpaying a supplier (going
+ * negative) is a valid advance/credit balance, not blocked the way customer collection is. */
 @Component({
   selector: 'app-supplier-ledger',
   standalone: true,
-  imports: [DatePipe, PaginationComponent],
+  imports: [DatePipe, ReactiveFormsModule, PaginationComponent],
   templateUrl: './supplier-ledger.component.html',
   styleUrl: './supplier-ledger.component.scss'
 })
 export class SupplierLedgerComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly supplierService = inject(SupplierService);
   private readonly toast = inject(Toast);
+  protected readonly perms = inject(Perms);
 
   private readonly supplierId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -29,14 +35,57 @@ export class SupplierLedgerComponent implements OnInit {
   protected readonly pageSize = signal(20);
   protected readonly pageNumber = signal(1);
   protected readonly loading = signal(true);
+  protected readonly paymentFormVisible = signal(false);
+  protected readonly payingSupplier = signal(false);
+
+  protected readonly paymentForm = this.fb.nonNullable.group({
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    notes: ['']
+  });
 
   ngOnInit(): void {
+    this.loadSupplier();
+    this.load();
+  }
+
+  protected startPaySupplier(): void {
+    this.paymentForm.reset({ amount: 0, notes: '' });
+    this.paymentFormVisible.set(true);
+  }
+
+  protected cancelPaySupplier(): void {
+    this.paymentFormVisible.set(false);
+  }
+
+  protected paySupplier(): void {
+    if (this.paymentForm.invalid) {
+      this.paymentForm.markAllAsTouched();
+      return;
+    }
+
+    const raw = this.paymentForm.getRawValue();
+    this.payingSupplier.set(true);
+
+    this.supplierService.paySupplier(this.supplierId, { amount: raw.amount, notes: raw.notes || null }).subscribe({
+      next: (supplier) => {
+        this.payingSupplier.set(false);
+        this.paymentFormVisible.set(false);
+        this.supplier.set(supplier);
+        this.toast.success('Payment recorded.');
+        this.load();
+      },
+      error: (error) => {
+        this.payingSupplier.set(false);
+        this.toast.error(error.error?.title ?? 'Could not record payment.');
+      }
+    });
+  }
+
+  private loadSupplier(): void {
     this.supplierService.getById(this.supplierId).subscribe({
       next: (supplier) => this.supplier.set(supplier),
       error: () => this.toast.error('Could not load supplier.')
     });
-
-    this.load();
   }
 
   protected onPageChange(pageNumber: number): void {

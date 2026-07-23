@@ -132,6 +132,10 @@ export class SupplierListComponent implements OnInit {
     this.router.navigateByUrl(`/suppliers/${supplier.id}/ledger`);
   }
 
+  protected viewDueReport(): void {
+    this.router.navigateByUrl('/suppliers/due-report');
+  }
+
   private load(): void {
     this.loading.set(true);
 

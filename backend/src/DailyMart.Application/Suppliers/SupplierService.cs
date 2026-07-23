@@ -152,6 +152,49 @@ public class SupplierService : ISupplierService
         await LedgerRepository.AddAsync(entry, cancellationToken);
     }
 
+    public async Task<SupplierDto> PaySupplierAsync(
+        long supplierId,
+        PaySupplierRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var supplier = await GetEntityAsync(supplierId, cancellationToken);
+
+        var description = string.IsNullOrWhiteSpace(request.Notes) ? "Payment made" : request.Notes;
+        await AdjustDueAsync(supplierId, -request.Amount, SupplierLedgerEntryType.Payment, description!, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return supplier.ToDto();
+    }
+
+    public async Task<PagedResult<SupplierDto>> GetDueReportAsync(
+        PagedRequest request, CancellationToken cancellationToken = default)
+    {
+        Expression<Func<Supplier, bool>> predicate = string.IsNullOrWhiteSpace(request.SearchTerm)
+            ? supplier => supplier.CurrentDue > 0
+            : supplier => supplier.CurrentDue > 0 && supplier.Name.Contains(request.SearchTerm);
+
+        var effectiveRequest = string.IsNullOrWhiteSpace(request.SortBy)
+            ? new PagedRequest
+            {
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                SearchTerm = request.SearchTerm,
+                SortBy = nameof(Supplier.CurrentDue),
+                SortDescending = true
+            }
+            : request;
+
+        var result = await Repository.GetPagedAsync(effectiveRequest, predicate, cancellationToken);
+
+        return new PagedResult<SupplierDto>
+        {
+            Items = result.Items.Select(s => s.ToDto()).ToList(),
+            TotalCount = result.TotalCount,
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize
+        };
+    }
+
     private async Task<Supplier> GetEntityAsync(long id, CancellationToken cancellationToken) =>
         await Repository.GetByIdAsync(id, cancellationToken) ?? throw new NotFoundException(nameof(Supplier), id);
 

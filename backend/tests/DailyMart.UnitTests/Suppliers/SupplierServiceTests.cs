@@ -267,4 +267,91 @@ public class SupplierServiceTests
 
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task PaySupplierAsync_reduces_due_and_records_a_Payment_ledger_entry()
+    {
+        var supplier = new Supplier { Id = 5, Name = "Acme Distributors", CurrentDue = 500 };
+        _supplierRepository.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(supplier);
+
+        SupplierLedgerEntry? captured = null;
+        _ledgerRepository
+            .Setup(r => r.AddAsync(It.IsAny<SupplierLedgerEntry>(), It.IsAny<CancellationToken>()))
+            .Callback<SupplierLedgerEntry, CancellationToken>((e, _) => captured = e)
+            .Returns(Task.CompletedTask);
+
+        var result = await _sut.PaySupplierAsync(5, new PaySupplierRequestDto { Amount = 200, Notes = "Cash payment" });
+
+        Assert.Equal(300, supplier.CurrentDue);
+        Assert.Equal(300, result.CurrentDue);
+        Assert.NotNull(captured);
+        Assert.Equal(SupplierLedgerEntryType.Payment, captured!.EntryType);
+        Assert.Equal(-200, captured.Amount);
+        Assert.Equal(300, captured.BalanceAfter);
+        Assert.Equal("Cash payment", captured.Description);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PaySupplierAsync_allows_an_overpayment_to_take_CurrentDue_negative()
+    {
+        // Unlike CustomerService.CollectPaymentAsync, supplier payments are not clamped at zero - an
+        // overpayment is a valid credit/advance balance against a future purchase (CLAUDE.md §8's
+        // "due cannot go negative" rule is scoped to customer due only).
+        var supplier = new Supplier { Id = 5, Name = "Acme Distributors", CurrentDue = 100 };
+        _supplierRepository.Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>())).ReturnsAsync(supplier);
+
+        var result = await _sut.PaySupplierAsync(5, new PaySupplierRequestDto { Amount = 300 });
+
+        Assert.Equal(-200, supplier.CurrentDue);
+        Assert.Equal(-200, result.CurrentDue);
+    }
+
+    [Fact]
+    public async Task PaySupplierAsync_throws_NotFoundException_when_the_supplier_does_not_exist()
+    {
+        _supplierRepository.Setup(r => r.GetByIdAsync(404, It.IsAny<CancellationToken>())).ReturnsAsync((Supplier?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(
+            () => _sut.PaySupplierAsync(404, new PaySupplierRequestDto { Amount = 10 }));
+    }
+
+    [Fact]
+    public async Task GetDueReportAsync_only_includes_suppliers_with_a_positive_due()
+    {
+        Expression<Func<Supplier, bool>>? capturedPredicate = null;
+        _supplierRepository
+            .Setup(r => r.GetPagedAsync(It.IsAny<PagedRequest>(), It.IsAny<Expression<Func<Supplier, bool>>?>(), It.IsAny<CancellationToken>()))
+            .Callback<PagedRequest, Expression<Func<Supplier, bool>>?, CancellationToken>((_, predicate, _) => capturedPredicate = predicate)
+            .ReturnsAsync(new PagedResult<Supplier>
+            {
+                Items = [new Supplier { Id = 1, Name = "Acme Distributors", CurrentDue = 500 }],
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 20
+            });
+
+        var result = await _sut.GetDueReportAsync(new PagedRequest());
+
+        var isIncluded = capturedPredicate!.Compile();
+        Assert.True(isIncluded(new Supplier { CurrentDue = 500 }));
+        Assert.False(isIncluded(new Supplier { CurrentDue = 0 }));
+        Assert.False(isIncluded(new Supplier { CurrentDue = -50 }));
+        Assert.Single(result.Items);
+    }
+
+    [Fact]
+    public async Task GetDueReportAsync_defaults_to_sorting_by_CurrentDue_descending()
+    {
+        PagedRequest? capturedRequest = null;
+        _supplierRepository
+            .Setup(r => r.GetPagedAsync(It.IsAny<PagedRequest>(), It.IsAny<Expression<Func<Supplier, bool>>?>(), It.IsAny<CancellationToken>()))
+            .Callback<PagedRequest, Expression<Func<Supplier, bool>>?, CancellationToken>((request, _, _) => capturedRequest = request)
+            .ReturnsAsync(new PagedResult<Supplier> { Items = [], TotalCount = 0, PageNumber = 1, PageSize = 20 });
+
+        await _sut.GetDueReportAsync(new PagedRequest());
+
+        Assert.Equal(nameof(Supplier.CurrentDue), capturedRequest!.SortBy);
+        Assert.True(capturedRequest.SortDescending);
+    }
 }

@@ -98,6 +98,13 @@ export const routes: Routes = [
               )
           },
           {
+            path: 'due-report',
+            loadComponent: () =>
+              import('./features/suppliers/supplier-due-report/supplier-due-report.component').then(
+                (m) => m.SupplierDueReportComponent
+              )
+          },
+          {
             path: ':id/ledger',
             loadComponent: () =>
               import('./features/suppliers/supplier-ledger/supplier-ledger.component').then(

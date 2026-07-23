@@ -2,7 +2,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PagedRequest, PagedResult } from '../../shared/models/paged-result.model';
-import { CreateSupplierRequest, SupplierDto, SupplierLedgerEntryDto, SupplierRequest } from './supplier.model';
+import {
+  CreateSupplierRequest,
+  PaySupplierRequest,
+  SupplierDto,
+  SupplierLedgerEntryDto,
+  SupplierRequest
+} from './supplier.model';
 
 @Injectable({ providedIn: 'root' })
 export class SupplierService {
@@ -39,5 +45,18 @@ export class SupplierService {
     if (request.pageSize) params = params.set('pageSize', request.pageSize);
 
     return this.http.get<PagedResult<SupplierLedgerEntryDto>>(`/suppliers/${id}/ledger`, { params });
+  }
+
+  paySupplier(id: number, request: PaySupplierRequest): Observable<SupplierDto> {
+    return this.http.post<SupplierDto>(`/suppliers/${id}/payments`, request);
+  }
+
+  getDueReport(request: PagedRequest): Observable<PagedResult<SupplierDto>> {
+    let params = new HttpParams();
+    if (request.pageNumber) params = params.set('pageNumber', request.pageNumber);
+    if (request.pageSize) params = params.set('pageSize', request.pageSize);
+    if (request.searchTerm) params = params.set('searchTerm', request.searchTerm);
+
+    return this.http.get<PagedResult<SupplierDto>>('/suppliers/due-report', { params });
   }
 }

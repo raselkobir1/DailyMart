@@ -50,12 +50,26 @@ public class SuppliersController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Only ever shows an OpeningBalance entry until Purchase (Module 7) and the payment side of
-    /// Supplier Due (Module 11) start adding Purchase/Payment entries to the same table.</summary>
     [HttpGet("{id:long}/ledger")]
     public async Task<ActionResult<PagedResult<SupplierLedgerEntryDto>>> GetLedger(
         long id, [FromQuery] PagedRequest request, CancellationToken cancellationToken)
     {
         return Ok(await _supplierService.GetLedgerAsync(id, request, cancellationToken));
+    }
+
+    /// <summary>Module 11: records a payment made to a supplier as a new ledger entry.</summary>
+    [HttpPost("{id:long}/payments")]
+    public async Task<ActionResult<SupplierDto>> PaySupplier(
+        long id, PaySupplierRequestDto request, CancellationToken cancellationToken)
+    {
+        return Ok(await _supplierService.PaySupplierAsync(id, request, cancellationToken));
+    }
+
+    /// <summary>Module 11: suppliers with an outstanding due, highest-due-first.</summary>
+    [HttpGet("due-report")]
+    public async Task<ActionResult<PagedResult<SupplierDto>>> GetDueReport(
+        [FromQuery] PagedRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await _supplierService.GetDueReportAsync(request, cancellationToken));
     }
 }
