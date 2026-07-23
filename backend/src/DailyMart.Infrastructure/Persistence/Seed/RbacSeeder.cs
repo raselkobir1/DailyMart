@@ -35,6 +35,7 @@ public class RbacSeeder
         ("inventory", "Inventory", "/inventory", "📦", 80),
         ("pos", "POS", "/pos", "🖥️", 90),
         ("sales", "Sales", "/sales", "💰", 100),
+        ("expenses", "Expenses", "/expenses", "🧮", 105),
         ("audit-log", "Audit Log", "/audit-log", "📜", 110),
         ("settings", "Settings", "/settings", "⚙️", 120),
         ("users", "Users", "/users", "👥", 130),

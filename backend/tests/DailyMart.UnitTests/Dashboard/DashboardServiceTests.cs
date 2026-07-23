@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Dashboard;
 using DailyMart.Domain.Customers;
+using DailyMart.Domain.Expenses;
 using DailyMart.Domain.Products;
 using DailyMart.Domain.Purchases;
 using DailyMart.Domain.Sales;
@@ -18,6 +19,7 @@ public class DashboardServiceTests
     private readonly Mock<IRepository<Customer>> _customerRepository = new();
     private readonly Mock<IRepository<Supplier>> _supplierRepository = new();
     private readonly Mock<IRepository<Product>> _productRepository = new();
+    private readonly Mock<IRepository<Expense>> _expenseRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly DashboardService _sut;
 
@@ -35,6 +37,7 @@ public class DashboardServiceTests
         _unitOfWork.Setup(u => u.Repository<Customer>()).Returns(_customerRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Supplier>()).Returns(_supplierRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Product>()).Returns(_productRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<Expense>()).Returns(_expenseRepository.Object);
         _sut = new DashboardService(_unitOfWork.Object);
     }
 
@@ -71,6 +74,11 @@ public class DashboardServiceTests
         _productRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
     }
 
+    private void SetUpExpenses(List<Expense> expenses)
+    {
+        _expenseRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expenses);
+    }
+
     private void SetUpDefaults()
     {
         SetUpSales([]);
@@ -79,6 +87,7 @@ public class DashboardServiceTests
         SetUpCustomers([]);
         SetUpSuppliers([]);
         SetUpProducts([]);
+        SetUpExpenses([]);
     }
 
     [Fact]
@@ -102,7 +111,7 @@ public class DashboardServiceTests
     }
 
     [Fact]
-    public async Task GetSummaryAsync_computes_cash_in_hand_from_all_time_paid_amounts()
+    public async Task GetSummaryAsync_computes_cash_in_hand_from_all_time_paid_amounts_and_expenses()
     {
         SetUpDefaults();
         SetUpSales([
@@ -112,11 +121,28 @@ public class DashboardServiceTests
         SetUpPurchases([
             new Purchase { Id = 1, PurchaseDate = Yesterday, TotalAmount = 200m, PaidAmount = 150m }
         ]);
+        SetUpExpenses([
+            new Expense { Id = 1, ExpenseDate = Yesterday, Amount = 60m, Category = ExpenseCategory.Rent }
+        ]);
 
         var result = await _sut.GetSummaryAsync();
 
-        // (100 + 300) paid in - 150 paid out - 0 expense = 250
-        Assert.Equal(250m, result.CashInHand);
+        // (100 + 300) paid in - 150 paid out - 60 expense = 190
+        Assert.Equal(190m, result.CashInHand);
+    }
+
+    [Fact]
+    public async Task GetSummaryAsync_only_counts_todays_expenses_in_TodayExpense()
+    {
+        SetUpDefaults();
+        SetUpExpenses([
+            new Expense { Id = 1, ExpenseDate = Now, Amount = 500m, Category = ExpenseCategory.Rent },
+            new Expense { Id = 2, ExpenseDate = Yesterday, Amount = 1000m, Category = ExpenseCategory.Salary }
+        ]);
+
+        var result = await _sut.GetSummaryAsync();
+
+        Assert.Equal(500m, result.TodayExpense);
     }
 
     [Fact]

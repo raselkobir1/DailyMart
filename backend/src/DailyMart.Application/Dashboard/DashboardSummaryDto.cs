@@ -8,13 +8,12 @@ public class DashboardSummaryDto
 
     public decimal TodayProfit { get; set; }
 
-    /// <summary>Always 0 until Module 12 (Expense) exists - there is nowhere yet to record an expense
-    /// against. Kept on the DTO now so the frontend card layout/BRD field doesn't need to change later.</summary>
     public decimal TodayExpense { get; set; }
 
-    /// <summary>Sum of all-time Sale.PaidAmount minus all-time Purchase.PaidAmount minus TodayExpense (0 for
-    /// now). An MVP cash-position figure - there's no separate cash-ledger table, so this is always
-    /// recomputed rather than a stored running balance.</summary>
+    /// <summary>Sum of all-time Sale.PaidAmount minus all-time Purchase.PaidAmount minus all-time
+    /// Expense.Amount (every recorded expense is assumed paid immediately in cash - there's no payment
+    /// status on Expense). An MVP cash-position figure - there's no separate cash-ledger table, so this
+    /// is always recomputed rather than a stored running balance.</summary>
     public decimal CashInHand { get; set; }
 
     public decimal TotalCustomerDue { get; set; }

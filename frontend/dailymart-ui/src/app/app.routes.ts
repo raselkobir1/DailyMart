@@ -224,6 +224,12 @@ export const routes: Routes = [
         ]
       },
       {
+        path: 'expenses',
+        canActivate: [canView('expenses')],
+        loadComponent: () =>
+          import('./features/expenses/expense-list/expense-list.component').then((m) => m.ExpenseListComponent)
+      },
+      {
         path: 'inventory',
         canActivate: [canView('inventory')],
         children: [

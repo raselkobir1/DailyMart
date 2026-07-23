@@ -1,6 +1,7 @@
 using DailyMart.Domain.Auditing;
 using DailyMart.Domain.Auth;
 using DailyMart.Domain.Customers;
+using DailyMart.Domain.Expenses;
 using DailyMart.Domain.Inventory;
 using DailyMart.Domain.MasterData;
 using DailyMart.Domain.Products;
@@ -69,6 +70,8 @@ public class DailyMartDbContext : DbContext
     public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
 
     public DbSet<SaleReturnItem> SaleReturnItems => Set<SaleReturnItem>();
+
+    public DbSet<Expense> Expenses => Set<Expense>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

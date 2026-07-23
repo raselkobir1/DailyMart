@@ -1,5 +1,6 @@
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Domain.Customers;
+using DailyMart.Domain.Expenses;
 using DailyMart.Domain.Products;
 using DailyMart.Domain.Purchases;
 using DailyMart.Domain.Sales;
@@ -8,7 +9,7 @@ using DailyMart.Domain.Suppliers;
 namespace DailyMart.Application.Dashboard;
 
 /// <summary>
-/// Reads across Sale/Purchase/Customer/Supplier/Product - via <see cref="IRepository{T}.FindAsync"/>/
+/// Reads across Sale/Purchase/Customer/Supplier/Product/Expense - via <see cref="IRepository{T}.FindAsync"/>/
 /// GetAllAsync, never <c>Query()</c> - so this stays a plain LINQ-to-objects aggregation with no direct
 /// EF Core dependency in the Application layer (Query()'s IQueryable would need Microsoft.EntityFrameworkCore
 /// async operators like SumAsync/ToListAsync, which only Infrastructure references).
@@ -45,8 +46,11 @@ public class DashboardService : IDashboardService
             .Where(p => p.PurchaseDate >= todayStart && p.PurchaseDate < todayEnd)
             .Sum(p => p.TotalAmount);
 
-        const decimal todayExpense = 0m;
-        var cashInHand = allSales.Sum(s => s.PaidAmount) - allPurchases.Sum(p => p.PaidAmount) - todayExpense;
+        var allExpenses = await _unitOfWork.Repository<Expense>().GetAllAsync(cancellationToken);
+        var todayExpense = allExpenses
+            .Where(e => e.ExpenseDate >= todayStart && e.ExpenseDate < todayEnd)
+            .Sum(e => e.Amount);
+        var cashInHand = allSales.Sum(s => s.PaidAmount) - allPurchases.Sum(p => p.PaidAmount) - allExpenses.Sum(e => e.Amount);
 
         var customers = await _unitOfWork.Repository<Customer>().GetAllAsync(cancellationToken);
         var suppliers = await _unitOfWork.Repository<Supplier>().GetAllAsync(cancellationToken);
