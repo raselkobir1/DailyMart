@@ -6,10 +6,53 @@
   <div style="display: flex; gap: 0.5rem">
     <button class="btn" (click)="exportCsv()">Export CSV</button>
     @if (perms.can('products', 'create')) {
+      <button class="btn" (click)="downloadImportTemplate()">Download Import Template</button>
+      <button class="btn" (click)="triggerImportFilePicker()" [disabled]="importing()">
+        @if (importing()) {
+          <span class="spinner"></span>
+        } @else {
+          Import Excel
+        }
+      </button>
+      <input
+        #importFileInput
+        type="file"
+        accept=".xlsx"
+        style="display: none"
+        (change)="onImportFileSelected($event)"
+      />
       <button class="btn btn-primary" (click)="addProduct()">Add Product</button>
     }
   </div>
 </div>
+
+@if (importResult(); as result) {
+  <div class="card card-pad" style="margin-bottom: 1rem">
+    <div style="font-weight: 600; margin-bottom: 0.5rem">
+      Import finished: {{ result.totalRows }} row(s) read, {{ result.created }} created, {{ result.updated }} updated.
+    </div>
+    @if (result.errors.length > 0) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (rowError of result.errors; track rowError.rowNumber) {
+              <tr>
+                <td>{{ rowError.rowNumber }}</td>
+                <td style="color: var(--red)">{{ rowError.message }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}
 
 <div class="toolbar">
   <div class="search">

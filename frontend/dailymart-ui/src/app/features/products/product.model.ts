@@ -41,3 +41,15 @@ export interface ProductRequest {
 export interface CreateProductRequest extends ProductRequest {
   currentStock: number;
 }
+
+export interface ProductImportRowError {
+  rowNumber: number;
+  message: string;
+}
+
+export interface ProductImportResult {
+  totalRows: number;
+  created: number;
+  updated: number;
+  errors: ProductImportRowError[];
+}

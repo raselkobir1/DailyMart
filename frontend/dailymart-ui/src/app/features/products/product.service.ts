@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PagedRequest, PagedResult } from '../../shared/models/paged-result.model';
-import { CreateProductRequest, ProductDto, ProductRequest } from './product.model';
+import { CreateProductRequest, ProductDto, ProductImportResult, ProductRequest } from './product.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
@@ -47,6 +47,18 @@ export class ProductService {
 
   exportCsv(): Observable<Blob> {
     return this.http.get('/products/export', { responseType: 'blob' });
+  }
+
+  downloadImportTemplate(): Observable<Blob> {
+    return this.http.get('/products/import-template', { responseType: 'blob' });
+  }
+
+  /** Category/Brand/Unit are matched by name server-side, not id - see the backend's
+   * IProductService.ImportAsync. A row whose Code already exists is treated as an update. */
+  import(file: File): Observable<ProductImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ProductImportResult>('/products/import', formData);
   }
 
   /** Added for Module 8 (Inventory), but lives here since it only queries Product - see the backend's

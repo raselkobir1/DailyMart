@@ -1,11 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { printBarcodeSheet } from '../../../shared/utils/barcode-print';
-import { ProductDto } from '../product.model';
+import { ProductDto, ProductImportResult } from '../product.model';
 import { ProductService } from '../product.service';
 
 /** A sheet this large would take noticeably long to render as SVG and print - block it outright rather
@@ -21,6 +21,8 @@ const MAX_BARCODE_PRINT_COPIES = 500;
   styleUrl: './product-list.component.scss'
 })
 export class ProductListComponent implements OnInit {
+  @ViewChild('importFileInput') private importFileInputRef?: ElementRef<HTMLInputElement>;
+
   private readonly productService = inject(ProductService);
   private readonly router = inject(Router);
   private readonly toast = inject(Toast);
@@ -31,6 +33,8 @@ export class ProductListComponent implements OnInit {
   protected readonly pageSize = signal(20);
   protected readonly pageNumber = signal(1);
   protected readonly loading = signal(false);
+  protected readonly importing = signal(false);
+  protected readonly importResult = signal<ProductImportResult | null>(null);
   protected searchTerm = '';
 
   ngOnInit(): void {
@@ -97,16 +101,58 @@ export class ProductListComponent implements OnInit {
 
   protected exportCsv(): void {
     this.productService.exportCsv().subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'products.csv';
-        link.click();
-        URL.revokeObjectURL(url);
-      },
+      next: (blob) => this.downloadBlob(blob, 'products.csv'),
       error: () => this.toast.error('Could not export products.')
     });
+  }
+
+  protected downloadImportTemplate(): void {
+    this.productService.downloadImportTemplate().subscribe({
+      next: (blob) => this.downloadBlob(blob, 'product-import-template.xlsx'),
+      error: () => this.toast.error('Could not download the import template.')
+    });
+  }
+
+  protected triggerImportFilePicker(): void {
+    this.importResult.set(null);
+    this.importFileInputRef?.nativeElement.click();
+  }
+
+  protected onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    this.importing.set(true);
+    this.productService.import(file).subscribe({
+      next: (result) => {
+        this.importing.set(false);
+        this.importResult.set(result);
+        if (result.errors.length === 0) {
+          this.toast.success(`Imported ${result.created} new and ${result.updated} updated product(s).`);
+        } else {
+          this.toast.error(`Imported with ${result.errors.length} row error(s) - see details below.`);
+        }
+        this.load();
+      },
+      error: (error) => {
+        this.importing.set(false);
+        this.toast.error(error.error?.title ?? error.error ?? 'Could not import the file.');
+      }
+    });
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   private load(): void {

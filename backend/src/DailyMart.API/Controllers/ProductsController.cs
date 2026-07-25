@@ -84,7 +84,6 @@ public class ProductsController : ControllerBase
         return Ok(await _productService.GetLowStockAsync(request, cancellationToken));
     }
 
-    /// <summary>Export only - see Module 4 Step 1's scope decision on why Import is a deferred fast-follow.</summary>
     [HttpGet("export")]
     public async Task<IActionResult> Export(CancellationToken cancellationToken)
     {
@@ -92,6 +91,35 @@ public class ProductsController : ControllerBase
         var csvBytes = Encoding.UTF8.GetBytes(BuildCsv(products));
 
         return File(csvBytes, "text/csv", $"products-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.csv");
+    }
+
+    /// <summary>A blank starter workbook with the exact headers Import expects, one example row, and a
+    /// reference sheet of valid Category/Brand/Unit names - see IProductService.BuildImportTemplateAsync.</summary>
+    [HttpGet("import-template")]
+    public async Task<IActionResult> ImportTemplate(CancellationToken cancellationToken)
+    {
+        var bytes = await _productService.BuildImportTemplateAsync(cancellationToken);
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "product-import-template.xlsx");
+    }
+
+    /// <summary>Bulk create/update from an uploaded .xlsx - see IProductService.ImportAsync for the
+    /// per-row create-vs-update rule and why one bad row doesn't fail the whole file.</summary>
+    [HttpPost("import")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<ProductImportResultDto>> Import(IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest("No file was uploaded.");
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await _productService.ImportAsync(stream, cancellationToken);
+
+        return Ok(result);
     }
 
     private static string BuildCsv(IReadOnlyList<ProductDto> products)

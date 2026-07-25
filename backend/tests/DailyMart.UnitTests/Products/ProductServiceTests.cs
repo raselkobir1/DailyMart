@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Linq.Expressions;
+using ClosedXML.Excel;
 using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
@@ -50,12 +51,25 @@ public class ProductServiceTests
             .Setup(r => r.FindAsync(It.IsAny<Expression<Func<Unit, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([new Unit { Id = UnitId, Name = "Kilogram", Symbol = "kg" }]);
 
+        _categoryRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Category { Id = CategoryId, Name = "Grocery" }]);
+        _brandRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Brand { Id = BrandId, Name = "Nestle" }]);
+        _unitRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Unit { Id = UnitId, Name = "Kilogram", Symbol = "kg" }]);
+        _productRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
         // Default: nothing is ever a duplicate. Individual tests override this to simulate collisions.
         _productRepository
             .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _sut = new ProductService(_productRepository.Object, _unitOfWork.Object, _fileStorageService.Object);
+        _sut = new ProductService(
+            _productRepository.Object,
+            _unitOfWork.Object,
+            _fileStorageService.Object,
+            new CreateProductRequestValidator(),
+            new ProductRequestValidator());
     }
 
     private static CreateProductRequestDto ValidCreateRequest(
@@ -380,5 +394,104 @@ public class ProductServiceTests
 
         Assert.Equal("/uploads/products/new.png", result.ImageUrl);
         Assert.Equal("/uploads/products/new.png", existing.ImageUrl);
+    }
+
+    [Fact]
+    public async Task ImportAsync_creates_new_rows_and_updates_rows_whose_code_already_exists()
+    {
+        var existingProduct = new Product
+        {
+            Id = 42, Code = "P-001", Barcode = "1112223334445", Name = "Old Name",
+            CategoryId = CategoryId, BrandId = BrandId, UnitId = UnitId,
+            PurchasePrice = 10, SellingPrice = 20, CurrentStock = 99
+        };
+        _productRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([existingProduct]);
+        _productRepository.Setup(r => r.GetByIdAsync(42, It.IsAny<CancellationToken>())).ReturnsAsync(existingProduct);
+
+        using var workbook = BuildImportWorkbook(
+            new object?[] { "P-001", null, "Rice 1kg Updated", "Grocery", "Nestle", "Kilogram", 50m, 60m, null, null, null, 5m, 5m, null },
+            new object?[] { "IMP-NEW-1", null, "New Product", "Grocery", "Nestle", "Kilogram", 30m, 45m, null, null, null, 20m, 5m, null });
+
+        var result = await _sut.ImportAsync(workbook);
+
+        Assert.Equal(2, result.TotalRows);
+        Assert.Equal(1, result.Created);
+        Assert.Equal(1, result.Updated);
+        Assert.Empty(result.Errors);
+        Assert.Equal("Rice 1kg Updated", existingProduct.Name);
+        Assert.Equal(99, existingProduct.CurrentStock);
+        _productRepository.Verify(
+            r => r.AddAsync(It.Is<Product>(p => p.Code == "IMP-NEW-1"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportAsync_records_a_row_error_for_an_unknown_category_without_aborting_other_rows()
+    {
+        using var workbook = BuildImportWorkbook(
+            new object?[] { "BAD-1", null, "Bad Row", "NoSuchCategory", null, "Kilogram", 10m, 20m, null, null, null, 5m, 5m, null },
+            new object?[] { "GOOD-1", null, "Good Row", "Grocery", "Nestle", "Kilogram", 10m, 20m, null, null, null, 5m, 5m, null });
+
+        var result = await _sut.ImportAsync(workbook);
+
+        Assert.Equal(2, result.TotalRows);
+        Assert.Equal(1, result.Created);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal(2, error.RowNumber);
+        Assert.Contains("NoSuchCategory", error.Message);
+    }
+
+    [Fact]
+    public async Task ImportAsync_throws_BusinessRuleException_when_a_required_column_is_missing()
+    {
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.Worksheets.Add("Products");
+        sheet.Cell(1, 1).Value = "Code";
+        sheet.Cell(1, 2).Value = "Name";
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.ImportAsync(stream));
+    }
+
+    private static MemoryStream BuildImportWorkbook(params object?[][] rows)
+    {
+        string[] headers =
+        [
+            "Code", "Barcode", "Name", "Category", "Brand", "Unit", "PurchasePrice", "SellingPrice",
+            "WholesalePrice", "DiscountPercentage", "TaxPercentage", "CurrentStock", "MinimumStock",
+            "AllowPriceBelowCost"
+        ];
+
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.Worksheets.Add("Products");
+
+        for (var i = 0; i < headers.Length; i++)
+        {
+            sheet.Cell(1, i + 1).Value = headers[i];
+        }
+
+        for (var r = 0; r < rows.Length; r++)
+        {
+            for (var c = 0; c < rows[r].Length; c++)
+            {
+                switch (rows[r][c])
+                {
+                    case null:
+                        break;
+                    case string s:
+                        sheet.Cell(r + 2, c + 1).Value = s;
+                        break;
+                    case decimal d:
+                        sheet.Cell(r + 2, c + 1).Value = (double)d;
+                        break;
+                }
+            }
+        }
+
+        var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+        return stream;
     }
 }
