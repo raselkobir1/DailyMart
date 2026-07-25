@@ -11,12 +11,18 @@ namespace DailyMart.Application.Auth;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher<User> _passwordHasher;
 
-    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher)
+    public UserService(
+        IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork,
+        IPasswordHasher<User> passwordHasher)
     {
         _userRepository = userRepository;
+        _refreshTokenRepository = refreshTokenRepository;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
     }
@@ -103,6 +109,19 @@ public class UserService : IUserService
         var user = await GetEntityAsync(id, cancellationToken);
 
         _userRepository.Remove(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ResetPasswordAsync(
+        long id, ResetPasswordRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var user = await GetEntityAsync(id, cancellationToken);
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
+        _userRepository.Update(user);
+
+        await _refreshTokenRepository.RevokeAllActiveForUserAsync(id, cancellationToken);
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 

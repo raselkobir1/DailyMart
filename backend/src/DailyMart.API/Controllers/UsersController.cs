@@ -54,4 +54,13 @@ public class UsersController : ControllerBase
         await _userService.DeleteAsync(id, currentUserId, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>Admin-initiated - see IUserService.ResetPasswordAsync's doc comment for how this differs
+    /// from the self-service POST /api/auth/change-password.</summary>
+    [HttpPost("{id:long}/reset-password")]
+    public async Task<IActionResult> ResetPassword(long id, ResetPasswordRequestDto request, CancellationToken cancellationToken)
+    {
+        await _userService.ResetPasswordAsync(id, request, cancellationToken);
+        return NoContent();
+    }
 }

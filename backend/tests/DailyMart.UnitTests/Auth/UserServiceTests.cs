@@ -11,6 +11,7 @@ namespace DailyMart.UnitTests.Auth;
 public class UserServiceTests
 {
     private readonly Mock<IUserRepository> _userRepository = new();
+    private readonly Mock<IRefreshTokenRepository> _refreshTokenRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IRepository<Role>> _roleRepository = new();
     private readonly Mock<IPasswordHasher<User>> _passwordHasher = new();
@@ -22,7 +23,8 @@ public class UserServiceTests
         _roleRepository.Setup(r => r.ExistsAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Role, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        _sut = new UserService(_userRepository.Object, _unitOfWork.Object, _passwordHasher.Object);
+        _sut = new UserService(
+            _userRepository.Object, _refreshTokenRepository.Object, _unitOfWork.Object, _passwordHasher.Object);
     }
 
     [Fact]
@@ -81,5 +83,32 @@ public class UserServiceTests
         await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.DeleteAsync(1, currentUserId: 1));
 
         _userRepository.Verify(r => r.GetByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_hashes_the_new_password_and_revokes_active_sessions()
+    {
+        var user = new User { Id = 2, FullName = "Cashier One", Role = "Cashier", IsActive = true, PasswordHash = "old-hash" };
+        _userRepository.Setup(r => r.GetByIdAsync(2, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        _passwordHasher.Setup(h => h.HashPassword(user, "NewPass1")).Returns("new-hash");
+
+        await _sut.ResetPasswordAsync(2, new ResetPasswordRequestDto { NewPassword = "NewPass1" });
+
+        Assert.Equal("new-hash", user.PasswordHash);
+        _userRepository.Verify(r => r.Update(user), Times.Once);
+        _refreshTokenRepository.Verify(r => r.RevokeAllActiveForUserAsync(2, It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_throws_when_the_user_does_not_exist()
+    {
+        _userRepository.Setup(r => r.GetByIdAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync((User?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _sut.ResetPasswordAsync(99, new ResetPasswordRequestDto { NewPassword = "NewPass1" }));
+
+        _refreshTokenRepository.Verify(
+            r => r.RevokeAllActiveForUserAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

@@ -16,10 +16,12 @@
           <label>Username</label>
           <input class="input" formControlName="username" />
         </div>
-        <div class="field">
-          <label>Password {{ editingId() !== null ? '(leave blank to keep current)' : '' }}</label>
-          <input class="input" type="password" formControlName="password" />
-        </div>
+        @if (editingId() === null) {
+          <div class="field">
+            <label>Password</label>
+            <input class="input" type="password" formControlName="password" />
+          </div>
+        }
       </div>
 
       <div class="row">
@@ -78,12 +80,29 @@
               <td>
                 @if (perms.can('users', 'edit')) {
                   <button class="btn btn-icon" (click)="startEdit(user)" aria-label="Edit">✏️</button>
+                  <button class="btn btn-icon" (click)="startResetPassword(user)" aria-label="Reset Password">🔑</button>
                 }
                 @if (perms.can('users', 'delete')) {
                   <button class="btn btn-icon" (click)="delete(user)" aria-label="Delete">🗑️</button>
                 }
               </td>
             </tr>
+            @if (resettingId() === user.id) {
+              <tr>
+                <td colspan="5">
+                  <form [formGroup]="resetPasswordForm" (ngSubmit)="submitResetPassword(user)" class="row">
+                    <div class="field grow">
+                      <label>New Password for "{{ user.username }}"</label>
+                      <input class="input" type="password" formControlName="newPassword" />
+                    </div>
+                    <div class="actions" style="align-self: flex-end">
+                      <button class="btn btn-primary" type="submit" [disabled]="resettingPassword()">Reset Password</button>
+                      <button class="btn" type="button" (click)="cancelResetPassword()">Cancel</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            }
           } @empty {
             <tr class="empty-row"><td colspan="5">No users yet.</td></tr>
           }

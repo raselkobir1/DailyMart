@@ -18,3 +18,7 @@ export interface UpdateUserRequest {
   role: string;
   isActive: boolean;
 }
+
+export interface ResetPasswordRequest {
+  newPassword: string;
+}

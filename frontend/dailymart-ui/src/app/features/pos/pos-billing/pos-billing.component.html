@@ -66,7 +66,7 @@
 
             <input class="input" type="number" formControlName="quantity" />
             <input class="input" type="number" formControlName="unitPrice" />
-            <input class="input" type="number" formControlName="discountAmount" />
+            <input class="input" type="number" formControlName="discountAmount" title="Prefilled from the product's Discount % - edit freely to override" />
 
             <span class="num">{{ lineTotal(i) }}</span>
 
@@ -105,6 +105,7 @@
         <div class="field">
           <label>VAT</label>
           <input class="input" type="number" formControlName="vatAmount" />
+          <span class="hint">Auto-filled from each product's Tax % - edit freely to override.</span>
         </div>
 
         @if (formValue().paymentType === 2) {

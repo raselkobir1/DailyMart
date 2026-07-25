@@ -27,4 +27,10 @@ public interface IUserService
     /// IAuthService.ChangePasswordAsync) - throws BusinessRuleException if it matches id, so an admin can
     /// never delete the account they're currently signed in as.</summary>
     Task DeleteAsync(long id, long currentUserId, CancellationToken cancellationToken = default);
+
+    /// <summary>Admin-initiated reset for a locked-out user (forgot their password, can't sign in to use
+    /// the self-service POST /api/auth/change-password) - unlike that endpoint, this doesn't require
+    /// knowing the current password. Revokes all of that user's active refresh tokens, same as a
+    /// self-service change, so a stolen session can't outlive the reset.</summary>
+    Task ResetPasswordAsync(long id, ResetPasswordRequestDto request, CancellationToken cancellationToken = default);
 }

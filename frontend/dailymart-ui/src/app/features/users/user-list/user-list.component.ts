@@ -31,6 +31,8 @@ export class UserListComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly formVisible = signal(false);
   protected readonly editingId = signal<number | null>(null);
+  protected readonly resettingId = signal<number | null>(null);
+  protected readonly resettingPassword = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     username: ['', [Validators.required, Validators.maxLength(100)]],
@@ -38,6 +40,10 @@ export class UserListComponent implements OnInit {
     fullName: ['', [Validators.required, Validators.maxLength(200)]],
     role: ['', Validators.required],
     isActive: [true]
+  });
+
+  protected readonly resetPasswordForm = this.fb.nonNullable.group({
+    newPassword: ['', [Validators.required, Validators.minLength(8)]]
   });
 
   ngOnInit(): void {
@@ -57,6 +63,7 @@ export class UserListComponent implements OnInit {
   }
 
   protected startCreate(): void {
+    this.resettingId.set(null);
     this.editingId.set(null);
     this.form.reset({ username: '', password: '', fullName: '', role: '', isActive: true });
     this.form.controls.username.enable();
@@ -65,6 +72,7 @@ export class UserListComponent implements OnInit {
   }
 
   protected startEdit(user: UserDto): void {
+    this.resettingId.set(null);
     this.editingId.set(user.id);
     this.form.reset({ username: user.username, password: '', fullName: user.fullName, role: user.role, isActive: user.isActive });
     this.form.controls.username.disable();
@@ -102,6 +110,36 @@ export class UserListComponent implements OnInit {
       error: (error) => {
         this.saving.set(false);
         this.toast.error(error.error?.title ?? 'Could not save user.');
+      }
+    });
+  }
+
+  protected startResetPassword(user: UserDto): void {
+    this.formVisible.set(false);
+    this.resettingId.set(user.id);
+    this.resetPasswordForm.reset({ newPassword: '' });
+  }
+
+  protected cancelResetPassword(): void {
+    this.resettingId.set(null);
+  }
+
+  protected submitResetPassword(user: UserDto): void {
+    if (this.resetPasswordForm.invalid) {
+      this.resetPasswordForm.markAllAsTouched();
+      return;
+    }
+
+    this.resettingPassword.set(true);
+    this.userService.resetPassword(user.id, this.resetPasswordForm.getRawValue()).subscribe({
+      next: () => {
+        this.resettingPassword.set(false);
+        this.resettingId.set(null);
+        this.toast.success(`Password reset for "${user.username}".`);
+      },
+      error: (error) => {
+        this.resettingPassword.set(false);
+        this.toast.error(error.error?.title ?? 'Could not reset password.');
       }
     });
   }

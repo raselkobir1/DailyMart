@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PagedRequest, PagedResult } from '../../shared/models/paged-result.model';
-import { CreateUserRequest, UpdateUserRequest, UserDto } from './user.model';
+import { CreateUserRequest, ResetPasswordRequest, UpdateUserRequest, UserDto } from './user.model';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
@@ -27,5 +27,10 @@ export class UserService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`/users/${id}`);
+  }
+
+  /** Admin-initiated - doesn't require knowing the user's current password (unlike self-service change-password). */
+  resetPassword(id: number, request: ResetPasswordRequest): Observable<void> {
+    return this.http.post<void>(`/users/${id}/reset-password`, request);
   }
 }
