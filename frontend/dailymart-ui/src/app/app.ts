@@ -86,9 +86,19 @@ export class App {
     return item.children.some((child) => this.currentUrl() === child.route || this.currentUrl().startsWith(child.route + '/'));
   }
 
+  /** Accordion behavior: expanding one top-level group explicitly collapses every other one, even a group
+   * that was only showing expanded via the hasActiveChild default (not an override) - otherwise that group
+   * would keep looking "open" alongside the one just clicked. */
   protected toggleExpand(item: NavNode): void {
     const collapseIt = this.isExpanded(item);
-    this.expandOverrides.update((overrides) => new Map(overrides).set(item.menuId, !collapseIt));
+    const next = new Map<number, boolean>();
+    for (const node of this.navTree()) {
+      if (node.menuId !== item.menuId) {
+        next.set(node.menuId, false);
+      }
+    }
+    next.set(item.menuId, !collapseIt);
+    this.expandOverrides.set(next);
   }
 
   protected initials(): string {
