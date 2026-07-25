@@ -133,6 +133,17 @@ public class CustomerServiceTests
     }
 
     [Fact]
+    public async Task DeleteAsync_throws_BusinessRuleException_when_the_customer_has_an_outstanding_due()
+    {
+        var existing = new Customer { Id = 7, Name = "Karim Ahmed", CurrentDue = 150m };
+        _repository.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.DeleteAsync(7));
+
+        _repository.Verify(r => r.Remove(It.IsAny<Customer>()), Times.Never);
+    }
+
+    [Fact]
     public async Task AdjustDueAsync_increases_CurrentDue_and_records_the_full_amount_on_a_credit_sale()
     {
         var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
@@ -190,7 +201,26 @@ public class CustomerServiceTests
     }
 
     [Fact]
-    public async Task CollectPaymentAsync_caps_an_overpayment_at_the_outstanding_due()
+    public async Task CollectPaymentAsync_rejects_a_payment_that_exceeds_the_outstanding_due()
+    {
+        // Previously this silently clamped to the due and reported success, quietly discarding the excess
+        // with no record of it anywhere - now it's rejected outright so the mistake is caught immediately.
+        var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
+        _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(ledgerRepository.Object);
+
+        var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 40 };
+        _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(
+            () => _sut.CollectPaymentAsync(1, new CollectCustomerPaymentRequestDto { Amount = 500 }));
+
+        Assert.Equal(40, customer.CurrentDue);
+        ledgerRepository.Verify(r => r.AddAsync(It.IsAny<CustomerLedgerEntry>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CollectPaymentAsync_allows_a_payment_that_exactly_matches_the_outstanding_due()
     {
         var ledgerRepository = new Mock<IRepository<CustomerLedgerEntry>>();
         _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(ledgerRepository.Object);
@@ -198,13 +228,9 @@ public class CustomerServiceTests
         var customer = new Customer { Id = 1, Name = "Karim Ahmed", CurrentDue = 40 };
         _repository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
 
-        var result = await _sut.CollectPaymentAsync(1, new CollectCustomerPaymentRequestDto { Amount = 500 });
+        var result = await _sut.CollectPaymentAsync(1, new CollectCustomerPaymentRequestDto { Amount = 40 });
 
-        Assert.Equal(0, customer.CurrentDue);
         Assert.Equal(0, result.CurrentDue);
-        ledgerRepository.Verify(r => r.AddAsync(
-            It.Is<CustomerLedgerEntry>(e => e.Amount == -40 && e.BalanceAfter == 0), It.IsAny<CancellationToken>()),
-            Times.Once);
     }
 
     [Fact]

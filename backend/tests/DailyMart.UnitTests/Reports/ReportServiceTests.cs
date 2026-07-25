@@ -12,6 +12,7 @@ public class ReportServiceTests
 {
     private readonly Mock<IRepository<Sale>> _saleRepository = new();
     private readonly Mock<IRepository<Purchase>> _purchaseRepository = new();
+    private readonly Mock<IRepository<SaleReturn>> _saleReturnRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IProfitLossService> _profitLossService = new();
     private readonly ReportService _sut;
@@ -20,6 +21,10 @@ public class ReportServiceTests
     {
         _unitOfWork.Setup(u => u.Repository<Sale>()).Returns(_saleRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Purchase>()).Returns(_purchaseRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<SaleReturn>()).Returns(_saleReturnRepository.Object);
+        _saleReturnRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<SaleReturn, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         _sut = new ReportService(_unitOfWork.Object, _profitLossService.Object);
     }
 

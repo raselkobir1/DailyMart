@@ -50,7 +50,27 @@ public class DashboardService : IDashboardService
         var todayExpense = allExpenses
             .Where(e => e.ExpenseDate >= todayStart && e.ExpenseDate < todayEnd)
             .Sum(e => e.Amount);
-        var cashInHand = allSales.Sum(s => s.PaidAmount) - allPurchases.Sum(p => p.PaidAmount) - allExpenses.Sum(e => e.Amount);
+
+        // Sale.PaidAmount/Purchase.PaidAmount only capture cash at the moment of that sale/purchase - a
+        // later payment collected against a Credit/Partial sale's due (or paid down on a Credit/Partial
+        // purchase's due) is a separate cash event tracked only in the ledger, and a sale return's cash
+        // refund (SaleReturn.RefundAmount) is cash leaving the till after the fact. Without these three,
+        // CashInHand understated real cash for every later customer payment and every return refund, and
+        // overstated it for every later supplier payment.
+        var customerPayments = await _unitOfWork.Repository<CustomerLedgerEntry>()
+            .FindAsync(e => e.EntryType == CustomerLedgerEntryType.Payment, cancellationToken);
+        var supplierPayments = await _unitOfWork.Repository<SupplierLedgerEntry>()
+            .FindAsync(e => e.EntryType == SupplierLedgerEntryType.Payment, cancellationToken);
+        var allSaleReturns = await _unitOfWork.Repository<SaleReturn>().GetAllAsync(cancellationToken);
+
+        // Ledger Amount is signed negative for a Payment (it reduces due), so negate for the actual cash
+        // that changed hands.
+        var laterCustomerPayments = -customerPayments.Sum(e => e.Amount);
+        var laterSupplierPayments = -supplierPayments.Sum(e => e.Amount);
+        var saleReturnRefunds = allSaleReturns.Sum(r => r.RefundAmount);
+
+        var cashInHand = allSales.Sum(s => s.PaidAmount) - allPurchases.Sum(p => p.PaidAmount) - allExpenses.Sum(e => e.Amount)
+            + laterCustomerPayments - laterSupplierPayments - saleReturnRefunds;
 
         var customers = await _unitOfWork.Repository<Customer>().GetAllAsync(cancellationToken);
         var suppliers = await _unitOfWork.Repository<Supplier>().GetAllAsync(cancellationToken);

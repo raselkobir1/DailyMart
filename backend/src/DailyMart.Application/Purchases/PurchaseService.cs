@@ -93,11 +93,21 @@ public class PurchaseService : IPurchaseService
 
         var existing = await GetEntityAsync(id, cancellationToken);
         var oldItems = await GetItemsInternalAsync(id, cancellationToken);
-
-        await ReverseEffectsAsync(existing, oldItems, cancellationToken);
+        var oldSupplierId = existing.SupplierId;
+        var oldDueAmount = existing.DueAmount;
+        var purchaseNumber = PurchaseNumberFormatter.FormatPurchase(existing.Id);
 
         await EnsureSupplierExistsAsync(request.SupplierId, cancellationToken);
         await EnsureProductsExistAsync(items.Select(i => i.ProductId), cancellationToken);
+
+        // Due has no negative-value floor for suppliers (overpayment/advance credit is allowed - see
+        // SupplierService.AdjustDueAsync), so reversing it first can never itself fail the way stock can.
+        if (oldDueAmount != 0)
+        {
+            await _supplierService.AdjustDueAsync(
+                oldSupplierId, -oldDueAmount, SupplierLedgerEntryType.Adjustment,
+                $"Reversal: Purchase #{purchaseNumber} updated", cancellationToken);
+        }
 
         var itemRepository = _unitOfWork.Repository<PurchaseItem>();
         foreach (var oldItem in oldItems)
@@ -117,7 +127,25 @@ public class PurchaseService : IPurchaseService
 
         _unitOfWork.Repository<Purchase>().Update(existing);
 
-        await ApplyItemsAndSideEffectsAsync(existing, items, cancellationToken);
+        // Stock: apply only the NET per-product delta between old and new items (validated once against
+        // current stock), not "reverse the old quantity, then reapply the new one" as two separate
+        // strictly-validated steps. The two-step version would block ANY edit - even a Notes-only one -
+        // once some of the purchased stock has since been sold, because the reversal step alone could dip
+        // below zero even though the net effect of the edit never would.
+        await ApplyNetStockChangeAsync(existing.Id, oldItems, items, purchaseNumber, cancellationToken);
+
+        foreach (var item in items)
+        {
+            item.PurchaseId = existing.Id;
+            await itemRepository.AddAsync(item, cancellationToken);
+        }
+
+        if (existing.DueAmount != 0)
+        {
+            await _supplierService.AdjustDueAsync(
+                existing.SupplierId, existing.DueAmount, SupplierLedgerEntryType.Purchase,
+                $"Purchase #{purchaseNumber}", cancellationToken);
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -144,7 +172,9 @@ public class PurchaseService : IPurchaseService
     }
 
     /// <summary>Adds each item (setting its PurchaseId) plus its matching InventoryTransaction, then one
-    /// AdjustDueAsync call if anything is owed - shared by CreateAsync and UpdateAsync's reapply phase.</summary>
+    /// AdjustDueAsync call if anything is owed - used by CreateAsync only. UpdateAsync applies its own
+    /// net stock delta (see ApplyNetStockChangeAsync) rather than this item-by-item version, since a
+    /// brand-new purchase has no "old" quantities to net against.</summary>
     private async Task ApplyItemsAndSideEffectsAsync(
         Purchase purchase, IReadOnlyList<PurchaseItem> items, CancellationToken cancellationToken)
     {
@@ -176,8 +206,11 @@ public class PurchaseService : IPurchaseService
         }
     }
 
-    /// <summary>Undoes a purchase's original stock/due effects with new, visible correction rows - shared
-    /// by UpdateAsync (before reapplying) and DeleteAsync.</summary>
+    /// <summary>Undoes a purchase's original stock/due effects with new, visible correction rows - used by
+    /// DeleteAsync only, where a full, strictly-validated reversal is exactly correct: deleting a purchase
+    /// record whose stock has already been sold elsewhere genuinely can't be un-received, and should fail.
+    /// UpdateAsync uses ApplyNetStockChangeAsync instead (see its doc comment for why a full reversal is
+    /// wrong for an edit).</summary>
     private async Task ReverseEffectsAsync(
         Purchase purchase, IReadOnlyList<PurchaseItem> items, CancellationToken cancellationToken)
     {
@@ -202,6 +235,41 @@ public class PurchaseService : IPurchaseService
                 -purchase.DueAmount,
                 SupplierLedgerEntryType.Adjustment,
                 $"Reversal: Purchase #{purchaseNumber} updated",
+                cancellationToken);
+        }
+    }
+
+    /// <summary>Applies only the NET per-product quantity delta between a purchase's old and new item
+    /// lists - one InventoryTransaction per affected product, validated once against current stock -
+    /// instead of a full "reverse all old quantities, then reapply all new ones" as two separate
+    /// strictly-validated steps. That two-step version blocks ANY edit (even a Notes-only one, where the
+    /// net change is zero) once some of the purchased stock has since been sold: the reversal step alone
+    /// could dip current stock below zero even though the edit's actual net effect never would.</summary>
+    private async Task ApplyNetStockChangeAsync(
+        long purchaseId,
+        IReadOnlyList<PurchaseItem> oldItems,
+        IReadOnlyList<PurchaseItem> newItems,
+        string purchaseNumber,
+        CancellationToken cancellationToken)
+    {
+        var oldQuantityByProduct = oldItems.GroupBy(i => i.ProductId).ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+        var newQuantityByProduct = newItems.GroupBy(i => i.ProductId).ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        foreach (var productId in oldQuantityByProduct.Keys.Union(newQuantityByProduct.Keys))
+        {
+            var netChange = newQuantityByProduct.GetValueOrDefault(productId) - oldQuantityByProduct.GetValueOrDefault(productId);
+            if (netChange == 0)
+            {
+                continue;
+            }
+
+            await _inventoryService.RecordTransactionAsync(
+                productId,
+                InventoryTransactionType.Purchase,
+                netChange,
+                nameof(Purchase),
+                purchaseId,
+                $"Purchase #{purchaseNumber} updated",
                 cancellationToken);
         }
     }

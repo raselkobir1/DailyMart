@@ -134,6 +134,36 @@ public class SaleReturnServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_refunds_the_full_amount_in_cash_for_a_fully_paid_Cash_sale_and_touches_no_due()
+    {
+        // A customer CAN be attached to a Cash sale (it's just optional) - the return must refund cash,
+        // not go through AdjustDueAsync at all, since there's no due to reduce (CurrentDue is already 0).
+        _saleRepository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Sale { Id = 1, CustomerId = 1, TotalAmount = 250m, PaidAmount = 250m });
+
+        var result = await _sut.CreateAsync(1, ValidRequest(quantity: 2)); // 2 * 50 = 100 returned
+
+        Assert.Equal(100m, result.RefundAmount);
+        _customerService.Verify(s => s.AdjustDueAsync(
+            It.IsAny<long>(), It.IsAny<decimal>(), It.IsAny<CustomerLedgerEntryType>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_splits_the_return_proportionally_between_cash_refund_and_due_reduction_for_a_Partial_sale()
+    {
+        // Sale: total 200, paid 100 (50% paid) -> a 100 return splits 50/50: 50 cash refund, 50 due reduction.
+        _saleRepository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Sale { Id = 1, CustomerId = 1, TotalAmount = 200m, PaidAmount = 100m });
+
+        var result = await _sut.CreateAsync(1, ValidRequest(quantity: 2)); // 2 * 50 = 100 returned
+
+        Assert.Equal(50m, result.RefundAmount);
+        _customerService.Verify(s => s.AdjustDueAsync(
+            1, -50m, CustomerLedgerEntryType.SaleReturn, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task GetPagedAsync_throws_NotFoundException_when_the_sale_does_not_exist()
     {
         _saleRepository

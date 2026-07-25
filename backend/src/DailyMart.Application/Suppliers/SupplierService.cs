@@ -92,6 +92,15 @@ public class SupplierService : ISupplierService
     {
         var supplier = await GetEntityAsync(id, cancellationToken);
 
+        // Soft delete never triggers a real DB delete (see AuditingSaveChangesInterceptor), and the
+        // global query filter then hides this supplier everywhere, including the due report - without
+        // this check, an outstanding payable silently vanishes from every screen with no write-off record.
+        if (supplier.CurrentDue != 0)
+        {
+            throw new BusinessRuleException(
+                $"Supplier '{supplier.Name}' has an outstanding due of {supplier.CurrentDue} and cannot be deleted.");
+        }
+
         Repository.Remove(supplier);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

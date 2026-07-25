@@ -4,6 +4,7 @@ using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Application.MasterData;
 using DailyMart.Domain.MasterData;
+using DailyMart.Domain.Products;
 using Moq;
 
 namespace DailyMart.UnitTests.MasterData;
@@ -11,12 +12,17 @@ namespace DailyMart.UnitTests.MasterData;
 public class CategoryServiceTests
 {
     private readonly Mock<IRepository<Category>> _repository = new();
+    private readonly Mock<IRepository<Product>> _productRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly CategoryService _sut;
 
     public CategoryServiceTests()
     {
         _unitOfWork.Setup(u => u.Repository<Category>()).Returns(_repository.Object);
+        _unitOfWork.Setup(u => u.Repository<Product>()).Returns(_productRepository.Object);
+        _productRepository
+            .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
         _sut = new CategoryService(_unitOfWork.Object);
     }
 
@@ -123,5 +129,20 @@ public class CategoryServiceTests
         _repository.Setup(r => r.GetByIdAsync(404, It.IsAny<CancellationToken>())).ReturnsAsync((Category?)null);
 
         await Assert.ThrowsAsync<NotFoundException>(() => _sut.DeleteAsync(404));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_throws_BusinessRuleException_when_a_product_still_references_the_category()
+    {
+        var existing = new Category { Id = 7, Name = "Household" };
+        _repository.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+        _productRepository
+            .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.DeleteAsync(7));
+
+        _repository.Verify(r => r.Remove(It.IsAny<Category>()), Times.Never);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

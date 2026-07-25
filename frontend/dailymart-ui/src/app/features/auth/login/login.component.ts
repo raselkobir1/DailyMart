@@ -48,24 +48,25 @@ export class LoginComponent {
   }
 
   private afterLogin(): void {
-    this.perms.load().subscribe({
-      next: (menus) => {
-        this.loading.set(false);
+    // Perms.load() never errors out to the subscriber - it catches internally and resolves to an empty
+    // list, setting lastLoadFailed() so this distinguishes "couldn't check permissions" (a transient
+    // failure right after a valid login - stay signed in, let them retry) from "checked, and this role
+    // genuinely has zero visible menus" (the reference app's real "no admin access" outcome).
+    this.perms.load().subscribe((menus) => {
+      this.loading.set(false);
 
-        if (menus.length === 0) {
-          // Mirrors the reference app: a role with no visible menus is barred from the admin app
-          // entirely, even though the credentials themselves were valid.
-          this.authService.clearSession();
-          this.error.set('This account has no admin access.');
-          return;
-        }
-
-        this.router.navigateByUrl(menus[0].route);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.router.navigateByUrl('/dashboard');
+      if (this.perms.lastLoadFailed()) {
+        this.error.set('Signed in, but could not load your account permissions. Please try again.');
+        return;
       }
+
+      if (menus.length === 0) {
+        this.authService.clearSession();
+        this.error.set('This account has no admin access.');
+        return;
+      }
+
+      this.router.navigateByUrl(menus[0].route);
     });
   }
 }

@@ -1,5 +1,52 @@
-<div class="page-head">
-  <h2>Audit Log</h2>
+<div class="page-head no-print">
+  <div>
+    <h2>Audit Log</h2>
+    <div class="subtitle">{{ totalCount() }} entries</div>
+  </div>
+  <button class="btn btn-sm" (click)="exportCsv()">Export CSV</button>
+</div>
+
+<div class="toolbar no-print" style="flex-wrap: wrap">
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+    <input class="input" placeholder="Search by user or record id" [(ngModel)]="searchTerm" (keyup.enter)="applyFilters()" />
+  </div>
+
+  <div class="field" style="margin-bottom: 0; min-width: 160px">
+    <label>Entity</label>
+    <select class="input" [(ngModel)]="filterEntityName">
+      <option value="">All entities</option>
+      @for (name of entityNames(); track name) {
+        <option [value]="name">{{ name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field" style="margin-bottom: 0; min-width: 140px">
+    <label>Action</label>
+    <select class="input" [(ngModel)]="filterAction">
+      <option value="">All actions</option>
+      @for (action of actions; track action) {
+        <option [value]="action">{{ action }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field" style="margin-bottom: 0">
+    <label>From</label>
+    <input class="input" type="date" [(ngModel)]="filterFromDate" />
+  </div>
+
+  <div class="field" style="margin-bottom: 0">
+    <label>To</label>
+    <input class="input" type="date" [(ngModel)]="filterToDate" />
+  </div>
+
+  <button class="btn btn-sm" (click)="applyFilters()">Filter</button>
+  <button class="btn btn-sm" (click)="clearFilters()">Clear</button>
 </div>
 
 @if (loading()) {
@@ -29,13 +76,14 @@
               <td>{{ log.performedBy }}</td>
             </tr>
           } @empty {
-            <tr class="empty-row"><td colspan="5">No audit log entries yet.</td></tr>
+            <tr class="empty-row"><td colspan="5">No audit log entries match these filters.</td></tr>
           }
         </tbody>
       </table>
     </div>
 
     <app-pagination
+      class="no-print"
       [total]="totalCount()"
       [pageNumber]="pageNumber()"
       [pageSize]="pageSize()"

@@ -113,8 +113,10 @@ public class InventoryService : IInventoryService
 
     /// <summary>Creates the InventoryAdjustment document (saved first to get its Id, same two-phase
     /// reasoning as Purchase/Supplier creation), then posts the matching InventoryTransaction and commits
-    /// both - unlike RecordTransactionAsync, this is a top-level create operation, not a helper composed
-    /// into a larger transaction, so it owns its own commit.</summary>
+    /// both. The two SaveChangesAsync calls are wrapped in one DB transaction (ExecuteInTransactionAsync)
+    /// so a failure on the second one - a DB error, or a concurrent adjustment on the same product racing
+    /// in between the two calls - rolls back the first insert too, instead of leaving an orphaned
+    /// InventoryAdjustment row with no matching InventoryTransaction and no stock change.</summary>
     private async Task<InventoryAdjustment> CreateAdjustmentAsync(
         long productId,
         InventoryTransactionType adjustmentType,
@@ -137,23 +139,26 @@ public class InventoryService : IInventoryService
                 $"(current: {product.CurrentStock}, change: {quantityChange}).");
         }
 
-        var adjustment = new InventoryAdjustment
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            ProductId = productId,
-            AdjustmentType = adjustmentType,
-            QuantityChange = quantityChange,
-            Reason = reason,
-            AdjustmentDate = DateTimeOffset.UtcNow
-        };
+            var adjustment = new InventoryAdjustment
+            {
+                ProductId = productId,
+                AdjustmentType = adjustmentType,
+                QuantityChange = quantityChange,
+                Reason = reason,
+                AdjustmentDate = DateTimeOffset.UtcNow
+            };
 
-        await _unitOfWork.Repository<InventoryAdjustment>().AddAsync(adjustment, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.Repository<InventoryAdjustment>().AddAsync(adjustment, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        await RecordTransactionAsync(
-            productId, adjustmentType, quantityChange, nameof(InventoryAdjustment), adjustment.Id, reason, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await RecordTransactionAsync(
+                productId, adjustmentType, quantityChange, nameof(InventoryAdjustment), adjustment.Id, reason, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return adjustment;
+            return adjustment;
+        }, cancellationToken);
     }
 
     private async Task<InventoryLookups> BuildLookupsAsync(IEnumerable<long> productIds, CancellationToken cancellationToken)

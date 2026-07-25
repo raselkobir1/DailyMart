@@ -1,23 +1,27 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
-import { AuditLogDto } from '../audit-log.model';
+import { downloadCsv } from '../../../shared/utils/csv-export';
+import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
+import { AUDIT_ACTIONS, AuditLogDto } from '../audit-log.model';
 import { AuditLogService } from '../audit-log.service';
 
-/**
- * Thin end-to-end smoke-test page for Module 0: proves the whole stack (Controller -> Service ->
- * Repository -> DbContext) is reachable from a real Angular page. Module 15 (Audit Log UI) replaces
- * this with proper filtering/search UX once the rest of the modules exist to generate audit data.
- */
+/** Module 15's real browsing/filtering UI over the audit trail Module 0's SaveChanges interceptor
+ * captures for every module - entity type, action, date range, and a free-text search over who made the
+ * change or which record it touched. */
 @Component({
   selector: 'app-audit-log-list',
   standalone: true,
-  imports: [DatePipe, PaginationComponent],
+  imports: [DatePipe, FormsModule, PaginationComponent],
   templateUrl: './audit-log-list.component.html',
   styleUrl: './audit-log-list.component.scss'
 })
 export class AuditLogListComponent implements OnInit {
   private readonly auditLogService = inject(AuditLogService);
+
+  protected readonly actions = AUDIT_ACTIONS;
+  protected readonly entityNames = signal<string[]>([]);
 
   protected readonly items = signal<AuditLogDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -26,7 +30,14 @@ export class AuditLogListComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  protected searchTerm = '';
+  protected filterEntityName = '';
+  protected filterAction = '';
+  protected filterFromDate = '';
+  protected filterToDate = '';
+
   ngOnInit(): void {
+    this.auditLogService.getEntityNames().subscribe((names) => this.entityNames.set(names));
     this.load();
   }
 
@@ -41,12 +52,54 @@ export class AuditLogListComponent implements OnInit {
     this.load();
   }
 
+  protected applyFilters(): void {
+    this.pageNumber.set(1);
+    this.load();
+  }
+
+  protected clearFilters(): void {
+    this.searchTerm = '';
+    this.filterEntityName = '';
+    this.filterAction = '';
+    this.filterFromDate = '';
+    this.filterToDate = '';
+    this.pageNumber.set(1);
+    this.load();
+  }
+
+  protected exportCsv(): void {
+    fetchAllPages((pageNumber) =>
+      this.auditLogService.getPaged({ pageNumber, pageSize: 100, searchTerm: this.searchTerm || undefined }, this.currentFilter())
+    ).subscribe({
+      next: (items) => {
+        downloadCsv(
+          `audit-log-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['When', 'Action', 'Entity', 'Entity Id', 'By'],
+          items.map((log) => [log.performedAt, log.action, log.entityName, log.entityId, log.performedBy])
+        );
+      },
+      error: () => this.error.set('Could not export the audit log.')
+    });
+  }
+
+  private currentFilter() {
+    return {
+      entityName: this.filterEntityName || null,
+      action: this.filterAction || null,
+      fromDate: this.filterFromDate ? `${this.filterFromDate}T00:00:00.000Z` : null,
+      toDate: this.filterToDate ? `${this.filterToDate}T23:59:59.999Z` : null
+    };
+  }
+
   private load(): void {
     this.loading.set(true);
     this.error.set(null);
 
     this.auditLogService
-      .getPaged({ pageNumber: this.pageNumber(), pageSize: this.pageSize() })
+      .getPaged(
+        { pageNumber: this.pageNumber(), pageSize: this.pageSize(), searchTerm: this.searchTerm || undefined },
+        this.currentFilter()
+      )
       .subscribe({
         next: (result) => {
           this.items.set(result.items);

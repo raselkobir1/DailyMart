@@ -28,6 +28,13 @@ public class InventoryServiceTests
             .Callback<InventoryAdjustment, CancellationToken>((a, _) => a.Id = 50)
             .Returns(Task.CompletedTask);
 
+        // CreateAdjustmentAsync wraps its two SaveChangesAsync calls in ExecuteInTransactionAsync - the
+        // mock needs to actually invoke the delegate it's given, or RecordAdjustmentAsync/RecordDamagedAsync
+        // would just get back a default/null result instead of the real adjustment.
+        _unitOfWork
+            .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<Task<InventoryAdjustment>>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task<InventoryAdjustment>>, CancellationToken>((operation, _) => operation());
+
         _productRepository
             .Setup(r => r.FindAsync(It.IsAny<Expression<Func<Product, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([new Product { Id = 1, Name = "Rice 5kg", Code = "P001", CurrentStock = 10 }]);

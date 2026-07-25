@@ -15,16 +15,24 @@ export class Perms {
 
   readonly menus = signal<MenuPermission[]>([]);
   readonly loaded = signal(false);
+  /** True only when the last load() call failed (network/server error), as opposed to succeeding with
+   * zero permitted menus - callers that need to tell "couldn't check" apart from "genuinely no access"
+   * (e.g. the login screen) should check this before treating an empty menus() as "no access". Existing
+   * callers (the route guards) intentionally keep treating both cases the same way they always have -
+   * this only adds a way to distinguish them, it doesn't change what guards do with an empty list. */
+  readonly lastLoadFailed = signal(false);
 
   load(): Observable<MenuPermission[]> {
     return this.http.get<MenuPermission[]>('/auth/me/permissions').pipe(
       tap((menus) => {
         this.menus.set(menus);
         this.loaded.set(true);
+        this.lastLoadFailed.set(false);
       }),
       catchError(() => {
         this.menus.set([]);
         this.loaded.set(true);
+        this.lastLoadFailed.set(true);
         return of([]);
       })
     );
@@ -33,6 +41,7 @@ export class Perms {
   clear(): void {
     this.menus.set([]);
     this.loaded.set(false);
+    this.lastLoadFailed.set(false);
   }
 
   canView(menuKey: string): boolean {

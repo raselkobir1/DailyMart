@@ -3,6 +3,7 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Domain.MasterData;
+using DailyMart.Domain.Products;
 
 namespace DailyMart.Application.MasterData;
 
@@ -67,6 +68,15 @@ public class UnitService : IUnitService
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
         var unit = await GetEntityAsync(id, cancellationToken);
+
+        // See CategoryService.DeleteAsync's comment - soft delete never triggers the DB's FK-restrict,
+        // so an in-use unit must be blocked here or it silently orphans its products.
+        var inUse = await _unitOfWork.Repository<Product>().ExistsAsync(p => p.UnitId == id, cancellationToken);
+        if (inUse)
+        {
+            throw new BusinessRuleException(
+                $"Unit '{unit.Name}' is still assigned to one or more products and cannot be deleted.");
+        }
 
         Repository.Remove(unit);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

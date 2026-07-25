@@ -64,11 +64,24 @@ public class UserService : IUserService
     }
 
     public async Task<UserDto> UpdateAsync(
-        long id, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
+        long id, UpdateUserRequestDto request, long currentUserId, CancellationToken cancellationToken = default)
     {
         var user = await GetEntityAsync(id, cancellationToken);
 
         await EnsureRoleExistsAsync(request.Role, cancellationToken);
+
+        if (id == currentUserId)
+        {
+            if (!string.Equals(user.Role, request.Role, StringComparison.Ordinal))
+            {
+                throw new BusinessRuleException("You cannot change your own role - ask another Admin to do it.");
+            }
+
+            if (!request.IsActive)
+            {
+                throw new BusinessRuleException("You cannot deactivate your own account.");
+            }
+        }
 
         user.FullName = request.FullName;
         user.Role = request.Role;

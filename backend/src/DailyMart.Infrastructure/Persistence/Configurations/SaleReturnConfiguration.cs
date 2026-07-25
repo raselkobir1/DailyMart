@@ -13,6 +13,7 @@ public class SaleReturnConfiguration : IEntityTypeConfiguration<SaleReturn>
         builder.HasKey(r => r.Id);
 
         builder.Property(r => r.TotalAmount).HasColumnType("numeric(12,2)");
+        builder.Property(r => r.RefundAmount).HasColumnType("numeric(12,2)");
         builder.Property(r => r.Notes).HasMaxLength(500);
         builder.Property(r => r.ReturnDate).IsRequired();
 

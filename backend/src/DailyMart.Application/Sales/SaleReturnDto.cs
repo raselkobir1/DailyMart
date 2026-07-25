@@ -15,6 +15,10 @@ public class SaleReturnDto
 
     public decimal TotalAmount { get; init; }
 
+    /// <summary>The portion of TotalAmount refunded in cash rather than deducted from the customer's due -
+    /// see SaleReturn's doc comment.</summary>
+    public decimal RefundAmount { get; init; }
+
     public string? Notes { get; init; }
 
     public List<SaleReturnItemDto> Items { get; init; } = [];

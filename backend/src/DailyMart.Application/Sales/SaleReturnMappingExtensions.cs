@@ -27,6 +27,7 @@ internal static class SaleReturnMappingExtensions
         SaleNumber = SaleNumberFormatter.FormatSale(saleReturn.SaleId),
         ReturnDate = saleReturn.ReturnDate,
         TotalAmount = saleReturn.TotalAmount,
+        RefundAmount = saleReturn.RefundAmount,
         Notes = saleReturn.Notes,
         Items = items.Select(i => i.ToDto(lookups)).ToList()
     };

@@ -164,6 +164,17 @@ public class SupplierServiceTests
     }
 
     [Fact]
+    public async Task DeleteAsync_throws_BusinessRuleException_when_the_supplier_has_an_outstanding_due()
+    {
+        var existing = new Supplier { Id = 7, Name = "Acme Distributors", CurrentDue = 250m };
+        _supplierRepository.Setup(r => r.GetByIdAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.DeleteAsync(7));
+
+        _supplierRepository.Verify(r => r.Remove(It.IsAny<Supplier>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetLedgerAsync_throws_NotFoundException_when_the_supplier_does_not_exist()
     {
         _supplierRepository

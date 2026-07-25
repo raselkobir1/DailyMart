@@ -1,3 +1,4 @@
+using DailyMart.Application.AuditLogs;
 using DailyMart.Application.Auth;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Options;
@@ -44,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenRepository>(sp => new RefreshTokenRepository(sp.GetRequiredService<DailyMartDbContext>()));
         services.AddScoped<IShopSettingsRepository>(sp => new ShopSettingsRepository(sp.GetRequiredService<DailyMartDbContext>()));
         services.AddScoped<IProductRepository>(sp => new ProductRepository(sp.GetRequiredService<DailyMartDbContext>()));
+        services.AddScoped<IAuditLogRepository>(sp => new AuditLogRepository(sp.GetRequiredService<DailyMartDbContext>()));
 
         services.AddScoped<AdminSeeder>();
         services.AddScoped<ShopSettingsSeeder>();

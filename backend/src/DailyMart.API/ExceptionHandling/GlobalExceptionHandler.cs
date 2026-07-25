@@ -1,6 +1,8 @@
 using DailyMart.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace DailyMart.API.ExceptionHandling;
 
@@ -29,6 +31,13 @@ public class GlobalExceptionHandler : IExceptionHandler
             AuthenticationFailedException => (StatusCodes.Status401Unauthorized, exception.Message),
             NotFoundException => (StatusCodes.Status404NotFound, exception.Message),
             BusinessRuleException => (StatusCodes.Status400BadRequest, exception.Message),
+            // A uniqueness check-then-insert (product code/barcode, category/brand/unit name, role name,
+            // ...) has a TOCTOU race: two concurrent requests can both pass the app-level "does this
+            // already exist" check before either commits, and only the DB's unique index catches the
+            // second one - as a raw DbUpdateException that would otherwise fall through to the generic
+            // 500 below instead of the same "already exists" 400 a non-racing duplicate gets.
+            DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } } =>
+                (StatusCodes.Status409Conflict, "This record conflicts with an existing one - it may have just been created by someone else. Please refresh and try again."),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
 

@@ -11,6 +11,9 @@ public class ProfitLossServiceTests
 {
     private readonly Mock<IRepository<Sale>> _saleRepository = new();
     private readonly Mock<IRepository<Expense>> _expenseRepository = new();
+    private readonly Mock<IRepository<SaleReturn>> _saleReturnRepository = new();
+    private readonly Mock<IRepository<SaleReturnItem>> _saleReturnItemRepository = new();
+    private readonly Mock<IRepository<SaleItem>> _saleItemRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly ProfitLossService _sut;
 
@@ -22,6 +25,12 @@ public class ProfitLossServiceTests
     {
         _unitOfWork.Setup(u => u.Repository<Sale>()).Returns(_saleRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Expense>()).Returns(_expenseRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<SaleReturn>()).Returns(_saleReturnRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<SaleReturnItem>()).Returns(_saleReturnItemRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<SaleItem>()).Returns(_saleItemRepository.Object);
+        _saleReturnRepository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleReturn, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
         _sut = new ProfitLossService(_unitOfWork.Object);
     }
 
@@ -82,5 +91,34 @@ public class ProfitLossServiceTests
         Assert.Equal(0m, result.GrossProfit);
         Assert.Equal(0m, result.OperatingExpense);
         Assert.Equal(0m, result.NetProfit);
+    }
+
+    [Fact]
+    public async Task GetSummaryAsync_nets_a_return_out_of_revenue_and_cogs_in_the_period_the_return_happened_in()
+    {
+        // A return doesn't retroactively rewrite the original sale's period - it's netted into whichever
+        // period its own ReturnDate falls in, same as standard accounting treats a contra-revenue event.
+        _saleRepository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Sale, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Sale { Id = 1, SaleDate = PeriodStart.AddDays(2), TotalAmount = 1000m, TotalCost = 600m }]);
+        _expenseRepository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Expense, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        _saleReturnRepository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleReturn, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new SaleReturn { Id = 10, SaleId = 1, ReturnDate = PeriodStart.AddDays(5), TotalAmount = 200m }]);
+        _saleReturnItemRepository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleReturnItem, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new SaleReturnItem { Id = 100, SaleReturnId = 10, SaleItemId = 1, Quantity = 2, UnitPrice = 100m, LineTotal = 200m }]);
+        _saleItemRepository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<SaleItem, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new SaleItem { Id = 1, SaleId = 1, Quantity = 10, UnitPrice = 100m, UnitCost = 60m }]);
+
+        var result = await _sut.GetSummaryAsync(PeriodStart, PeriodEnd);
+
+        Assert.Equal(800m, result.Revenue); // 1000 - 200 returned
+        Assert.Equal(480m, result.Cogs); // 600 - (2 * 60 returned cost)
+        Assert.Equal(320m, result.GrossProfit);
     }
 }

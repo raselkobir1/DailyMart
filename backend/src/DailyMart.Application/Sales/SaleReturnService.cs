@@ -128,13 +128,26 @@ public class SaleReturnService : ISaleReturnService
                 cancellationToken);
         }
 
-        // Only when the original sale had a customer attached - a walk-in Cash sale's return has no due to
-        // reduce (see ISaleReturnService's doc comment).
-        if (sale.CustomerId is not null && saleReturn.TotalAmount != 0)
+        // Split the returned amount between a cash refund and a due reduction, proportional to how much
+        // of the original sale was actually paid - a Cash sale (fully paid) refunds 100% in cash and
+        // reduces no due (there's nothing left to reduce); a Credit sale (fully unpaid) refunds nothing in
+        // cash and reduces due by the full amount (matching the old behavior exactly); a Partial sale
+        // splits both ways. Without RefundAmount, a Cash/Partial sale's return branched only on
+        // CustomerId being set (not on PaymentType), so a customer attached to a fully-paid Cash sale got
+        // a due "reduction" that was a silent no-op (CurrentDue was already 0) - the cash the shop
+        // actually took back in never being tracked or refunded anywhere.
+        var paidRatio = sale.TotalAmount == 0 ? 0 : sale.PaidAmount / sale.TotalAmount;
+        var cashRefund = Math.Round(saleReturn.TotalAmount * paidRatio, 2);
+        var dueReduction = saleReturn.TotalAmount - cashRefund;
+
+        saleReturn.RefundAmount = cashRefund;
+        _unitOfWork.Repository<SaleReturn>().Update(saleReturn);
+
+        if (sale.CustomerId is not null && dueReduction != 0)
         {
             await _customerService.AdjustDueAsync(
                 sale.CustomerId.Value,
-                -saleReturn.TotalAmount,
+                -dueReduction,
                 CustomerLedgerEntryType.SaleReturn,
                 $"Sale return #{SaleNumberFormatter.FormatReturn(saleReturn.Id)} " +
                 $"against sale #{SaleNumberFormatter.FormatSale(sale.Id)}",

@@ -218,7 +218,7 @@ public class PurchaseServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_reverses_the_old_items_and_due_then_reapplies_the_new_request()
+    public async Task UpdateAsync_applies_only_the_net_stock_delta_and_reverses_then_reapplies_due()
     {
         var existing = new Purchase { Id = 10, SupplierId = 1, PaymentType = PaymentType.Credit, TotalAmount = 100, DueAmount = 100 };
         var oldItems = new List<PurchaseItem>
@@ -231,14 +231,17 @@ public class PurchaseServiceTests
             .Setup(r => r.FindAsync(It.IsAny<Expression<Func<PurchaseItem, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(oldItems);
 
-        // Cash this time - the new request creates no due.
-        var result = await _sut.UpdateAsync(10, ValidRequest(paymentType: PaymentType.Cash));
+        // Cash this time (new request creates no due) and the quantity goes from 2 to 5 - a real, non-zero
+        // net stock change, not just a same-quantity edit.
+        var result = await _sut.UpdateAsync(10, ValidRequest(paymentType: PaymentType.Cash, itemQuantity: 5));
 
+        // One net call (+3), not "reverse -2 then reapply +5" as two separate strictly-validated steps.
         _inventoryService.Verify(s => s.RecordTransactionAsync(
-            1, InventoryTransactionType.Adjustment, -2, nameof(Purchase), 10, It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            1, InventoryTransactionType.Purchase, 3, nameof(Purchase), 10, It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
         _inventoryService.Verify(s => s.RecordTransactionAsync(
-            1, InventoryTransactionType.Purchase, 2, nameof(Purchase), 10, null, It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<long>(), It.IsAny<InventoryTransactionType>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<long>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
 
         _supplierService.Verify(s => s.AdjustDueAsync(
             1, -100, SupplierLedgerEntryType.Adjustment, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -249,6 +252,32 @@ public class PurchaseServiceTests
 
         _itemRepository.Verify(r => r.Remove(oldItems[0]), Times.Once);
         Assert.Equal(0, result.DueAmount);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_touches_no_stock_at_all_when_the_net_quantity_is_unchanged()
+    {
+        // Regression test for the bug this was fixed for: editing anything other than quantity (payment
+        // type, notes, dates...) must not touch stock at all - previously this reversed the old quantity
+        // (a strictly-validated step) before reapplying the same quantity, which failed outright once any
+        // of that stock had since been sold elsewhere, even though the edit's net effect on stock is zero.
+        var existing = new Purchase { Id = 10, SupplierId = 1, PaymentType = PaymentType.Credit, TotalAmount = 100, DueAmount = 100 };
+        var oldItems = new List<PurchaseItem>
+        {
+            new() { Id = 1, PurchaseId = 10, ProductId = 1, Quantity = 2, UnitPrice = 50, LineTotal = 100 }
+        };
+
+        _purchaseRepository.Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(existing);
+        _itemRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<PurchaseItem, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(oldItems);
+
+        // Same product, same quantity (2) - only the payment type changes.
+        await _sut.UpdateAsync(10, ValidRequest(paymentType: PaymentType.Cash, itemQuantity: 2));
+
+        _inventoryService.Verify(s => s.RecordTransactionAsync(
+            It.IsAny<long>(), It.IsAny<InventoryTransactionType>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<long>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

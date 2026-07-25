@@ -72,6 +72,15 @@ public class CustomerService : ICustomerService
     {
         var customer = await GetEntityAsync(id, cancellationToken);
 
+        // Soft delete never triggers a real DB delete (see AuditingSaveChangesInterceptor), and the
+        // global query filter then hides this customer everywhere, including the due report - without
+        // this check, an outstanding receivable silently vanishes from every screen with no write-off record.
+        if (customer.CurrentDue != 0)
+        {
+            throw new BusinessRuleException(
+                $"Customer '{customer.Name}' has an outstanding due of {customer.CurrentDue} and cannot be deleted.");
+        }
+
         Repository.Remove(customer);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
@@ -152,6 +161,18 @@ public class CustomerService : ICustomerService
         if (customer.CurrentDue <= 0)
         {
             throw new BusinessRuleException($"Customer '{customer.Name}' has no outstanding due to collect.");
+        }
+
+        // AdjustDueAsync itself only clamps an over-collection at zero rather than rejecting it - correct
+        // for callers computing a due delta internally (e.g. a sale return), where the excess becomes a
+        // cash refund tracked elsewhere, not a payment mistake. A cashier explicitly entering a collection
+        // amount is different: silently clamping here would report success while quietly discarding
+        // whatever was entered above the due, with no record of the difference anywhere - reject instead
+        // so the mistake is caught immediately rather than money quietly going unaccounted for.
+        if (request.Amount > customer.CurrentDue)
+        {
+            throw new BusinessRuleException(
+                $"Payment of {request.Amount} exceeds the outstanding due of {customer.CurrentDue} for '{customer.Name}'.");
         }
 
         var description = string.IsNullOrWhiteSpace(request.Notes) ? "Payment collected" : request.Notes;

@@ -3,6 +3,7 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Domain.MasterData;
+using DailyMart.Domain.Products;
 
 namespace DailyMart.Application.MasterData;
 
@@ -67,6 +68,15 @@ public class BrandService : IBrandService
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
         var brand = await GetEntityAsync(id, cancellationToken);
+
+        // See CategoryService.DeleteAsync's comment - soft delete never triggers the DB's FK-restrict,
+        // so an in-use brand must be blocked here or it silently orphans its products.
+        var inUse = await _unitOfWork.Repository<Product>().ExistsAsync(p => p.BrandId == id, cancellationToken);
+        if (inUse)
+        {
+            throw new BusinessRuleException(
+                $"Brand '{brand.Name}' is still assigned to one or more products and cannot be deleted.");
+        }
 
         Repository.Remove(brand);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

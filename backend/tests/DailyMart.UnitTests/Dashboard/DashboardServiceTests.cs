@@ -20,6 +20,9 @@ public class DashboardServiceTests
     private readonly Mock<IRepository<Supplier>> _supplierRepository = new();
     private readonly Mock<IRepository<Product>> _productRepository = new();
     private readonly Mock<IRepository<Expense>> _expenseRepository = new();
+    private readonly Mock<IRepository<CustomerLedgerEntry>> _customerLedgerRepository = new();
+    private readonly Mock<IRepository<SupplierLedgerEntry>> _supplierLedgerRepository = new();
+    private readonly Mock<IRepository<SaleReturn>> _saleReturnRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly DashboardService _sut;
 
@@ -38,6 +41,16 @@ public class DashboardServiceTests
         _unitOfWork.Setup(u => u.Repository<Supplier>()).Returns(_supplierRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Product>()).Returns(_productRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Expense>()).Returns(_expenseRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<CustomerLedgerEntry>()).Returns(_customerLedgerRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<SupplierLedgerEntry>()).Returns(_supplierLedgerRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<SaleReturn>()).Returns(_saleReturnRepository.Object);
+        _customerLedgerRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<CustomerLedgerEntry, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _supplierLedgerRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<SupplierLedgerEntry, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _saleReturnRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _sut = new DashboardService(_unitOfWork.Object);
     }
 

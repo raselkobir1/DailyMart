@@ -3,6 +3,7 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Domain.MasterData;
+using DailyMart.Domain.Products;
 
 namespace DailyMart.Application.MasterData;
 
@@ -68,6 +69,17 @@ public class CategoryService : ICategoryService
     public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
     {
         var category = await GetEntityAsync(id, cancellationToken);
+
+        // Soft delete only ever produces an UPDATE (IsDeleted=true), never a real DELETE (see
+        // AuditingSaveChangesInterceptor), so the DB's FK-restrict on Product.CategoryId never fires -
+        // without this check a still-referenced category silently vanishes from every list/dropdown,
+        // leaving its products with a blank category name and unable to be re-saved until re-categorized.
+        var inUse = await _unitOfWork.Repository<Product>().ExistsAsync(p => p.CategoryId == id, cancellationToken);
+        if (inUse)
+        {
+            throw new BusinessRuleException(
+                $"Category '{category.Name}' is still assigned to one or more products and cannot be deleted.");
+        }
 
         Repository.Remove(category);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

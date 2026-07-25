@@ -62,9 +62,25 @@ public class RoleService : IRoleService
 
         await EnsureNameIsUniqueAsync(request.Name, id, cancellationToken);
 
+        var oldName = role.Name;
         request.ApplyTo(role);
 
         Repository.Update(role);
+
+        // User.Role is a plain string snapshot of the role name (see User's doc comment), not a foreign
+        // key - renaming a role would otherwise silently orphan every user assigned to it: their Role
+        // column would no longer match any Role row, and GetMyPermissionsAsync's lookup would find
+        // nothing and return zero permitted menus, effectively locking them out with no error.
+        if (!string.Equals(oldName, role.Name, StringComparison.Ordinal))
+        {
+            var affectedUsers = await _unitOfWork.Repository<User>().FindAsync(u => u.Role == oldName, cancellationToken);
+            foreach (var user in affectedUsers)
+            {
+                user.Role = role.Name;
+                _unitOfWork.Repository<User>().Update(user);
+            }
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return role.ToDto();

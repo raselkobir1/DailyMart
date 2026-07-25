@@ -15,8 +15,13 @@ public interface IUserService
     /// existing Role's name.</summary>
     Task<UserDto> CreateAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default);
 
-    /// <summary>Throws BusinessRuleException if Role doesn't match any existing Role's name.</summary>
-    Task<UserDto> UpdateAsync(long id, UpdateUserRequestDto request, CancellationToken cancellationToken = default);
+    /// <summary>Throws BusinessRuleException if Role doesn't match any existing Role's name, or if the
+    /// caller is editing their own account and either changing their own Role or deactivating themselves -
+    /// self-delete was already guarded (see DeleteAsync); without this, the only account able to reach
+    /// this Admin-only endpoint at all could self-demote or self-deactivate with no other account able to
+    /// reach Users/Roles/Menus/Permissions to reverse it.</summary>
+    Task<UserDto> UpdateAsync(
+        long id, UpdateUserRequestDto request, long currentUserId, CancellationToken cancellationToken = default);
 
     /// <summary>currentUserId comes from the caller's own JWT claims (same pattern as
     /// IAuthService.ChangePasswordAsync) - throws BusinessRuleException if it matches id, so an admin can

@@ -28,8 +28,12 @@ public class ReportService : IReportService
             .FindAsync(s => s.SaleDate >= from && s.SaleDate <= inclusiveTo, cancellationToken);
         var purchases = await _unitOfWork.Repository<Purchase>()
             .FindAsync(p => p.PurchaseDate >= from && p.PurchaseDate <= inclusiveTo, cancellationToken);
+        // Cash refunded on a return (see SaleReturn.RefundAmount) leaves the till within the period the
+        // return itself happens in, same reasoning as ProfitLossService netting returns by ReturnDate.
+        var saleReturns = await _unitOfWork.Repository<SaleReturn>()
+            .FindAsync(r => r.ReturnDate >= from && r.ReturnDate <= inclusiveTo, cancellationToken);
 
-        var cashIn = sales.Sum(s => s.PaidAmount);
+        var cashIn = sales.Sum(s => s.PaidAmount) - saleReturns.Sum(r => r.RefundAmount);
         var cashOut = purchases.Sum(p => p.PaidAmount) + profitLoss.OperatingExpense;
 
         return new ClosingReportDto

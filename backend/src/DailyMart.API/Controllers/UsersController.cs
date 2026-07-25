@@ -43,7 +43,8 @@ public class UsersController : ControllerBase
     [HttpPut("{id:long}")]
     public async Task<ActionResult<UserDto>> Update(long id, UpdateUserRequestDto request, CancellationToken cancellationToken)
     {
-        return Ok(await _userService.UpdateAsync(id, request, cancellationToken));
+        var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return Ok(await _userService.UpdateAsync(id, request, currentUserId, cancellationToken));
     }
 
     [HttpDelete("{id:long}")]

@@ -64,6 +64,7 @@ public class ProductService : IProductService
         await EnsureCodeIsUniqueAsync(request.Code, excludeId: null, cancellationToken);
 
         var product = request.ToEntity();
+        product.Code = NormalizeCode(product.Code);
         ValidatePricing(product);
 
         product.Barcode = string.IsNullOrWhiteSpace(request.Barcode)
@@ -91,6 +92,7 @@ public class ProductService : IProductService
         }
 
         request.ApplyTo(product);
+        product.Code = NormalizeCode(product.Code);
         product.Barcode = barcode;
 
         ValidatePricing(product);
@@ -217,6 +219,15 @@ public class ProductService : IProductService
             throw new BusinessRuleException($"Brand with id '{brandId}' does not exist.");
         }
     }
+
+    /// <summary>Canonicalizes Code to a single case before it's ever persisted or compared - the DB's
+    /// unique index on Code is case-SENSITIVE, but EnsureCodeIsUniqueAsync's check below is case-
+    /// INSENSITIVE. Without this, two concurrent creates using different casing of the same code (e.g.
+    /// "ABC1" vs "abc1") could both pass the app-level check and both insert successfully, since the DB
+    /// index doesn't consider them duplicates - normalizing here means they always collide as the exact
+    /// same string, so the index (and the race-condition fallback in GlobalExceptionHandler) actually
+    /// catches it.</summary>
+    private static string NormalizeCode(string code) => code.Trim().ToUpperInvariant();
 
     private async Task EnsureCodeIsUniqueAsync(string code, long? excludeId, CancellationToken cancellationToken)
     {

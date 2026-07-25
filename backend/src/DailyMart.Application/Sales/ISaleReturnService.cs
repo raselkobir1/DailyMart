@@ -13,10 +13,11 @@ public interface ISaleReturnService
 
     /// <summary>Each item's UnitPrice/LineTotal are computed from the original sale line, not trusted from
     /// the caller. Quantity is capped at that line's quantity minus whatever's already been returned
-    /// against it. Posts one positive InventoryTransaction per item (stock returns to shelf) and, only when
-    /// the original sale had a customer attached, one CustomerLedgerEntry reducing what they owe - a
-    /// walk-in Cash sale's return only reverses stock, since there's no due to reduce and any cash refund is
-    /// out of this module's scope. All committed together in one atomic operation.</summary>
+    /// against it. Posts one positive InventoryTransaction per item (stock returns to shelf), splits the
+    /// returned amount into a cash refund (SaleReturn.RefundAmount) and a due reduction proportional to how
+    /// much of the original sale was actually paid, and - only when the original sale had a customer
+    /// attached and there's due left to reduce - one CustomerLedgerEntry for that portion. All committed
+    /// together in one atomic operation.</summary>
     Task<SaleReturnDto> CreateAsync(
         long saleId, SaleReturnRequestDto request, CancellationToken cancellationToken = default);
 }
