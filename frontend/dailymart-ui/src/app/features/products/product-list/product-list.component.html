@@ -6,7 +6,7 @@
   <div style="display: flex; gap: 0.5rem">
     <button class="btn" (click)="exportCsv()">Export CSV</button>
     @if (perms.can('products', 'create')) {
-      <button class="btn" (click)="downloadImportTemplate()">Download Import Template</button>
+      <button class="btn" (click)="downloadImportTemplate()">Template</button>
       <button class="btn" (click)="triggerImportFilePicker()" [disabled]="importing()">
         @if (importing()) {
           <span class="spinner"></span>

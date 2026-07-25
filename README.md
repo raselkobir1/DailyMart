@@ -4,6 +4,11 @@ Mini departmental store management system - suppliers, purchasing, inventory, ba
 dues, and audit logging. See `CLAUDE.md` for architecture/conventions and
 `Mini_Departmental_Store_Modular_Monolith_Requirements.txt` for the full business requirements.
 
+Products support bulk create/update from an Excel (`.xlsx`) upload - from the Products page, use **Template**
+to download a starter workbook (with a reference sheet of valid Category/Brand/Unit names) and **Import
+Excel** to upload it back once filled in. A row whose Code already exists updates that product; any other
+row creates one. One bad row is reported with its own row number rather than failing the whole file.
+
 ## Quick start (Docker)
 
 Requires only [Docker Desktop](https://www.docker.com/products/docker-desktop/) - nothing else needs to be
@@ -30,8 +35,8 @@ first run is just "open the page, click Sign in":
 - **Username:** `admin`
 - **Password:** `Admin@123456`
 
-Change this password via `POST /api/auth/change-password` before using this for anything beyond local
-evaluation (there's no change-password screen in the UI yet).
+Change this password via `POST /api/auth/change-password` (or, as an Admin, reset any user's password from
+the Users page) before using this for anything beyond local evaluation.
 
 To stop everything: `docker-compose down` (add `-v` to also delete the database volume and start fresh).
 
