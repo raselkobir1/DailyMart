@@ -1,7 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { NavHistory } from '../../../core/nav-history';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
@@ -22,7 +23,7 @@ import { SupplierService } from '../supplier.service';
 export class SupplierLedgerComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  private readonly navHistory = inject(NavHistory);
   private readonly supplierService = inject(SupplierService);
   private readonly toast = inject(Toast);
   protected readonly perms = inject(Perms);
@@ -100,7 +101,7 @@ export class SupplierLedgerComponent implements OnInit {
   }
 
   protected back(): void {
-    this.router.navigateByUrl('/suppliers');
+    this.navHistory.back('/suppliers');
   }
 
   private load(): void {

@@ -1,6 +1,5 @@
-import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
@@ -9,17 +8,20 @@ import { downloadCsv } from '../../../shared/utils/csv-export';
 import { fetchAllPages } from '../../../shared/utils/fetch-all-pages';
 import { ProductDto } from '../../products/product.model';
 import { ProductService } from '../../products/product.service';
-import { InventoryTransactionDto } from '../inventory.model';
 import { InventoryService } from '../inventory.service';
 
 type ActiveForm = 'adjustment' | 'damaged' | null;
 
 /** Product dropdowns populated via a single pageSize=100 fetch, same pragmatic MVP limit as
- * ProductFormComponent/PurchaseFormComponent's dropdowns. */
+ * ProductFormComponent/PurchaseFormComponent's dropdowns.
+ *
+ * This page shows one row per product (its current stock only) rather than a raw transaction feed -
+ * the full movement log for a single product (how many times sold, quantity changes, etc.) lives on
+ * InventoryHistoryComponent, reached via the "History" action per row. */
 @Component({
   selector: 'app-inventory-list',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, PaginationComponent],
+  imports: [ReactiveFormsModule, FormsModule, PaginationComponent],
   templateUrl: './inventory-list.component.html',
   styleUrl: './inventory-list.component.scss'
 })
@@ -31,15 +33,15 @@ export class InventoryListComponent implements OnInit {
   private readonly toast = inject(Toast);
   protected readonly perms = inject(Perms);
 
-  protected readonly products = signal<ProductDto[]>([]);
-  protected readonly items = signal<InventoryTransactionDto[]>([]);
+  protected readonly dropdownProducts = signal<ProductDto[]>([]);
+  protected readonly items = signal<ProductDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
   protected readonly pageNumber = signal(1);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly activeForm = signal<ActiveForm>(null);
-  protected readonly filterProductId = signal<number | null>(null);
+  protected searchTerm = '';
 
   protected readonly adjustmentForm = this.fb.nonNullable.group({
     productId: [0, Validators.required],
@@ -54,7 +56,7 @@ export class InventoryListComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.productService.getPaged({ pageNumber: 1, pageSize: 100 }).subscribe((result) => this.products.set(result.items));
+    this.productService.getPaged({ pageNumber: 1, pageSize: 100 }).subscribe((result) => this.dropdownProducts.set(result.items));
     this.load();
   }
 
@@ -69,9 +71,7 @@ export class InventoryListComponent implements OnInit {
     this.load();
   }
 
-  protected onFilterChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.filterProductId.set(value ? Number(value) : null);
+  protected search(): void {
     this.pageNumber.set(1);
     this.load();
   }
@@ -92,6 +92,10 @@ export class InventoryListComponent implements OnInit {
 
   protected viewLowStock(): void {
     this.router.navigateByUrl('/inventory/low-stock');
+  }
+
+  protected viewHistory(product: ProductDto): void {
+    this.router.navigateByUrl(`/inventory/history/${product.id}`);
   }
 
   protected saveAdjustment(): void {
@@ -142,24 +146,24 @@ export class InventoryListComponent implements OnInit {
 
   protected exportCsv(): void {
     fetchAllPages((pageNumber) =>
-      this.inventoryService.getTransactionHistory({ pageNumber, pageSize: 100 }, this.filterProductId())
+      this.productService.getPaged({ pageNumber, pageSize: 100, searchTerm: this.searchTerm || undefined })
     ).subscribe({
-      next: (items) => {
+      next: (products) => {
         downloadCsv(
-          `inventory-${new Date().toISOString().substring(0, 10)}.csv`,
-          ['Date', 'Product', 'Type', 'Qty Change', 'Balance', 'Notes'],
-          items.map((e) => [e.transactionDate, e.productName, e.transactionType, e.quantityChange, e.balanceAfter, e.notes])
+          `inventory-stock-${new Date().toISOString().substring(0, 10)}.csv`,
+          ['Code', 'Name', 'Category', 'Current Stock', 'Minimum Stock'],
+          products.map((p) => [p.code, p.name, p.categoryName, p.currentStock, p.minimumStock])
         );
       },
-      error: () => this.toast.error('Could not export inventory transactions.')
+      error: () => this.toast.error('Could not export inventory stock levels.')
     });
   }
 
   private load(): void {
     this.loading.set(true);
 
-    this.inventoryService
-      .getTransactionHistory({ pageNumber: this.pageNumber(), pageSize: this.pageSize() }, this.filterProductId())
+    this.productService
+      .getPaged({ pageNumber: this.pageNumber(), pageSize: this.pageSize(), searchTerm: this.searchTerm || undefined })
       .subscribe({
         next: (result) => {
           this.items.set(result.items);
@@ -168,7 +172,7 @@ export class InventoryListComponent implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.toast.error('Could not load transaction history.');
+          this.toast.error('Could not load stock levels.');
         }
       });
   }

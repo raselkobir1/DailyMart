@@ -2,9 +2,45 @@
   <h2>New Sale</h2>
 
   <div class="card card-pad scan-card">
-    <div class="field" style="margin-bottom: 0">
-      <label>Scan or enter barcode</label>
-      <input #barcodeInput class="input" [(ngModel)]="barcode" [ngModelOptions]="{ standalone: true }" (keyup.enter)="onBarcodeEnter()" autofocus />
+    <div class="row">
+      <div class="field" style="margin-bottom: 0">
+        <label>Scan or enter barcode</label>
+        <input
+          #barcodeInput
+          class="input"
+          [ngModel]="barcode()"
+          (ngModelChange)="barcode.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+          (keyup.enter)="onBarcodeEnter()"
+          autofocus
+        />
+      </div>
+
+      <div class="field grow product-search" style="margin-bottom: 0">
+        <label>Or search product by name/code</label>
+        <input
+          class="input"
+          placeholder="Type to search products..."
+          [ngModel]="productSearchTerm()"
+          (ngModelChange)="productSearchTerm.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+          (input)="onProductSearchInput()"
+          (focus)="onProductSearchInput()"
+          (blur)="hideProductDropdownDelayed()"
+        />
+        @if (showProductDropdown() && productSearchTerm().trim().length > 0) {
+          <div class="product-dropdown">
+            @for (product of productResults(); track product.id) {
+              <button type="button" class="product-dropdown-item" (click)="selectProduct(product)">
+                <span>{{ product.name }} ({{ product.code }})</span>
+                <span class="num">{{ product.sellingPrice }}</span>
+              </button>
+            } @empty {
+              <div class="product-dropdown-empty">No matching products.</div>
+            }
+          </div>
+        }
+      </div>
     </div>
   </div>
 
@@ -43,9 +79,9 @@
         <div class="field">
           <label>Customer {{ customerRequired() ? '(required)' : '(optional - walk-in)' }}</label>
           <select class="input" formControlName="customerId">
-            <option [value]="0">Walk-in customer</option>
+            <option [ngValue]="0">Walk-in customer</option>
             @for (customer of customers(); track customer.id) {
-              <option [value]="customer.id">{{ customer.name }}</option>
+              <option [ngValue]="customer.id">{{ customer.name }}</option>
             }
           </select>
         </div>
@@ -54,7 +90,7 @@
           <label>Payment Type</label>
           <select class="input" formControlName="paymentType">
             @for (pt of paymentTypes; track pt.value) {
-              <option [value]="pt.value">{{ pt.label }}</option>
+              <option [ngValue]="pt.value">{{ pt.label }}</option>
             }
           </select>
         </div>
@@ -75,6 +111,7 @@
           <div class="field">
             <label>Paid Amount</label>
             <input class="input" type="number" formControlName="paidAmount" />
+            <span class="hint">Must be greater than 0 and less than the total ({{ total() }}) - use Cash to record full payment.</span>
           </div>
         }
 
@@ -86,7 +123,7 @@
 
       <div class="row" style="font-weight: 600; margin: 0.5rem 0 1rem">
         <div>Subtotal: {{ subtotal() }}</div>
-        <div>Total: {{ total() }}</div>
+        <div>Receivable: {{ total() }}</div>
         <div>Due: {{ due() }}</div>
       </div>
 

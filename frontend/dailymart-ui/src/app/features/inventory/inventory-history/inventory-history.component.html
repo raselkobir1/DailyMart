@@ -1,0 +1,76 @@
+<div class="page-head no-print">
+  <div>
+    <h2>{{ product()?.name ?? 'Product' }} — History</h2>
+    <div class="subtitle">{{ product()?.code }} · Full stock movement history</div>
+  </div>
+  <div style="display: flex; gap: 0.5rem">
+    <button class="btn btn-sm" (click)="exportCsv()">Export CSV</button>
+    <button class="btn btn-sm" (click)="print()">Print</button>
+    <button class="btn" (click)="back()">← Back</button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Current Stock</div>
+      <div class="kpi-value">{{ product()?.currentStock }} {{ product()?.unitSymbol }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Times Sold</div>
+      <div class="kpi-value">{{ saleCount() }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Quantity Sold</div>
+      <div class="kpi-value">{{ totalSoldQty() }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Quantity Purchased</div>
+      <div class="kpi-value">{{ totalPurchasedQty() }}</div>
+    </div>
+    <div class="kpi-card accent-red">
+      <div class="kpi-label">Total Damaged</div>
+      <div class="kpi-value">{{ totalDamagedQty() }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th class="num">Qty Change</th>
+            <th class="num">Closing Stock</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of pagedTransactions(); track entry.id) {
+            <tr>
+              <td>{{ entry.transactionDate | date: 'short' }}</td>
+              <td><span class="chip">{{ entry.transactionType }}</span></td>
+              <td class="num">{{ entry.quantityChange }}</td>
+              <td class="num">{{ entry.balanceAfter }}</td>
+              <td>{{ entry.notes }}</td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="5">No transactions yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      class="no-print"
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

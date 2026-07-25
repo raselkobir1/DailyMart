@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavHistory } from '../../../../core/nav-history';
 import { Toast } from '../../../../core/toast';
 import { PurchaseDto, PurchaseItemDto } from '../../purchase.model';
 import { PurchaseService } from '../../purchase.service';
@@ -21,6 +22,7 @@ export class PurchaseReturnFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navHistory = inject(NavHistory);
   private readonly purchaseService = inject(PurchaseService);
   private readonly purchaseReturnService = inject(PurchaseReturnService);
   private readonly toast = inject(Toast);
@@ -56,7 +58,7 @@ export class PurchaseReturnFormComponent implements OnInit {
   }
 
   protected back(): void {
-    this.router.navigateByUrl(`/purchases/${this.purchaseId}/returns`);
+    this.navHistory.back(`/purchases/${this.purchaseId}/returns`);
   }
 
   protected save(): void {

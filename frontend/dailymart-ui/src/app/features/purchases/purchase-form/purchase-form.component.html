@@ -10,9 +10,9 @@
           <div class="field">
             <label>Supplier</label>
             <select class="input" formControlName="supplierId">
-              <option [value]="0" disabled>Select a supplier</option>
+              <option [ngValue]="0" disabled>Select a supplier</option>
               @for (supplier of suppliers(); track supplier.id) {
-                <option [value]="supplier.id">{{ supplier.name }}</option>
+                <option [ngValue]="supplier.id">{{ supplier.name }}</option>
               }
             </select>
           </div>
@@ -26,7 +26,7 @@
             <label>Payment Type</label>
             <select class="input" formControlName="paymentType">
               @for (pt of paymentTypes; track pt.value) {
-                <option [value]="pt.value">{{ pt.label }}</option>
+                <option [ngValue]="pt.value">{{ pt.label }}</option>
               }
             </select>
           </div>
@@ -45,10 +45,10 @@
 
           @for (control of itemsArray.controls; track control; let i = $index) {
             <div [formGroupName]="i" class="item-row">
-              <select class="input" formControlName="productId" (change)="onProductChange(i, Number($any($event.target).value))">
-                <option [value]="0" disabled>Select a product</option>
+              <select class="input" formControlName="productId" (change)="onProductChange(i)">
+                <option [ngValue]="0" disabled>Select a product</option>
                 @for (product of products(); track product.id) {
-                  <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+                  <option [ngValue]="product.id">{{ product.name }} ({{ product.code }})</option>
                 }
               </select>
 
@@ -88,6 +88,7 @@
             <div class="field">
               <label>Paid Amount</label>
               <input class="input" type="number" formControlName="paidAmount" />
+              <span class="hint">Must be greater than 0 and less than the total ({{ total() }}) - use Cash to record full payment.</span>
             </div>
           }
         </div>

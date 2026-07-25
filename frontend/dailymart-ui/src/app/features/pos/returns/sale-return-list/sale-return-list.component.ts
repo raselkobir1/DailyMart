@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavHistory } from '../../../../core/nav-history';
 import { Perms } from '../../../../core/perms';
 import { Toast } from '../../../../core/toast';
 import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
@@ -20,6 +21,7 @@ import { SaleReturnService } from '../sale-return.service';
 export class SaleReturnListComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navHistory = inject(NavHistory);
   private readonly saleService = inject(SaleService);
   private readonly saleReturnService = inject(SaleReturnService);
   private readonly toast = inject(Toast);
@@ -55,7 +57,7 @@ export class SaleReturnListComponent implements OnInit {
   }
 
   protected back(): void {
-    this.router.navigateByUrl('/sales');
+    this.navHistory.back('/sales');
   }
 
   protected createReturn(): void {

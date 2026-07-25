@@ -2,9 +2,12 @@ import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } fr
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject, of } from 'rxjs';
+import { debounceTime, switchMap } from 'rxjs/operators';
 import { Toast } from '../../../core/toast';
 import { CustomerDto } from '../../customers/customer.model';
 import { CustomerService } from '../../customers/customer.service';
+import { ProductDto } from '../../products/product.model';
 import { ProductService } from '../../products/product.service';
 import { PAYMENT_TYPES, SaleItemRequest, SaleRequest } from '../sale.model';
 import { SaleService } from '../sale.service';
@@ -35,7 +38,22 @@ export class PosBillingComponent implements OnInit {
   protected readonly paymentTypes = PAYMENT_TYPES;
   protected readonly customers = signal<CustomerDto[]>([]);
   protected readonly saving = signal(false);
-  protected barcode = '';
+  /** A signal, not a plain field: this app runs zoneless (no zone.js - see package.json), so a plain
+   * property bound via ngModel and cleared inside an HttpClient .subscribe() callback never actually
+   * reaches the DOM - nothing schedules a check for that async completion. Only signal writes (or a
+   * genuine template-bound DOM event) reliably trigger one. Clearing it after addOrIncrementItem() used
+   * to appear to work purely by accident, riding on Reactive Forms' own internal change-detection calls. */
+  protected readonly barcode = signal('');
+
+  /** Live product search (name/code/barcode) for when the cashier doesn't have a scanner handy -
+   * debounced so every keystroke doesn't fire a request, switchMap so only the latest query's results
+   * ever land (an in-flight earlier query resolving after a later one can't clobber the dropdown). */
+  private readonly productQuery$ = new Subject<string>();
+  /** Signal for the same reason as `barcode` above - selectProduct() clears this after a fetch/click, and
+   * only a signal write is guaranteed to update the view in this zoneless app. */
+  protected readonly productSearchTerm = signal('');
+  protected readonly productResults = signal<ProductDto[]>([]);
+  protected readonly showProductDropdown = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     customerId: [0],
@@ -78,12 +96,25 @@ export class PosBillingComponent implements OnInit {
   /** True when the current payment type needs a customer on file - Cash (0) never does. */
   protected readonly customerRequired = computed(() => (this.formValue().paymentType ?? 0) !== 0);
 
+  constructor() {
+    this.productQuery$
+      .pipe(
+        debounceTime(250),
+        switchMap((term) =>
+          term.trim().length > 0
+            ? this.productService.getPaged({ pageNumber: 1, pageSize: 10, searchTerm: term.trim() })
+            : of(null)
+        )
+      )
+      .subscribe((result) => this.productResults.set(result?.items ?? []));
+  }
+
   ngOnInit(): void {
     this.customerService.getPaged({ pageNumber: 1, pageSize: 100 }).subscribe((result) => this.customers.set(result.items));
   }
 
   protected onBarcodeEnter(): void {
-    const code = this.barcode.trim();
+    const code = this.barcode().trim();
     if (!code) {
       return;
     }
@@ -91,15 +122,33 @@ export class PosBillingComponent implements OnInit {
     this.productService.getByBarcode(code).subscribe({
       next: (product) => {
         this.addOrIncrementItem(product.id, product.name, product.code, product.sellingPrice);
-        this.barcode = '';
+        this.barcode.set('');
         this.focusBarcodeInput();
       },
       error: () => {
         this.toast.error(`No product found for barcode "${code}".`);
-        this.barcode = '';
+        this.barcode.set('');
         this.focusBarcodeInput();
       }
     });
+  }
+
+  protected onProductSearchInput(): void {
+    this.showProductDropdown.set(true);
+    this.productQuery$.next(this.productSearchTerm());
+  }
+
+  /** Deferred so a click on a dropdown item still registers - a plain (blur) would hide the dropdown
+   * (removing the button) before the (click) it's currently landing on ever fires. */
+  protected hideProductDropdownDelayed(): void {
+    setTimeout(() => this.showProductDropdown.set(false), 200);
+  }
+
+  protected selectProduct(product: ProductDto): void {
+    this.addOrIncrementItem(product.id, product.name, product.code, product.sellingPrice);
+    this.productSearchTerm.set('');
+    this.productResults.set([]);
+    this.showProductDropdown.set(false);
   }
 
   protected lineTotal(index: number): number {
@@ -130,6 +179,17 @@ export class PosBillingComponent implements OnInit {
     if (raw.paymentType !== 0 && !raw.customerId) {
       this.toast.error('A customer is required for Credit or Partial sales.');
       return;
+    }
+
+    if (raw.paymentType === 2) {
+      if (raw.paidAmount <= 0) {
+        this.toast.error('Paid amount must be greater than 0 for a partial payment.');
+        return;
+      }
+      if (raw.paidAmount >= this.total()) {
+        this.toast.error(`Paid amount must be less than the total (${this.total()}). Use Cash if paying in full.`);
+        return;
+      }
     }
 
     this.saving.set(true);

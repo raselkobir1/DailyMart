@@ -29,9 +29,6 @@ export class PurchaseFormComponent implements OnInit {
   private readonly toast = inject(Toast);
 
   protected readonly paymentTypes = PAYMENT_TYPES;
-  /** Exposed so the template can convert a <select>'s string value back to a number - Angular template
-   * expressions only resolve against the component instance, not the global scope. */
-  protected readonly Number = Number;
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -110,9 +107,9 @@ export class PurchaseFormComponent implements OnInit {
     this.itemsArray.removeAt(index);
   }
 
-  protected onProductChange(index: number, productId: number): void {
-    const product = this.products().find((p) => p.id === productId);
+  protected onProductChange(index: number): void {
     const row = this.itemsArray.at(index);
+    const product = this.products().find((p) => p.id === row.controls.productId.value);
     if (product && row.controls.unitPrice.value === 0) {
       row.controls.unitPrice.setValue(product.purchasePrice);
     }
@@ -124,8 +121,20 @@ export class PurchaseFormComponent implements OnInit {
       return;
     }
 
-    this.saving.set(true);
     const raw = this.form.getRawValue();
+
+    if (raw.paymentType === 2) {
+      if (raw.paidAmount <= 0) {
+        this.toast.error('Paid amount must be greater than 0 for a partial payment.');
+        return;
+      }
+      if (raw.paidAmount >= this.total()) {
+        this.toast.error(`Paid amount must be less than the total (${this.total()}). Use Cash if paying in full.`);
+        return;
+      }
+    }
+
+    this.saving.set(true);
     const request: PurchaseRequest = {
       supplierId: raw.supplierId,
       purchaseDate: `${raw.purchaseDate}T00:00:00.000Z`,

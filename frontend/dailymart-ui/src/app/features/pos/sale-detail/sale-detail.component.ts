@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavHistory } from '../../../core/nav-history';
 import { Toast } from '../../../core/toast';
 import { SaleDto } from '../sale.model';
 import { SaleService } from '../sale.service';
@@ -17,6 +18,7 @@ import { SaleService } from '../sale.service';
 export class SaleDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navHistory = inject(NavHistory);
   private readonly saleService = inject(SaleService);
   private readonly toast = inject(Toast);
 
@@ -51,6 +53,6 @@ export class SaleDetailComponent implements OnInit {
   }
 
   protected back(): void {
-    this.router.navigateByUrl('/sales');
+    this.navHistory.back('/sales');
   }
 }

@@ -4,8 +4,14 @@ import { Router } from '@angular/router';
 import { Perms } from '../../../core/perms';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
+import { printBarcodeSheet } from '../../../shared/utils/barcode-print';
 import { ProductDto } from '../product.model';
 import { ProductService } from '../product.service';
+
+/** A sheet this large would take noticeably long to render as SVG and print - block it outright rather
+ * than silently truncating, so the cashier knows to print in smaller batches instead of assuming the
+ * sheet matches their actual stock count. */
+const MAX_BARCODE_PRINT_COPIES = 500;
 
 @Component({
   selector: 'app-product-list',
@@ -67,6 +73,26 @@ export class ProductListComponent implements OnInit {
       },
       error: () => this.toast.error('Could not delete product.')
     });
+  }
+
+  /** One barcode label per physical unit currently on the shelf - a weight-sold product's fractional
+   * stock (e.g. 12.5 kg) rounds down to a whole label count, since a label sticks to one discrete item. */
+  protected printBarcodes(product: ProductDto): void {
+    const copies = Math.floor(product.currentStock);
+
+    if (copies <= 0) {
+      this.toast.error(`${product.name} has no stock on hand - nothing to print.`);
+      return;
+    }
+
+    if (copies > MAX_BARCODE_PRINT_COPIES) {
+      this.toast.error(
+        `${product.name} has ${copies} in stock, above the ${MAX_BARCODE_PRINT_COPIES}-label print limit. Print in smaller batches.`
+      );
+      return;
+    }
+
+    printBarcodeSheet(product.barcode, `${product.name} (${product.code})`, copies);
   }
 
   protected exportCsv(): void {

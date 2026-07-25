@@ -272,6 +272,13 @@ export const routes: Routes = [
               import('./features/inventory/low-stock/low-stock-list.component').then(
                 (m) => m.LowStockListComponent
               )
+          },
+          {
+            path: 'history/:productId',
+            loadComponent: () =>
+              import('./features/inventory/inventory-history/inventory-history.component').then(
+                (m) => m.InventoryHistoryComponent
+              )
           }
         ]
       },

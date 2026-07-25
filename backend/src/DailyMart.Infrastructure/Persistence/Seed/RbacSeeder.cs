@@ -6,44 +6,68 @@ namespace DailyMart.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// Runs on every startup (not gated by "if any Role exists, skip" the way AdminSeeder is) and upserts
-/// idempotently, menu by menu - so adding a new module's Menu row to <see cref="SeedMenus"/> and
-/// redeploying is enough to make it show up for Admin, with no manual "go grant permissions" step. This
-/// mirrors the RBAC model this was ported from: "grants full CRUD on any newly created menu... nothing
-/// needs manual re-granting."
+/// idempotently, menu by menu - so adding a new module's Menu row to <see cref="SeedMenus"/>, or
+/// re-parenting/relabeling an existing one, and redeploying is enough to make it show up correctly for
+/// Admin, with no manual "go grant permissions" or "go edit the Menu row" step. This mirrors the RBAC
+/// model this was ported from: "grants full CRUD on any newly created menu... nothing needs manual
+/// re-granting."
 ///
 /// Deliberately only grants Admin access here - no other role is seeded, since a "Cashier"/"Manager" role
 /// with a deliberately restricted menu set is exactly the kind of thing this system exists so an admin can
-/// configure themselves via the Roles/Permissions screens, not something to hardcode.
+/// configure themselves via the Roles/Permissions screens, not something to hardcode. One consequence
+/// worth calling out: introducing a new *parent* group menu (see below) means any existing custom role
+/// that could already view a child menu will stop seeing it in the sidebar until that role is also
+/// granted CanView on the new parent - GetMyPermissionsAsync filters to CanView=true rows, and the
+/// frontend's navTree only descends into a parent's children if the parent itself made it through that
+/// filter. Same "manual re-grant for custom roles" policy as any other new menu, just easy to miss here.
 /// </summary>
 public class RbacSeeder
 {
     private readonly DailyMartDbContext _context;
     private readonly ILogger<RbacSeeder> _logger;
 
-    /// <summary>The menu/screen set DailyMart actually has today - keep in sync with app.routes.ts.
-    /// SortOrder mirrors the intended sidebar order.</summary>
-    private static readonly (string Key, string Label, string Route, string Icon, int SortOrder)[] SeedMenus =
+    /// <summary>
+    /// The menu/screen set DailyMart actually has today - keep in sync with app.routes.ts. Parent group
+    /// rows (ParentKey null, themselves referenced by a child's ParentKey) are pure sidebar groupings, not
+    /// separate pages - each one's Route points at its first child so clicking the group header still
+    /// navigates somewhere real rather than needing a dedicated "no route" concept. SortOrder only needs
+    /// to be unique among siblings (children are grouped by parent before sorting), not globally.
+    /// </summary>
+    private static readonly MenuSeed[] SeedMenus =
     [
-        ("dashboard", "Dashboard", "/dashboard", "📊", 5),
-        ("products", "Products", "/products", "🛍️", 10),
-        ("categories", "Categories", "/categories", "🏷️", 20),
-        ("brands", "Brands", "/brands", "🔖", 30),
-        ("units", "Units", "/units", "📏", 40),
-        ("suppliers", "Suppliers", "/suppliers", "🚚", 50),
-        ("customers", "Customers", "/customers", "🧑‍🤝‍🧑", 60),
-        ("purchases", "Purchases", "/purchases", "🧾", 70),
-        ("inventory", "Inventory", "/inventory", "📦", 80),
-        ("pos", "POS", "/pos", "🖥️", 90),
-        ("sales", "Sales", "/sales", "💰", 100),
-        ("expenses", "Expenses", "/expenses", "🧮", 105),
-        ("profit-loss", "Profit & Loss", "/profit-loss", "📈", 106),
-        ("reports", "Reports", "/reports", "📑", 107),
-        ("audit-log", "Audit Log", "/audit-log", "📜", 110),
-        ("settings", "Settings", "/settings", "⚙️", 120),
-        ("users", "Users", "/users", "👥", 130),
-        ("roles", "Roles", "/roles", "🛡️", 140),
-        ("menus", "Menus", "/menus", "🧭", 150),
-        ("permissions", "Permissions", "/permissions", "🔐", 160)
+        new("dashboard", "Dashboard", "/dashboard", "📊", 10, null),
+
+        new("catalog", "Catalog", "/products", "🗂️", 20, null),
+        new("products", "Products", "/products", "🛍️", 10, "catalog"),
+        new("categories", "Categories", "/categories", "🏷️", 20, "catalog"),
+        new("brands", "Brands", "/brands", "🔖", 30, "catalog"),
+        new("units", "Units", "/units", "📏", 40, "catalog"),
+
+        new("partners", "Partners", "/suppliers", "🤝", 30, null),
+        new("suppliers", "Suppliers", "/suppliers", "🚚", 10, "partners"),
+        new("customers", "Customers", "/customers", "🧑‍🤝‍🧑", 20, "partners"),
+
+        new("purchasing", "Purchasing", "/purchases", "🛒", 40, null),
+        new("purchases", "Purchases", "/purchases", "🧾", 10, "purchasing"),
+        new("inventory", "Inventory", "/inventory", "📦", 20, "purchasing"),
+
+        new("sales-group", "Sales & POS", "/pos", "🏬", 50, null),
+        new("pos", "POS", "/pos", "🖥️", 10, "sales-group"),
+        new("sales", "Sales", "/sales", "💰", 20, "sales-group"),
+
+        new("finance", "Finance", "/expenses", "💵", 60, null),
+        new("expenses", "Expenses", "/expenses", "🧮", 10, "finance"),
+        new("profit-loss", "Profit & Loss", "/profit-loss", "📈", 20, "finance"),
+
+        new("reports", "Reports", "/reports", "📑", 70, null),
+        new("settings", "Settings", "/settings", "⚙️", 80, null),
+
+        new("security", "Security", "/users", "🔐", 90, null),
+        new("users", "Users", "/users", "👥", 10, "security"),
+        new("roles", "Roles", "/roles", "🛡️", 20, "security"),
+        new("menus", "Menus", "/menus", "🧭", 30, "security"),
+        new("permissions", "Permissions", "/permissions", "🗝️", 40, "security"),
+        new("audit-log", "Audit Log", "/audit-log", "📜", 50, "security")
     ];
 
     public RbacSeeder(DailyMartDbContext context, ILogger<RbacSeeder> logger)
@@ -55,7 +79,7 @@ public class RbacSeeder
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         var adminRole = await GetOrCreateAdminRoleAsync(cancellationToken);
-        var menuIds = await GetOrCreateMenusAsync(cancellationToken);
+        var menuIds = await UpsertMenusAsync(cancellationToken);
         await EnsureAdminHasFullAccessAsync(adminRole.Id, menuIds, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -83,35 +107,69 @@ public class RbacSeeder
         return adminRole;
     }
 
-    private async Task<List<long>> GetOrCreateMenusAsync(CancellationToken cancellationToken)
+    /// <summary>Two passes so a child's ParentKey can resolve to its parent's DB-generated Id: parent
+    /// rows (ParentKey null) are upserted first, then children look up their already-upserted parent.
+    /// Updates every field on rows that already exist (not just inserting missing ones) - that's what
+    /// lets re-parenting/relabeling an existing menu here actually take effect on redeploy.</summary>
+    private async Task<List<long>> UpsertMenusAsync(CancellationToken cancellationToken)
     {
         var existingByKey = await _context.Menus.ToDictionaryAsync(m => m.Key, cancellationToken);
+        var idByKey = new Dictionary<string, long>();
         var menuIds = new List<long>();
 
-        foreach (var seed in SeedMenus)
+        foreach (var seed in SeedMenus.Where(s => s.ParentKey is null))
         {
-            if (existingByKey.TryGetValue(seed.Key, out var existing))
-            {
-                menuIds.Add(existing.Id);
-                continue;
-            }
+            idByKey[seed.Key] = await UpsertOneAsync(seed, parentId: null, existingByKey, menuIds, cancellationToken);
+        }
 
-            var menu = new Menu
-            {
-                Key = seed.Key,
-                Label = seed.Label,
-                Route = seed.Route,
-                Icon = seed.Icon,
-                SortOrder = seed.SortOrder
-            };
-            _context.Menus.Add(menu);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            menuIds.Add(menu.Id);
-            _logger.LogInformation("Seeded menu '{Key}'.", seed.Key);
+        foreach (var seed in SeedMenus.Where(s => s.ParentKey is not null))
+        {
+            var parentId = idByKey[seed.ParentKey!];
+            idByKey[seed.Key] = await UpsertOneAsync(seed, parentId, existingByKey, menuIds, cancellationToken);
         }
 
         return menuIds;
+    }
+
+    private async Task<long> UpsertOneAsync(
+        MenuSeed seed,
+        long? parentId,
+        IReadOnlyDictionary<string, Menu> existingByKey,
+        List<long> menuIds,
+        CancellationToken cancellationToken)
+    {
+        if (existingByKey.TryGetValue(seed.Key, out var existing))
+        {
+            if (existing.Label != seed.Label || existing.Route != seed.Route || existing.Icon != seed.Icon ||
+                existing.SortOrder != seed.SortOrder || existing.ParentId != parentId)
+            {
+                existing.Label = seed.Label;
+                existing.Route = seed.Route;
+                existing.Icon = seed.Icon;
+                existing.SortOrder = seed.SortOrder;
+                existing.ParentId = parentId;
+                _logger.LogInformation("Updated menu '{Key}' to match the current seed definition.", seed.Key);
+            }
+
+            menuIds.Add(existing.Id);
+            return existing.Id;
+        }
+
+        var menu = new Menu
+        {
+            Key = seed.Key,
+            Label = seed.Label,
+            Route = seed.Route,
+            Icon = seed.Icon,
+            SortOrder = seed.SortOrder,
+            ParentId = parentId
+        };
+        _context.Menus.Add(menu);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        menuIds.Add(menu.Id);
+        _logger.LogInformation("Seeded menu '{Key}'.", seed.Key);
+        return menu.Id;
     }
 
     private async Task EnsureAdminHasFullAccessAsync(
@@ -148,4 +206,6 @@ public class RbacSeeder
             });
         }
     }
+
+    private sealed record MenuSeed(string Key, string Label, string Route, string Icon, int SortOrder, string? ParentKey);
 }

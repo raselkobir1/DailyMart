@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NavHistory } from '../../../../core/nav-history';
 import { Toast } from '../../../../core/toast';
 import { SaleDto, SaleItemDto } from '../../sale.model';
 import { SaleService } from '../../sale.service';
@@ -21,6 +22,7 @@ export class SaleReturnFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navHistory = inject(NavHistory);
   private readonly saleService = inject(SaleService);
   private readonly saleReturnService = inject(SaleReturnService);
   private readonly toast = inject(Toast);
@@ -56,7 +58,7 @@ export class SaleReturnFormComponent implements OnInit {
   }
 
   protected back(): void {
-    this.router.navigateByUrl(`/sales/${this.saleId}/returns`);
+    this.navHistory.back(`/sales/${this.saleId}/returns`);
   }
 
   protected save(): void {

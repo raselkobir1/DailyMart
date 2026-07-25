@@ -57,6 +57,7 @@
                 @if (perms.can('products', 'edit')) {
                   <button class="btn btn-icon" (click)="editProduct(product)" aria-label="Edit">✏️</button>
                 }
+                <button class="btn btn-icon" (click)="printBarcodes(product)" aria-label="Print barcodes for stock">🖨️</button>
                 @if (perms.can('products', 'delete')) {
                   <button class="btn btn-icon" (click)="deleteProduct(product)" aria-label="Delete">🗑️</button>
                 }

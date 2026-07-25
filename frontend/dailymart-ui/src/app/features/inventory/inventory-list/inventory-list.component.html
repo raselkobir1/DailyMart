@@ -1,7 +1,7 @@
 <div class="page-head no-print">
   <div>
     <h2>Inventory</h2>
-    <div class="subtitle">Stock movement history</div>
+    <div class="subtitle">Current stock per product — open History for its full movement log</div>
   </div>
   <div style="display: flex; gap: 0.5rem">
     <button class="btn btn-sm" (click)="exportCsv()">Export CSV</button>
@@ -21,9 +21,9 @@
         <div class="field">
           <label>Product</label>
           <select class="input" formControlName="productId">
-            <option [value]="0" disabled>Select a product</option>
-            @for (product of products(); track product.id) {
-              <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+            <option [ngValue]="0" disabled>Select a product</option>
+            @for (product of dropdownProducts(); track product.id) {
+              <option [ngValue]="product.id">{{ product.name }} ({{ product.code }})</option>
             }
           </select>
         </div>
@@ -52,9 +52,9 @@
         <div class="field">
           <label>Product</label>
           <select class="input" formControlName="productId">
-            <option [value]="0" disabled>Select a product</option>
-            @for (product of products(); track product.id) {
-              <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
+            <option [ngValue]="0" disabled>Select a product</option>
+            @for (product of dropdownProducts(); track product.id) {
+              <option [ngValue]="product.id">{{ product.name }} ({{ product.code }})</option>
             }
           </select>
         </div>
@@ -76,14 +76,15 @@
   </div>
 }
 
-<div class="field no-print" style="max-width: 320px">
-  <label>Filter by Product</label>
-  <select class="input" (change)="onFilterChange($event)">
-    <option value="">All Products</option>
-    @for (product of products(); track product.id) {
-      <option [value]="product.id">{{ product.name }} ({{ product.code }})</option>
-    }
-  </select>
+<div class="toolbar no-print">
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+    <input class="input" placeholder="Search by name, code, or barcode" [(ngModel)]="searchTerm" (keyup.enter)="search()" />
+  </div>
+  <button class="btn btn-sm" (click)="search()">Search</button>
 </div>
 
 @if (loading()) {
@@ -94,26 +95,33 @@
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Product</th>
-            <th>Type</th>
-            <th class="num">Qty Change</th>
-            <th class="num">Balance</th>
-            <th>Notes</th>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th class="num">Current Stock</th>
+            <th class="num">Minimum Stock</th>
+            <th class="no-print"></th>
           </tr>
         </thead>
         <tbody>
-          @for (entry of items(); track entry.id) {
+          @for (product of items(); track product.id) {
             <tr>
-              <td>{{ entry.transactionDate | date: 'short' }}</td>
-              <td>{{ entry.productName }}</td>
-              <td><span class="chip">{{ entry.transactionType }}</span></td>
-              <td class="num">{{ entry.quantityChange }}</td>
-              <td class="num">{{ entry.balanceAfter }}</td>
-              <td>{{ entry.notes }}</td>
+              <td>{{ product.code }}</td>
+              <td>{{ product.name }}</td>
+              <td>{{ product.categoryName }}</td>
+              <td class="num">
+                {{ product.currentStock }} {{ product.unitSymbol }}
+                @if (product.currentStock <= product.minimumStock) {
+                  <span class="badge low">Low</span>
+                }
+              </td>
+              <td class="num">{{ product.minimumStock }}</td>
+              <td class="no-print">
+                <button class="btn btn-sm" (click)="viewHistory(product)">History</button>
+              </td>
             </tr>
           } @empty {
-            <tr class="empty-row"><td colspan="6">No transactions yet.</td></tr>
+            <tr class="empty-row"><td colspan="6">No products yet.</td></tr>
           }
         </tbody>
       </table>

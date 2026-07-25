@@ -48,9 +48,9 @@
             <div class="field">
               <label>Category</label>
               <select class="input" formControlName="categoryId">
-                <option [value]="0" disabled>Select a category</option>
+                <option [ngValue]="0" disabled>Select a category</option>
                 @for (category of categories(); track category.id) {
-                  <option [value]="category.id">{{ category.name }}</option>
+                  <option [ngValue]="category.id">{{ category.name }}</option>
                 }
               </select>
             </div>
@@ -60,7 +60,7 @@
               <select class="input" formControlName="brandId">
                 <option [ngValue]="null">None</option>
                 @for (brand of brands(); track brand.id) {
-                  <option [value]="brand.id">{{ brand.name }}</option>
+                  <option [ngValue]="brand.id">{{ brand.name }}</option>
                 }
               </select>
             </div>
@@ -68,9 +68,9 @@
             <div class="field">
               <label>Unit</label>
               <select class="input" formControlName="unitId">
-                <option [value]="0" disabled>Select a unit</option>
+                <option [ngValue]="0" disabled>Select a unit</option>
                 @for (unit of units(); track unit.id) {
-                  <option [value]="unit.id">{{ unit.name }} ({{ unit.symbol }})</option>
+                  <option [ngValue]="unit.id">{{ unit.name }} ({{ unit.symbol }})</option>
                 }
               </select>
             </div>

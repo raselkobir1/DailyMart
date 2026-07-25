@@ -6,13 +6,29 @@
       <div class="section-label">Menu</div>
       <nav>
         @for (item of navTree(); track item.menuId) {
-          <a class="nav-link" [routerLink]="item.route" routerLinkActive="active">
-            <span class="icon">{{ item.icon }}</span> {{ item.label }}
-          </a>
-          @for (child of item.children; track child.menuId) {
-            <a class="nav-link" style="padding-left: 2.5rem" [routerLink]="child.route" routerLinkActive="active">
-              <span class="icon">{{ child.icon }}</span> {{ child.label }}
+          <div class="nav-group" [class.child-active]="hasActiveChild(item)">
+            <a class="nav-link" [routerLink]="item.route" routerLinkActive="active">
+              <span class="icon">{{ item.icon }}</span> {{ item.label }}
             </a>
+            @if (item.children.length > 0) {
+              <button
+                type="button"
+                class="nav-expand-btn"
+                [class.expanded]="isExpanded(item)"
+                (click)="toggleExpand(item)"
+                [attr.aria-expanded]="isExpanded(item)"
+                [attr.aria-label]="(isExpanded(item) ? 'Collapse ' : 'Expand ') + item.label"
+              >
+                ▸
+              </button>
+            }
+          </div>
+          @if (isExpanded(item)) {
+            @for (child of item.children; track child.menuId) {
+              <a class="nav-link" style="padding-left: 2.5rem" [routerLink]="child.route" routerLinkActive="active">
+                <span class="icon">{{ child.icon }}</span> {{ child.label }}
+              </a>
+            }
           }
         }
       </nav>

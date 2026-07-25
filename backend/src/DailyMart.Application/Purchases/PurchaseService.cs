@@ -233,10 +233,15 @@ public class PurchaseService : IPurchaseService
 
     private static decimal ValidatePartialPaidAmount(decimal paidAmount, decimal totalAmount)
     {
-        if (paidAmount <= 0 || paidAmount >= totalAmount)
+        if (paidAmount <= 0)
+        {
+            throw new BusinessRuleException("A partial payment must be greater than 0.");
+        }
+
+        if (paidAmount >= totalAmount)
         {
             throw new BusinessRuleException(
-                $"A partial payment must be greater than 0 and less than the total amount ({totalAmount}).");
+                $"A partial payment must be less than the total amount ({totalAmount}). Use Cash if paying in full.");
         }
 
         return paidAmount;
