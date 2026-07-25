@@ -77,6 +77,7 @@
             <th>Name</th>
             <th>Category</th>
             <th>Brand</th>
+            <th>Unit</th>
             <th class="num">Selling Price</th>
             <th class="num">Stock</th>
             <th></th>
@@ -89,9 +90,10 @@
               <td>{{ product.name }}</td>
               <td>{{ product.categoryName }}</td>
               <td>{{ product.brandName }}</td>
+              <td>{{ product.unitName }} ({{ product.unitSymbol }})</td>
               <td class="num">{{ product.sellingPrice }}</td>
               <td class="num">
-                {{ product.currentStock }} {{ product.unitSymbol }}
+                {{ product.currentStock }}
                 @if (product.currentStock <= product.minimumStock) {
                   <span class="badge low">Low</span>
                 }
@@ -107,7 +109,7 @@
               </td>
             </tr>
           } @empty {
-            <tr class="empty-row"><td colspan="7">No products yet.</td></tr>
+            <tr class="empty-row"><td colspan="8">No products yet.</td></tr>
           }
         </tbody>
       </table>
