@@ -26,6 +26,7 @@
             <th>Payment</th>
             <th class="num">Total</th>
             <th class="num">Due</th>
+            <th class="num">Returns</th>
             <th></th>
           </tr>
         </thead>
@@ -38,6 +39,15 @@
               <td><span class="chip">{{ purchase.paymentType }}</span></td>
               <td class="num">{{ purchase.totalAmount }}</td>
               <td class="num">{{ purchase.dueAmount }}</td>
+              <td class="num">
+                @if (purchase.returnCount > 0) {
+                  <span class="chip" title="{{ purchase.returnCount }} return{{ purchase.returnCount === 1 ? '' : 's' }}">
+                    ↩️ {{ purchase.returnCount }}
+                  </span>
+                } @else {
+                  0
+                }
+              </td>
               <td>
                 <button class="btn btn-icon" (click)="viewReturns(purchase)" aria-label="Returns">↩️</button>
                 @if (perms.can('purchases', 'edit')) {
@@ -49,7 +59,7 @@
               </td>
             </tr>
           } @empty {
-            <tr class="empty-row"><td colspan="7">No purchases yet.</td></tr>
+            <tr class="empty-row"><td colspan="8">No purchases yet.</td></tr>
           }
         </tbody>
       </table>

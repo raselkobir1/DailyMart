@@ -24,7 +24,8 @@ internal static class PurchaseMappingExtensions
             DiscountAmount = i.DiscountAmount
         }).ToList();
 
-    public static PurchaseDto ToDto(this Purchase purchase, IReadOnlyList<PurchaseItem> items, PurchaseLookups lookups) => new()
+    public static PurchaseDto ToDto(
+        this Purchase purchase, IReadOnlyList<PurchaseItem> items, PurchaseLookups lookups, int returnCount = 0) => new()
     {
         Id = purchase.Id,
         PurchaseNumber = PurchaseNumberFormatter.FormatPurchase(purchase.Id),
@@ -39,6 +40,7 @@ internal static class PurchaseMappingExtensions
         PaidAmount = purchase.PaidAmount,
         DueAmount = purchase.DueAmount,
         Notes = purchase.Notes,
+        ReturnCount = returnCount,
         Items = items.Select(i => i.ToDto(lookups)).ToList()
     };
 

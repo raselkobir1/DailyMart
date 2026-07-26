@@ -7,6 +7,9 @@
           - {{ purchase()!.purchaseNumber }} ({{ purchase()!.supplierName }})
         }
       </h2>
+      @if (!loading()) {
+        <div class="subtitle">{{ totalCount() }} return{{ totalCount() === 1 ? '' : 's' }}</div>
+      }
     </div>
   </div>
   @if (perms.can('purchases', 'create')) {

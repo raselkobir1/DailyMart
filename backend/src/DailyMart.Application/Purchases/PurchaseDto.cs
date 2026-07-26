@@ -29,5 +29,9 @@ public class PurchaseDto
 
     public string? Notes { get; init; }
 
+    /// <summary>Number of PurchaseReturn transactions recorded against this purchase (not returned line-item
+    /// count) - lets the purchase list flag "this purchase has returns" without a separate call per row.</summary>
+    public int ReturnCount { get; init; }
+
     public List<PurchaseItemDto> Items { get; init; } = [];
 }

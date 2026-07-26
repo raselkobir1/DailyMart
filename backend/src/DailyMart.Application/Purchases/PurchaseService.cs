@@ -39,12 +39,17 @@ public class PurchaseService : IPurchaseService
             .FindAsync(i => purchaseIds.Contains(i.PurchaseId), cancellationToken);
         var itemsByPurchase = items.GroupBy(i => i.PurchaseId).ToDictionary(g => g.Key, g => (IReadOnlyList<PurchaseItem>)g.ToList());
 
+        var returnCountsByPurchase = await GetReturnCountsAsync(purchaseIds, cancellationToken);
+
         var lookups = await BuildLookupsAsync(result.Items, items, cancellationToken);
 
         return new PagedResult<PurchaseDto>
         {
             Items = result.Items
-                .Select(p => p.ToDto(itemsByPurchase.GetValueOrDefault(p.Id, Array.Empty<PurchaseItem>()), lookups))
+                .Select(p => p.ToDto(
+                    itemsByPurchase.GetValueOrDefault(p.Id, Array.Empty<PurchaseItem>()),
+                    lookups,
+                    returnCountsByPurchase.GetValueOrDefault(p.Id)))
                 .ToList(),
             TotalCount = result.TotalCount,
             PageNumber = result.PageNumber,
@@ -56,9 +61,19 @@ public class PurchaseService : IPurchaseService
     {
         var purchase = await GetEntityAsync(id, cancellationToken);
         var items = await GetItemsInternalAsync(id, cancellationToken);
+        var returnCountsByPurchase = await GetReturnCountsAsync([id], cancellationToken);
         var lookups = await BuildLookupsAsync([purchase], items, cancellationToken);
 
-        return purchase.ToDto(items, lookups);
+        return purchase.ToDto(items, lookups, returnCountsByPurchase.GetValueOrDefault(id));
+    }
+
+    private async Task<Dictionary<long, int>> GetReturnCountsAsync(
+        IReadOnlyList<long> purchaseIds, CancellationToken cancellationToken)
+    {
+        var returns = await _unitOfWork.Repository<PurchaseReturn>()
+            .FindAsync(r => purchaseIds.Contains(r.PurchaseId), cancellationToken);
+
+        return returns.GroupBy(r => r.PurchaseId).ToDictionary(g => g.Key, g => g.Count());
     }
 
     public async Task<PurchaseDto> CreateAsync(

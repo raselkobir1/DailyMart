@@ -17,6 +17,7 @@ public class PurchaseServiceTests
 {
     private readonly Mock<IRepository<Purchase>> _purchaseRepository = new();
     private readonly Mock<IRepository<PurchaseItem>> _itemRepository = new();
+    private readonly Mock<IRepository<PurchaseReturn>> _purchaseReturnRepository = new();
     private readonly Mock<IRepository<Supplier>> _supplierRepository = new();
     private readonly Mock<IRepository<Product>> _productRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
@@ -28,8 +29,13 @@ public class PurchaseServiceTests
     {
         _unitOfWork.Setup(u => u.Repository<Purchase>()).Returns(_purchaseRepository.Object);
         _unitOfWork.Setup(u => u.Repository<PurchaseItem>()).Returns(_itemRepository.Object);
+        _unitOfWork.Setup(u => u.Repository<PurchaseReturn>()).Returns(_purchaseReturnRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Supplier>()).Returns(_supplierRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Product>()).Returns(_productRepository.Object);
+
+        _purchaseReturnRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<PurchaseReturn, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
         _supplierRepository
             .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Supplier, bool>>>(), It.IsAny<CancellationToken>()))
@@ -207,6 +213,28 @@ public class PurchaseServiceTests
         Assert.Equal("PUR-000010", result.PurchaseNumber);
         Assert.Equal("Acme Distributors", result.SupplierName);
         Assert.Equal("Rice 5kg", result.Items[0].ProductName);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_sets_ReturnCount_to_the_number_of_PurchaseReturn_rows_for_this_purchase()
+    {
+        var purchase = new Purchase { Id = 10, SupplierId = 1, PaymentType = PaymentType.Cash };
+
+        _purchaseRepository.Setup(r => r.GetByIdAsync(10, It.IsAny<CancellationToken>())).ReturnsAsync(purchase);
+        _itemRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<PurchaseItem, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _purchaseReturnRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<PurchaseReturn, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new PurchaseReturn { Id = 1, PurchaseId = 10 },
+                new PurchaseReturn { Id = 2, PurchaseId = 10 },
+                new PurchaseReturn { Id = 3, PurchaseId = 99 }
+            ]);
+
+        var result = await _sut.GetByIdAsync(10);
+
+        Assert.Equal(2, result.ReturnCount);
     }
 
     [Fact]

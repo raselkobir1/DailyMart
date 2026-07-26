@@ -35,6 +35,7 @@ export interface PurchaseDto {
   paidAmount: number;
   dueAmount: number;
   notes: string | null;
+  returnCount: number;
   items: PurchaseItemDto[];
 }
 
