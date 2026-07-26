@@ -2,8 +2,10 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Options;
 using DailyMart.Application.Rbac;
+using DailyMart.Application.Tenancy;
 using DailyMart.Domain.Auth;
 using DailyMart.Domain.Rbac;
+using DailyMart.Domain.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
@@ -16,6 +18,7 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly ITenantProvisioningService _tenantProvisioningService;
     private readonly JwtSettings _jwtSettings;
 
     public AuthService(
@@ -24,6 +27,7 @@ public class AuthService : IAuthService
         IUnitOfWork unitOfWork,
         IJwtTokenGenerator jwtTokenGenerator,
         IPasswordHasher<User> passwordHasher,
+        ITenantProvisioningService tenantProvisioningService,
         IOptions<JwtSettings> jwtSettings)
     {
         _userRepository = userRepository;
@@ -31,6 +35,7 @@ public class AuthService : IAuthService
         _unitOfWork = unitOfWork;
         _jwtTokenGenerator = jwtTokenGenerator;
         _passwordHasher = passwordHasher;
+        _tenantProvisioningService = tenantProvisioningService;
         _jwtSettings = jwtSettings.Value;
     }
 
@@ -54,7 +59,8 @@ public class AuthService : IAuthService
             _userRepository.Update(user);
         }
 
-        return await IssueTokensAsync(user, cancellationToken);
+        var tenant = await GetActiveTenantOrThrowAsync(user.TenantId, cancellationToken);
+        return await IssueTokensAsync(user, tenant, cancellationToken);
     }
 
     public async Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
@@ -73,12 +79,33 @@ public class AuthService : IAuthService
             throw new AuthenticationFailedException("Invalid or expired refresh token.");
         }
 
+        var tenant = await GetActiveTenantOrThrowAsync(user.TenantId, cancellationToken);
+
         // Rotate: the presented refresh token is single-use, so a captured/replayed token stops working
         // the moment the legitimate client redeems it.
         existingToken.RevokedAt = DateTimeOffset.UtcNow;
         _refreshTokenRepository.Update(existingToken);
 
-        return await IssueTokensAsync(user, cancellationToken);
+        return await IssueTokensAsync(user, tenant, cancellationToken);
+    }
+
+    public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (await _userRepository.ExistsByUsernameAsync(request.Username.Trim(), excludeId: null, cancellationToken))
+        {
+            throw new BusinessRuleException($"Username '{request.Username}' is already taken.");
+        }
+
+        // Hashing happens here (not inside ITenantProvisioningService) so that service stays focused on
+        // wiring up Tenant/Role/RoleMenuPermission/ShopSettings/User rows, not password concerns.
+        var passwordHashPlaceholder = new User();
+        var passwordHash = _passwordHasher.HashPassword(passwordHashPlaceholder, request.Password);
+
+        var admin = await _tenantProvisioningService.ProvisionNewTenantAsync(
+            request.CompanyName.Trim(), request.Username.Trim(), passwordHash, request.FullName.Trim(), cancellationToken);
+
+        var tenant = await GetActiveTenantOrThrowAsync(admin.TenantId, cancellationToken);
+        return await IssueTokensAsync(admin, tenant, cancellationToken);
     }
 
     public async Task LogoutAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
@@ -166,7 +193,23 @@ public class AuthService : IAuthService
             .ToList();
     }
 
-    private async Task<AuthResponseDto> IssueTokensAsync(User user, CancellationToken cancellationToken)
+    /// <summary>Loads the user's tenant and rejects login/refresh if it's been suspended - a suspended
+    /// tenant's already-issued access tokens still expire naturally within Jwt:AccessTokenMinutes, so no
+    /// separate revocation-list mechanism is needed for this to take full effect quickly. Tenant isn't
+    /// tenant-filtered at all (it's not a TenantOwnedEntity), so this lookup needs no special handling
+    /// despite running before any tenant context is otherwise established.</summary>
+    private async Task<Tenant> GetActiveTenantOrThrowAsync(long tenantId, CancellationToken cancellationToken)
+    {
+        var tenant = await _unitOfWork.Repository<Tenant>().GetByIdAsync(tenantId, cancellationToken);
+        if (tenant is null || !tenant.IsActive)
+        {
+            throw new AuthenticationFailedException("This company's account has been suspended.");
+        }
+
+        return tenant;
+    }
+
+    private async Task<AuthResponseDto> IssueTokensAsync(User user, Tenant tenant, CancellationToken cancellationToken)
     {
         var accessToken = _jwtTokenGenerator.GenerateAccessToken(user);
         var accessTokenExpiresAt = DateTimeOffset.UtcNow.Add(_jwtTokenGenerator.AccessTokenLifetime);
@@ -174,6 +217,10 @@ public class AuthService : IAuthService
         var refreshTokenPlainText = RefreshTokenHasher.GenerateToken();
         var refreshToken = new RefreshToken
         {
+            // Explicit, not left to AuditingSaveChangesInterceptor's auto-stamp: login/refresh/register
+            // all run with no established tenant context yet (that's exactly what they're establishing),
+            // so ICurrentTenantService.TenantId is null here and the interceptor would leave this unset.
+            TenantId = user.TenantId,
             UserId = user.Id,
             TokenHash = RefreshTokenHasher.Hash(refreshTokenPlainText),
             ExpiresAt = DateTimeOffset.UtcNow.AddDays(_jwtSettings.RefreshTokenDays)
@@ -189,7 +236,9 @@ public class AuthService : IAuthService
             ExpiresAtUtc = accessTokenExpiresAt,
             Username = user.Username,
             FullName = user.FullName,
-            Role = user.Role
+            Role = user.Role,
+            TenantId = tenant.Id,
+            CompanyName = tenant.Name
         };
     }
 }

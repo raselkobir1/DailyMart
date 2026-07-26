@@ -8,7 +8,7 @@ namespace DailyMart.Domain.Customers;
 /// with pre-existing debt in this MVP, so CurrentDue always starts at zero and only ever moves via
 /// ICustomerService.AdjustDueAsync (credit sales, sale returns, and eventually Module 10's payments).
 /// </summary>
-public class Customer : AuditableEntity
+public class Customer : TenantOwnedEntity
 {
     public string Name { get; set; } = string.Empty;
 

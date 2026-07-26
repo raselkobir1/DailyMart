@@ -5,7 +5,9 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Application.Common.Options;
+using DailyMart.Application.Tenancy;
 using DailyMart.Domain.Auth;
+using DailyMart.Domain.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -16,9 +18,11 @@ public class AuthServiceTests
 {
     private readonly Mock<IUserRepository> _userRepository = new();
     private readonly Mock<IRefreshTokenRepository> _refreshTokenRepository = new();
+    private readonly Mock<IRepository<Tenant>> _tenantRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IJwtTokenGenerator> _jwtTokenGenerator = new();
     private readonly Mock<IPasswordHasher<User>> _passwordHasher = new();
+    private readonly Mock<ITenantProvisioningService> _tenantProvisioningService = new();
     private readonly AuthService _sut;
 
     public AuthServiceTests()
@@ -26,18 +30,25 @@ public class AuthServiceTests
         _jwtTokenGenerator.Setup(g => g.AccessTokenLifetime).Returns(TimeSpan.FromMinutes(15));
         _jwtTokenGenerator.Setup(g => g.GenerateAccessToken(It.IsAny<User>())).Returns("fake-jwt");
 
+        _unitOfWork.Setup(u => u.Repository<Tenant>()).Returns(_tenantRepository.Object);
+        _tenantRepository
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tenant { Id = 1, Name = "Acme Corp", IsActive = true });
+
         _sut = new AuthService(
             _userRepository.Object,
             _refreshTokenRepository.Object,
             _unitOfWork.Object,
             _jwtTokenGenerator.Object,
             _passwordHasher.Object,
+            _tenantProvisioningService.Object,
             Options.Create(new JwtSettings { RefreshTokenDays = 7 }));
     }
 
     private static User ActiveUser() => new()
     {
         Id = 1,
+        TenantId = 1,
         Username = "admin",
         PasswordHash = "hashed",
         FullName = "Administrator",
@@ -98,6 +109,22 @@ public class AuthServiceTests
 
         await Assert.ThrowsAsync<AuthenticationFailedException>(() =>
             _sut.LoginAsync(new LoginRequestDto { Username = "admin", Password = "whatever" }));
+    }
+
+    [Fact]
+    public async Task LoginAsync_for_a_suspended_tenant_throws_AuthenticationFailedException()
+    {
+        var user = ActiveUser();
+        _userRepository.Setup(r => r.GetByUsernameAsync("admin", It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        _passwordHasher
+            .Setup(h => h.VerifyHashedPassword(user, user.PasswordHash, "correct-password"))
+            .Returns(PasswordVerificationResult.Success);
+        _tenantRepository
+            .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tenant { Id = 1, Name = "Acme Corp", IsActive = false });
+
+        await Assert.ThrowsAsync<AuthenticationFailedException>(() =>
+            _sut.LoginAsync(new LoginRequestDto { Username = "admin", Password = "correct-password" }));
     }
 
     [Fact]
@@ -247,5 +274,64 @@ public class AuthServiceTests
         _userRepository.Verify(r => r.Update(It.IsAny<User>()), Times.Never);
         _refreshTokenRepository.Verify(
             r => r.RevokeAllActiveForUserAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_provisions_a_new_tenant_and_issues_tokens_for_its_admin()
+    {
+        _userRepository
+            .Setup(r => r.ExistsByUsernameAsync("newadmin", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var newAdmin = new User
+        {
+            Id = 2,
+            TenantId = 5,
+            Username = "newadmin",
+            FullName = "New Admin",
+            Role = "Admin",
+            IsActive = true
+        };
+        _tenantProvisioningService
+            .Setup(s => s.ProvisionNewTenantAsync(
+                "Acme Corp", "newadmin", It.IsAny<string>(), "New Admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newAdmin);
+        _tenantRepository
+            .Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Tenant { Id = 5, Name = "Acme Corp", IsActive = true });
+
+        var result = await _sut.RegisterAsync(new RegisterRequestDto
+        {
+            CompanyName = "Acme Corp",
+            Username = "newadmin",
+            Password = "correct-password",
+            FullName = "New Admin"
+        });
+
+        Assert.Equal("fake-jwt", result.AccessToken);
+        Assert.Equal("newadmin", result.Username);
+        Assert.Equal(5, result.TenantId);
+        Assert.Equal("Acme Corp", result.CompanyName);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_throws_when_the_username_is_already_taken()
+    {
+        _userRepository
+            .Setup(r => r.ExistsByUsernameAsync("taken", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _sut.RegisterAsync(new RegisterRequestDto
+        {
+            CompanyName = "Acme Corp",
+            Username = "taken",
+            Password = "correct-password",
+            FullName = "New Admin"
+        }));
+
+        _tenantProvisioningService.Verify(
+            s => s.ProvisionNewTenantAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

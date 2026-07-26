@@ -130,11 +130,7 @@ public class UserService : IUserService
 
     private async Task EnsureUsernameIsUniqueAsync(string username, long? excludeId, CancellationToken cancellationToken)
     {
-        var normalizedUsername = username.Trim().ToLowerInvariant();
-
-        var duplicateExists = await _userRepository.ExistsAsync(
-            user => user.Username.ToLower() == normalizedUsername && (excludeId == null || user.Id != excludeId),
-            cancellationToken);
+        var duplicateExists = await _userRepository.ExistsByUsernameAsync(username.Trim(), excludeId, cancellationToken);
 
         if (duplicateExists)
         {

@@ -8,10 +8,12 @@ namespace DailyMart.Application.AuditLogs;
 public class AuditLogService : IAuditLogService
 {
     private readonly IAuditLogRepository _auditLogRepository;
+    private readonly ICurrentTenantService _currentTenantService;
 
-    public AuditLogService(IAuditLogRepository auditLogRepository)
+    public AuditLogService(IAuditLogRepository auditLogRepository, ICurrentTenantService currentTenantService)
     {
         _auditLogRepository = auditLogRepository;
+        _currentTenantService = currentTenantService;
     }
 
     public async Task<PagedResult<AuditLogDto>> GetPagedAsync(
@@ -22,7 +24,12 @@ public class AuditLogService : IAuditLogService
         DateTimeOffset? toDate = null,
         CancellationToken cancellationToken = default)
     {
+        // AuditLog doesn't inherit AuditableEntity/TenantOwnedEntity, so it isn't covered by the
+        // automatic tenant query filter (see AuditLog's doc comment) - filtered explicitly here instead.
+        var tenantId = _currentTenantService.TenantId;
+
         Expression<Func<AuditLog, bool>> predicate = log =>
+            log.TenantId == tenantId &&
             (entityName == null || log.EntityName == entityName) &&
             (action == null || log.Action == action) &&
             (fromDate == null || log.PerformedAt >= fromDate) &&
@@ -52,5 +59,5 @@ public class AuditLogService : IAuditLogService
     }
 
     public Task<IReadOnlyList<string>> GetEntityNamesAsync(CancellationToken cancellationToken = default) =>
-        _auditLogRepository.GetDistinctEntityNamesAsync(cancellationToken);
+        _auditLogRepository.GetDistinctEntityNamesAsync(_currentTenantService.TenantId, cancellationToken);
 }

@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Purchases;
 /// and race-condition-free versus a separately-tracked sequence column.
 /// Editing a posted purchase is a reverse-and-reapply, not a field overwrite - see PurchaseService.
 /// </summary>
-public class Purchase : AuditableEntity
+public class Purchase : TenantOwnedEntity
 {
     public long SupplierId { get; set; }
 

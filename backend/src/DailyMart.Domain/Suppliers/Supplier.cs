@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Suppliers;
 /// also created) - see Module 5 Step 1's scope decision. CurrentDue is a cached running balance, always
 /// kept in lockstep with SupplierLedgerEntry rows by SupplierService - never assigned anywhere else.
 /// </summary>
-public class Supplier : AuditableEntity
+public class Supplier : TenantOwnedEntity
 {
     public string Name { get; set; } = string.Empty;
 

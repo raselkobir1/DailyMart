@@ -1,0 +1,58 @@
+<div class="login-wrap">
+  <div class="login-aside">
+    <h1>DailyMart</h1>
+    <p>Everything a departmental shop needs to run day to day, in one place.</p>
+    <ul>
+      <li>📦 Purchases, inventory, and stock alerts</li>
+      <li>🖥️ Fast barcode POS billing</li>
+      <li>🧾 Customer &amp; supplier due tracking</li>
+      <li>🔐 Role-based access for your whole team</li>
+    </ul>
+  </div>
+
+  <div class="login-main">
+    <div class="login-card">
+      <h2>Register your shop</h2>
+      <p class="subtitle">Create a company account - you'll be its first Admin</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="field">
+          <label>Company name</label>
+          <input class="input" formControlName="companyName" autocomplete="organization" />
+        </div>
+
+        <div class="field">
+          <label>Your full name</label>
+          <input class="input" formControlName="fullName" autocomplete="name" />
+        </div>
+
+        <div class="field">
+          <label>Username</label>
+          <input class="input" formControlName="username" autocomplete="username" />
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <input class="input" type="password" formControlName="password" autocomplete="new-password" />
+          <div class="hint">At least 8 characters.</div>
+        </div>
+
+        @if (error()) {
+          <p class="field error">{{ error() }}</p>
+        }
+
+        <button class="btn btn-primary" type="submit" style="width: 100%" [disabled]="loading()">
+          @if (loading()) {
+            <span class="spinner"></span>
+          } @else {
+            Create account
+          }
+        </button>
+      </form>
+
+      <p class="subtitle" style="margin-top: 1rem">
+        Already have an account? <a routerLink="/login">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>

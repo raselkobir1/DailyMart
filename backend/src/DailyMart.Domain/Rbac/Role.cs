@@ -10,7 +10,7 @@ namespace DailyMart.Domain.Rbac;
 /// even though this app has no self-registration today (CLAUDE.md §1) - kept for parity with the RBAC
 /// model this was ported from, not used yet.
 /// </summary>
-public class Role : AuditableEntity
+public class Role : TenantOwnedEntity
 {
     public string Name { get; set; } = string.Empty;
 

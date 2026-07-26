@@ -27,10 +27,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.AllowPriceBelowCost).HasDefaultValue(false);
         builder.Property(p => p.ImageUrl).HasMaxLength(500);
 
-        // Partial (filtered) unique indexes - see UserConfiguration (Module 1) for why: without the
-        // filter, a soft-deleted product would permanently block a new one from reusing its code/barcode.
-        builder.HasIndex(p => p.Code).IsUnique().HasFilter("is_deleted = false");
-        builder.HasIndex(p => p.Barcode).IsUnique().HasFilter("is_deleted = false");
+        // Partial (filtered) unique indexes, composite with TenantId - two different companies can
+        // both have a product coded "P001"; without the filter, a soft-deleted product would also
+        // permanently block a new one from reusing its code/barcode within the same tenant.
+        builder.HasIndex(p => new { p.TenantId, p.Code }).IsUnique().HasFilter("is_deleted = false");
+        builder.HasIndex(p => new { p.TenantId, p.Barcode }).IsUnique().HasFilter("is_deleted = false");
         builder.HasIndex(p => p.Name);
 
         // Restrict, not Cascade: deleting a Category/Brand/Unit should never silently delete products.

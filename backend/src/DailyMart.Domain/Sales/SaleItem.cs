@@ -2,7 +2,7 @@ using DailyMart.Domain.Common;
 
 namespace DailyMart.Domain.Sales;
 
-public class SaleItem : AuditableEntity
+public class SaleItem : TenantOwnedEntity
 {
     public long SaleId { get; set; }
 

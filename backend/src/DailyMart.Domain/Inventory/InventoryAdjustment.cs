@@ -9,7 +9,7 @@ namespace DailyMart.Domain.Inventory;
 /// Create + read only - never edited after creation, same principle as every other posted stock/financial
 /// event in this project.
 /// </summary>
-public class InventoryAdjustment : AuditableEntity
+public class InventoryAdjustment : TenantOwnedEntity
 {
     public long ProductId { get; set; }
 

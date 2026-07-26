@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using DailyMart.Application.AuditLogs;
+using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Domain.Auditing;
 using Moq;
@@ -8,12 +9,16 @@ namespace DailyMart.UnitTests.AuditLogs;
 
 public class AuditLogServiceTests
 {
+    private const long CurrentTenantId = 1;
+
     private readonly Mock<IAuditLogRepository> _repository = new();
+    private readonly Mock<ICurrentTenantService> _currentTenantService = new();
     private readonly AuditLogService _sut;
 
     public AuditLogServiceTests()
     {
-        _sut = new AuditLogService(_repository.Object);
+        _currentTenantService.Setup(s => s.TenantId).Returns(CurrentTenantId);
+        _sut = new AuditLogService(_repository.Object, _currentTenantService.Object);
     }
 
     private static AuditLog MakeLog(
@@ -22,9 +27,11 @@ public class AuditLogServiceTests
         string entityId = "42",
         AuditAction action = AuditAction.Updated,
         string performedBy = "alice",
-        DateTimeOffset? performedAt = null) => new()
+        DateTimeOffset? performedAt = null,
+        long? tenantId = CurrentTenantId) => new()
     {
         Id = id,
+        TenantId = tenantId,
         EntityName = entityName,
         EntityId = entityId,
         Action = action,
@@ -122,13 +129,25 @@ public class AuditLogServiceTests
     }
 
     [Fact]
-    public async Task GetEntityNamesAsync_delegates_to_the_repository()
+    public async Task GetEntityNamesAsync_delegates_to_the_repository_with_the_current_tenant()
     {
-        _repository.Setup(r => r.GetDistinctEntityNamesAsync(It.IsAny<CancellationToken>()))
+        _repository.Setup(r => r.GetDistinctEntityNamesAsync(CurrentTenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(["Customer", "Product", "Sale"]);
 
         var result = await _sut.GetEntityNamesAsync();
 
         Assert.Equal(["Customer", "Product", "Sale"], result);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_never_matches_another_tenants_log_even_if_every_other_filter_matches()
+    {
+        ArrangePredicateCapture();
+        await _sut.GetPagedAsync(new PagedRequest());
+
+        var isMatch = _capturedPredicate!.Compile();
+
+        Assert.True(isMatch(MakeLog(tenantId: CurrentTenantId)));
+        Assert.False(isMatch(MakeLog(tenantId: 999)));
     }
 }

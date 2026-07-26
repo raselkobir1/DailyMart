@@ -112,16 +112,19 @@ try
         var dbContext = scope.ServiceProvider.GetRequiredService<DailyMartDbContext>();
         await MigrateWithRetryAsync(dbContext, app.Logger);
 
+        // RbacSeeder now runs FIRST (reversed from the pre-multi-tenant order): it needs to run on every
+        // boot regardless (menu upsert), and AdminSeeder's seeded user depends on the "Default Company"
+        // tenant (created by the AddTenantsAndPlatformAdmins migration, so it already exists here)
+        // already having a fully-granted Admin role - which is exactly what RbacSeeder's per-tenant loop
+        // guarantees for every existing tenant, this one included. See both seeders' doc comments.
+        var rbacSeeder = scope.ServiceProvider.GetRequiredService<RbacSeeder>();
+        await rbacSeeder.SeedAsync();
+
         var adminSeeder = scope.ServiceProvider.GetRequiredService<AdminSeeder>();
         await adminSeeder.SeedAsync();
 
-        var shopSettingsSeeder = scope.ServiceProvider.GetRequiredService<ShopSettingsSeeder>();
-        await shopSettingsSeeder.SeedAsync();
-
-        // Runs after AdminSeeder (needs the seeded admin's Role="Admin" to line up with the Role row it
-        // creates) and on every boot, not just once - see RbacSeeder's doc comment.
-        var rbacSeeder = scope.ServiceProvider.GetRequiredService<RbacSeeder>();
-        await rbacSeeder.SeedAsync();
+        var platformAdminSeeder = scope.ServiceProvider.GetRequiredService<PlatformAdminSeeder>();
+        await platformAdminSeeder.SeedAsync();
     }
 
     app.UseExceptionHandler();

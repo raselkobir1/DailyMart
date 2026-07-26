@@ -12,6 +12,11 @@ public class AuditLog : IEntity
 {
     public long Id { get; set; }
 
+    /// <summary>Null for audit entries on global/unscoped entities (Menu, Tenant, PlatformAdmin) -
+    /// AuditLog doesn't inherit AuditableEntity/TenantOwnedEntity, so it isn't tenant-filtered
+    /// automatically; AuditLogService filters by this explicitly instead.</summary>
+    public long? TenantId { get; set; }
+
     public string EntityName { get; set; } = string.Empty;
 
     /// <summary>Stored as text so it works regardless of the audited entity's key type.</summary>

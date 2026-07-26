@@ -6,7 +6,7 @@ namespace DailyMart.Domain.Auth;
 /// The shop's admin account. Single-shop, single-admin for now (CLAUDE.md §1) - Role exists for the
 /// BRD's "future role extensibility" requirement, but only "Admin" is enforced today.
 /// </summary>
-public class User : AuditableEntity
+public class User : TenantOwnedEntity
 {
     public string Username { get; set; } = string.Empty;
 

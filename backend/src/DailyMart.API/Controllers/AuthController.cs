@@ -25,6 +25,17 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Self-service tenant signup - the only public way a new company gets created (see
+    /// IAuthService.RegisterAsync / ITenantProvisioningService). Auto-logs in on success, same
+    /// response shape as Login.</summary>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> Register(RegisterRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.RegisterAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Refresh(RefreshTokenRequestDto request, CancellationToken cancellationToken)

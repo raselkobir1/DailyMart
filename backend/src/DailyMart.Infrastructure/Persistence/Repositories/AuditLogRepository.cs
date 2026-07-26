@@ -10,8 +10,10 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
     {
     }
 
-    public async Task<IReadOnlyList<string>> GetDistinctEntityNamesAsync(CancellationToken cancellationToken = default) =>
+    public async Task<IReadOnlyList<string>> GetDistinctEntityNamesAsync(
+        long? tenantId, CancellationToken cancellationToken = default) =>
         await Entities
+            .Where(a => a.TenantId == tenantId)
             .Select(a => a.EntityName)
             .Distinct()
             .OrderBy(name => name)

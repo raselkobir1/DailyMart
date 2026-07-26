@@ -10,8 +10,11 @@ public class RefreshTokenRepository : Repository<RefreshToken>, IRefreshTokenRep
     {
     }
 
+    /// <summary>Bypasses the tenant filter, same reasoning as UserRepository.GetByUsernameAsync: this
+    /// runs on the anonymous refresh/logout endpoints, before any tenant context is established - the
+    /// token itself is how the caller's identity (and therefore tenant) gets discovered.</summary>
     public Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
-        Entities.FirstOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
+        Entities.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.TokenHash == tokenHash && !t.IsDeleted, cancellationToken);
 
     public async Task RevokeAllActiveForUserAsync(long userId, CancellationToken cancellationToken = default)
     {

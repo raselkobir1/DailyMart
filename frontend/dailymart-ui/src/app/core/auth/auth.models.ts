@@ -3,6 +3,14 @@ export interface LoginRequest {
   password: string;
 }
 
+/** Self-service "register your shop" - creates a brand new tenant + its first Admin user. */
+export interface RegisterRequest {
+  companyName: string;
+  username: string;
+  password: string;
+  fullName: string;
+}
+
 export interface RefreshTokenRequest {
   refreshToken: string;
 }
@@ -19,10 +27,14 @@ export interface AuthResponse {
   username: string;
   fullName: string;
   role: string;
+  tenantId: number;
+  companyName: string;
 }
 
 export interface AuthenticatedUser {
   username: string;
   fullName: string;
   role: string;
+  tenantId: number;
+  companyName: string;
 }

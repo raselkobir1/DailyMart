@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Inventory;
 /// CLAUDE.md §5 requires ("every stock-affecting table change also writes an InventoryTransaction row").
 /// Never edited after creation - a correction is always another row, same principle as the supplier ledger.
 /// </summary>
-public class InventoryTransaction : AuditableEntity
+public class InventoryTransaction : TenantOwnedEntity
 {
     public long ProductId { get; set; }
 

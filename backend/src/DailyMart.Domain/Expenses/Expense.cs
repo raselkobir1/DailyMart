@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Expenses;
 /// cascading stock/due effects, so correcting or removing one is a plain field/row edit, not a
 /// reverse-and-reapply.
 /// </summary>
-public class Expense : AuditableEntity
+public class Expense : TenantOwnedEntity
 {
     public ExpenseCategory Category { get; set; }
 

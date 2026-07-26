@@ -10,6 +10,10 @@
     "DefaultUsername": "admin",
     "DefaultPassword": "REPLACE_WITH_A_STRONG_LOCAL_DEV_PASSWORD"
   },
+  "PlatformAdmin": {
+    "DefaultUsername": "platform",
+    "DefaultPassword": "REPLACE_WITH_A_STRONG_LOCAL_DEV_PASSWORD"
+  },
   "Email": {
     "Enabled": false,
     "Host": "smtp.example.com",

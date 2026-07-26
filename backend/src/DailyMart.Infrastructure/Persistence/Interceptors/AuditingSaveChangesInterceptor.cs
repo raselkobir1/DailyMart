@@ -21,10 +21,12 @@ namespace DailyMart.Infrastructure.Persistence.Interceptors;
 public class AuditingSaveChangesInterceptor : SaveChangesInterceptor
 {
     private readonly ICurrentUserService _currentUserService;
+    private readonly ICurrentTenantService _currentTenantService;
 
-    public AuditingSaveChangesInterceptor(ICurrentUserService currentUserService)
+    public AuditingSaveChangesInterceptor(ICurrentUserService currentUserService, ICurrentTenantService currentTenantService)
     {
         _currentUserService = currentUserService;
+        _currentTenantService = currentTenantService;
     }
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -76,6 +78,17 @@ public class AuditingSaveChangesInterceptor : SaveChangesInterceptor
                 case EntityState.Added:
                     entry.Entity.CreatedAt = now;
                     entry.Entity.CreatedBy = userName;
+                    // Tenant of a row never changes after creation, so this only needs to run on
+                    // Added, never Modified - unlike CreatedBy/UpdatedBy. Only stamps when there IS a
+                    // current tenant (an ordinary authenticated request) - deliberately does NOT
+                    // overwrite with a default/throw when there isn't, because TenantProvisioningService
+                    // creates a brand-new tenant's first Role/User/ShopSettings during the anonymous
+                    // signup request itself, before any tenant claim exists to read. It sets TenantId
+                    // explicitly on those entities, and this must not clobber that.
+                    if (entry.Entity is TenantOwnedEntity tenantOwnedEntity && _currentTenantService.TenantId is { } currentTenantId)
+                    {
+                        tenantOwnedEntity.TenantId = currentTenantId;
+                    }
                     newValues = Serialize(ToDictionary(entry, useOriginalValues: false));
                     break;
 
@@ -107,6 +120,10 @@ public class AuditingSaveChangesInterceptor : SaveChangesInterceptor
 
             auditLogs.Add(new AuditLog
             {
+                // Null for global/unscoped entities (Menu, Tenant, PlatformAdmin) - AuditLog itself
+                // isn't tenant-filtered (see AuditLog's doc comment), so AuditLogService filters by
+                // this explicitly instead of relying on the automatic convention.
+                TenantId = entry.Entity is TenantOwnedEntity auditedTenantOwnedEntity ? auditedTenantOwnedEntity.TenantId : null,
                 EntityName = entry.Entity.GetType().Name,
                 EntityId = entry.Entity.Id.ToString(),
                 Action = action,

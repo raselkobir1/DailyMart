@@ -15,8 +15,7 @@ public class BrandConfiguration : IEntityTypeConfiguration<Brand>
         builder.Property(b => b.Name).HasMaxLength(100).IsRequired();
         builder.Property(b => b.Description).HasMaxLength(500);
 
-        // Partial (filtered) unique index - see UserConfiguration for why: without the filter, a
-        // soft-deleted brand would permanently block a new brand from reusing its name.
-        builder.HasIndex(b => b.Name).IsUnique().HasFilter("is_deleted = false");
+        // Partial (filtered) unique index, composite with TenantId - see CategoryConfiguration.
+        builder.HasIndex(b => new { b.TenantId, b.Name }).IsUnique().HasFilter("is_deleted = false");
     }
 }

@@ -6,7 +6,8 @@ import {
   AuthenticatedUser,
   ChangePasswordRequest,
   LoginRequest,
-  RefreshTokenRequest
+  RefreshTokenRequest,
+  RegisterRequest
 } from './auth.models';
 import { safeStorage } from './safe-storage';
 
@@ -17,8 +18,10 @@ const USER_KEY = 'dailymart.user';
 /**
  * Both tokens are kept in localStorage rather than an httpOnly cookie for the refresh token. That
  * cookie approach is more resistant to XSS token theft, but needs cookie/CORS/SameSite plumbing on the
- * API side. This is a single-shop, single-admin internal tool (not public-facing/multi-tenant), so the
- * simpler storage was chosen - revisit if this app ever needs a stronger threat model.
+ * API side - the simpler storage was chosen for this internal-tool-turned-SaaS app, and revisited only
+ * if it ever needs a stronger threat model. Tenant isolation itself is enforced server-side (the
+ * tenant_id JWT claim + DailyMartDbContext's query filter), not by anything client-side - this service
+ * only carries the tenantId/companyName through for display purposes.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -41,6 +44,13 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/auth/login', request).pipe(tap((response) => this.storeSession(response)));
+  }
+
+  /** Self-service tenant signup - auto-logs in on success, same as login(). */
+  register(request: RegisterRequest): Observable<AuthResponse> {
+    return this.http
+      .post<AuthResponse>('/auth/register', request)
+      .pipe(tap((response) => this.storeSession(response)));
   }
 
   /** Rotates the refresh token server-side - the caller doesn't need to do anything special with that. */
@@ -81,7 +91,9 @@ export class AuthService {
     const user: AuthenticatedUser = {
       username: response.username,
       fullName: response.fullName,
-      role: response.role
+      role: response.role,
+      tenantId: response.tenantId,
+      companyName: response.companyName
     };
 
     safeStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);

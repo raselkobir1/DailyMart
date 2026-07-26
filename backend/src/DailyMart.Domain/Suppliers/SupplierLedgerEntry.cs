@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Suppliers;
 /// rule ("supplier due must always match unpaid purchases") implies: due is a sum of transactions, never
 /// a bare editable field.
 /// </summary>
-public class SupplierLedgerEntry : AuditableEntity
+public class SupplierLedgerEntry : TenantOwnedEntity
 {
     public long SupplierId { get; set; }
 

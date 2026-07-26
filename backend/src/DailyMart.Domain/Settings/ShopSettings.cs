@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Settings;
 /// read this for defaults (currency, VAT %, discount %) rather than each keeping its own copy.
 /// Named ShopSettings rather than Settings to avoid a type colliding with its own namespace.
 /// </summary>
-public class ShopSettings : AuditableEntity
+public class ShopSettings : TenantOwnedEntity
 {
     public string ShopName { get; set; } = string.Empty;
 

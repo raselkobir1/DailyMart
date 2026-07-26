@@ -6,7 +6,7 @@ namespace DailyMart.Domain.Customers;
 /// One row per balance-affecting event for a customer - mirrors SupplierLedgerEntry exactly. Due is a sum
 /// of transactions, never a bare editable field, so it can always be reconciled against Sale/SaleReturn data.
 /// </summary>
-public class CustomerLedgerEntry : AuditableEntity
+public class CustomerLedgerEntry : TenantOwnedEntity
 {
     public long CustomerId { get; set; }
 

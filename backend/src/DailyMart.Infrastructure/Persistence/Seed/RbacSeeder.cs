@@ -1,3 +1,4 @@
+using DailyMart.Application.Tenancy;
 using DailyMart.Domain.Rbac;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -5,14 +6,21 @@ using Microsoft.Extensions.Logging;
 namespace DailyMart.Infrastructure.Persistence.Seed;
 
 /// <summary>
-/// Runs on every startup (not gated by "if any Role exists, skip" the way AdminSeeder is) and upserts
-/// idempotently, menu by menu - so adding a new module's Menu row to <see cref="SeedMenus"/>, or
-/// re-parenting/relabeling an existing one, and redeploying is enough to make it show up correctly for
-/// Admin, with no manual "go grant permissions" or "go edit the Menu row" step. This mirrors the RBAC
-/// model this was ported from: "grants full CRUD on any newly created menu... nothing needs manual
-/// re-granting."
+/// Two responsibilities, both running on every startup (menu upsert isn't gated by "if any Menu
+/// exists, skip" the way AdminSeeder is):
 ///
-/// Deliberately only grants Admin access here - no other role is seeded, since a "Cashier"/"Manager" role
+/// 1. Upserts the global Menu list idempotently, menu by menu - so adding a new module's Menu row to
+///    <see cref="SeedMenus"/>, or re-parenting/relabeling an existing one, and redeploying is enough
+///    to make it show up correctly, with no manual "go edit the Menu row" step. Menu is global/shared
+///    across every tenant (see Menu's own doc comment), so this part is entirely tenant-agnostic.
+///
+/// 2. For every EXISTING tenant, ensures its "Admin" role has full CRUD on every current menu (via
+///    ITenantProvisioningService.EnsureAdminRoleHasFullMenuAccessAsync) - preserving, per-tenant, the
+///    single-tenant system's old guarantee that "grants full CRUD on any newly created menu...
+///    nothing needs manual re-granting," which would otherwise only apply to brand-new tenants
+///    (whose Admin role is created fresh via that same method at signup, not here).
+///
+/// Deliberately only grants Admin access - no other role is seeded, since a "Cashier"/"Manager" role
 /// with a deliberately restricted menu set is exactly the kind of thing this system exists so an admin can
 /// configure themselves via the Roles/Permissions screens, not something to hardcode. One consequence
 /// worth calling out: introducing a new *parent* group menu (see below) means any existing custom role
@@ -24,6 +32,7 @@ namespace DailyMart.Infrastructure.Persistence.Seed;
 public class RbacSeeder
 {
     private readonly DailyMartDbContext _context;
+    private readonly ITenantProvisioningService _tenantProvisioningService;
     private readonly ILogger<RbacSeeder> _logger;
 
     /// <summary>
@@ -70,41 +79,28 @@ public class RbacSeeder
         new("audit-log", "Audit Log", "/audit-log", "📜", 50, "security")
     ];
 
-    public RbacSeeder(DailyMartDbContext context, ILogger<RbacSeeder> logger)
+    public RbacSeeder(
+        DailyMartDbContext context, ITenantProvisioningService tenantProvisioningService, ILogger<RbacSeeder> logger)
     {
         _context = context;
+        _tenantProvisioningService = tenantProvisioningService;
         _logger = logger;
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var adminRole = await GetOrCreateAdminRoleAsync(cancellationToken);
-        var menuIds = await UpsertMenusAsync(cancellationToken);
-        await EnsureAdminHasFullAccessAsync(adminRole.Id, menuIds, cancellationToken);
-
+        await UpsertMenusAsync(cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
-    }
 
-    private async Task<Role> GetOrCreateAdminRoleAsync(CancellationToken cancellationToken)
-    {
-        var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin", cancellationToken);
-        if (adminRole is not null)
+        // Tenant isn't tenant-filtered at all (it's not a TenantOwnedEntity), so this is already every
+        // tenant regardless of query-filter context.
+        var tenantIds = await _context.Tenants.Select(t => t.Id).ToListAsync(cancellationToken);
+        foreach (var tenantId in tenantIds)
         {
-            return adminRole;
+            await _tenantProvisioningService.EnsureAdminRoleHasFullMenuAccessAsync(tenantId, cancellationToken);
         }
 
-        adminRole = new Role
-        {
-            Name = "Admin",
-            Description = "Full access to every menu - cannot be renamed or deleted.",
-            IsSystem = true,
-            IsDefault = false
-        };
-        _context.Roles.Add(adminRole);
         await _context.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Seeded system role 'Admin'.");
-        return adminRole;
     }
 
     /// <summary>Two passes so a child's ParentKey can resolve to its parent's DB-generated Id: parent
@@ -170,41 +166,6 @@ public class RbacSeeder
         menuIds.Add(menu.Id);
         _logger.LogInformation("Seeded menu '{Key}'.", seed.Key);
         return menu.Id;
-    }
-
-    private async Task EnsureAdminHasFullAccessAsync(
-        long adminRoleId, IReadOnlyCollection<long> menuIds, CancellationToken cancellationToken)
-    {
-        var existingPermissions = await _context.RoleMenuPermissions
-            .Where(p => p.RoleId == adminRoleId)
-            .ToDictionaryAsync(p => p.MenuId, cancellationToken);
-
-        foreach (var menuId in menuIds)
-        {
-            if (existingPermissions.TryGetValue(menuId, out var permission))
-            {
-                if (permission.CanView && permission.CanCreate && permission.CanEdit && permission.CanDelete)
-                {
-                    continue;
-                }
-
-                permission.CanView = true;
-                permission.CanCreate = true;
-                permission.CanEdit = true;
-                permission.CanDelete = true;
-                continue;
-            }
-
-            _context.RoleMenuPermissions.Add(new RoleMenuPermission
-            {
-                RoleId = adminRoleId,
-                MenuId = menuId,
-                CanView = true,
-                CanCreate = true,
-                CanEdit = true,
-                CanDelete = true
-            });
-        }
     }
 
     private sealed record MenuSeed(string Key, string Label, string Route, string Icon, int SortOrder, string? ParentKey);

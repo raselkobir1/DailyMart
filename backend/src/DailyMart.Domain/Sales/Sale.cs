@@ -9,7 +9,7 @@ namespace DailyMart.Domain.Sales;
 /// must be collectible from someone. Create + read only - see ISaleService's doc comment for why there's
 /// no Update/Delete, unlike Purchase.
 /// </summary>
-public class Sale : AuditableEntity
+public class Sale : TenantOwnedEntity
 {
     public long? CustomerId { get; set; }
 

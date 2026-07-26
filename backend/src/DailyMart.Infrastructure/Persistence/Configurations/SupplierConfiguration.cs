@@ -20,7 +20,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.Property(s => s.OpeningBalance).HasColumnType("numeric(12,2)").HasDefaultValue(0m);
         builder.Property(s => s.CurrentDue).HasColumnType("numeric(12,2)").HasDefaultValue(0m);
 
-        // Partial (filtered) unique index - see UserConfiguration (Module 1) for why.
-        builder.HasIndex(s => s.Name).IsUnique().HasFilter("is_deleted = false");
+        // Partial (filtered) unique index, composite with TenantId - see CategoryConfiguration.
+        builder.HasIndex(s => new { s.TenantId, s.Name }).IsUnique().HasFilter("is_deleted = false");
     }
 }

@@ -7,7 +7,7 @@ namespace DailyMart.Domain.Products;
 /// Sales exist (Modules 7-9), they own every further stock movement via an auditable
 /// InventoryTransaction row each; nothing here mutates CurrentStock after creation.
 /// </summary>
-public class Product : AuditableEntity
+public class Product : TenantOwnedEntity
 {
     public string Code { get; set; } = string.Empty;
 

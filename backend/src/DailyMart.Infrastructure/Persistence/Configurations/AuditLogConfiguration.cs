@@ -12,6 +12,11 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.HasKey(a => a.Id);
 
+        // No FK to Tenant, unlike TenantOwnedEntity's automatic FK (ApplyTenantForeignKeys) - this is
+        // deliberately a plain nullable column: AuditLog is append-only and a global/unscoped audit
+        // entry (Menu, Tenant, PlatformAdmin changes) has no tenant to reference at all.
+        builder.Property(a => a.TenantId);
+
         builder.Property(a => a.EntityName).HasMaxLength(128).IsRequired();
         builder.Property(a => a.EntityId).HasMaxLength(64).IsRequired();
         builder.Property(a => a.Action).HasConversion<string>().HasMaxLength(32).IsRequired();
@@ -23,5 +28,6 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.HasIndex(a => new { a.EntityName, a.EntityId });
         builder.HasIndex(a => a.PerformedAt);
+        builder.HasIndex(a => a.TenantId);
     }
 }

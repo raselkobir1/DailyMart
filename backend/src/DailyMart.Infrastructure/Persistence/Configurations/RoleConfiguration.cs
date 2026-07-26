@@ -15,7 +15,8 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.Property(r => r.Name).HasMaxLength(100).IsRequired();
         builder.Property(r => r.Description).HasMaxLength(500);
 
-        // Partial (filtered) unique index - same pattern as every other "Name must be unique" entity here.
-        builder.HasIndex(r => r.Name).IsUnique().HasFilter("is_deleted = false");
+        // Partial (filtered) unique index, composite with TenantId - every tenant needs its own
+        // "Admin" role (see TenantProvisioningService), so Name can't be globally unique anymore.
+        builder.HasIndex(r => new { r.TenantId, r.Name }).IsUnique().HasFilter("is_deleted = false");
     }
 }

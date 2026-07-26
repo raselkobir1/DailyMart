@@ -10,7 +10,7 @@ namespace DailyMart.Domain.Rbac;
 /// are not independently enforced by the business controllers themselves (Products, Purchases, etc.) -
 /// see RbacSeeder's doc comment for why that's a deliberate, not accidental, scope boundary.
 /// </summary>
-public class RoleMenuPermission : AuditableEntity
+public class RoleMenuPermission : TenantOwnedEntity
 {
     public long RoleId { get; set; }
 

@@ -1,10 +1,15 @@
 import { Routes } from '@angular/router';
 import { authGuard, canView } from './core/auth/auth.guard';
+import { platformAuthGuard } from './core/auth/platform-auth.guard';
 
 export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent)
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./features/auth/register/register.component').then((m) => m.RegisterComponent)
   },
   {
     path: '',
@@ -304,5 +309,22 @@ export const routes: Routes = [
           import('./features/permissions/permissions.component').then((m) => m.PermissionsComponent)
       }
     ]
+  },
+  // A separate top-level branch, not nested under the tenant-scoped '' block above - a platform admin
+  // isn't tenant-scoped RBAC at all (see platformAuthGuard's doc comment), so it gets its own guard and
+  // no shared layout with the main app shell (app.html only renders that shell when the tenant
+  // AuthService reports authenticated, which a platform-only session never does).
+  {
+    path: 'platform/login',
+    loadComponent: () =>
+      import('./features/platform/login/platform-login.component').then((m) => m.PlatformLoginComponent)
+  },
+  {
+    path: 'platform/tenants',
+    canActivate: [platformAuthGuard],
+    loadComponent: () =>
+      import('./features/platform/tenants/platform-tenant-list.component').then(
+        (m) => m.PlatformTenantListComponent
+      )
   }
 ];

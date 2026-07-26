@@ -4,7 +4,9 @@ using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Options;
 using DailyMart.Application.Products;
 using DailyMart.Application.Settings;
+using DailyMart.Application.Tenancy;
 using DailyMart.Domain.Auth;
+using DailyMart.Domain.Tenancy;
 using DailyMart.Infrastructure.Auth;
 using DailyMart.Infrastructure.Files;
 using DailyMart.Infrastructure.Notifications;
@@ -13,6 +15,7 @@ using DailyMart.Infrastructure.Persistence.Interceptors;
 using DailyMart.Infrastructure.Persistence.Repositories;
 using DailyMart.Infrastructure.Persistence.Seed;
 using DailyMart.Infrastructure.Services;
+using DailyMart.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,6 +29,7 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ICurrentTenantService, CurrentTenantService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<AuditingSaveChangesInterceptor>();
 
@@ -37,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         // PasswordHasher<TUser> is stateless/thread-safe - singleton is the standard registration for it.
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddSingleton<IPasswordHasher<PlatformAdmin>, PasswordHasher<PlatformAdmin>>();
         // Explicit factory: UnitOfWork depends on the DbContext base class (so it - and Repository<T> -
         // stay reusable/testable against any DbContext), but only DailyMartDbContext is registered with
         // DI, so constructor auto-resolution can't find a plain DbContext on its own.
@@ -52,8 +57,9 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository>(sp => new ProductRepository(sp.GetRequiredService<DailyMartDbContext>()));
         services.AddScoped<IAuditLogRepository>(sp => new AuditLogRepository(sp.GetRequiredService<DailyMartDbContext>()));
 
+        services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
         services.AddScoped<AdminSeeder>();
-        services.AddScoped<ShopSettingsSeeder>();
+        services.AddScoped<PlatformAdminSeeder>();
         services.AddScoped<RbacSeeder>();
 
         services.AddDbContext<DailyMartDbContext>((sp, options) =>

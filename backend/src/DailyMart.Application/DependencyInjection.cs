@@ -13,6 +13,7 @@ using DailyMart.Application.Reports;
 using DailyMart.Application.Sales;
 using DailyMart.Application.Settings;
 using DailyMart.Application.Suppliers;
+using DailyMart.Application.Tenancy;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<ISaleInvoiceDeliveryService, SaleInvoiceDeliveryService>();
         services.AddScoped<IProfitLossService, ProfitLossService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IPlatformAdminAuthService, PlatformAdminAuthService>();
+        services.AddScoped<IPlatformTenantService, PlatformTenantService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;

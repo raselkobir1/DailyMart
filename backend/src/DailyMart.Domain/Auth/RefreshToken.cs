@@ -6,7 +6,7 @@ namespace DailyMart.Domain.Auth;
 /// An opaque refresh token issued to a User. Only the SHA-256 hash is persisted (see TokenHash) so a
 /// database leak alone can't be exchanged for a working session.
 /// </summary>
-public class RefreshToken : AuditableEntity
+public class RefreshToken : TenantOwnedEntity
 {
     public long UserId { get; set; }
 

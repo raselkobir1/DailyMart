@@ -2,7 +2,7 @@ using DailyMart.Domain.Common;
 
 namespace DailyMart.Domain.Purchases;
 
-public class PurchaseReturnItem : AuditableEntity
+public class PurchaseReturnItem : TenantOwnedEntity
 {
     public long PurchaseReturnId { get; set; }
 

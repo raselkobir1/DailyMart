@@ -15,8 +15,7 @@ public class UnitConfiguration : IEntityTypeConfiguration<Unit>
         builder.Property(u => u.Name).HasMaxLength(50).IsRequired();
         builder.Property(u => u.Symbol).HasMaxLength(10).IsRequired();
 
-        // Partial (filtered) unique index - see UserConfiguration for why: without the filter, a
-        // soft-deleted unit would permanently block a new unit from reusing its name.
-        builder.HasIndex(u => u.Name).IsUnique().HasFilter("is_deleted = false");
+        // Partial (filtered) unique index, composite with TenantId - see CategoryConfiguration.
+        builder.HasIndex(u => new { u.TenantId, u.Name }).IsUnique().HasFilter("is_deleted = false");
     }
 }

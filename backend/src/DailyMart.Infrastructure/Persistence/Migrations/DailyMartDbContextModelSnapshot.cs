@@ -71,11 +71,18 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("performed_by");
 
+                    b.Property<long?>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id")
                         .HasName("pk_audit_logs");
 
                     b.HasIndex("PerformedAt")
                         .HasDatabaseName("ix_audit_logs_performed_at");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_audit_logs_tenant_id");
 
                     b.HasIndex("EntityName", "EntityId")
                         .HasDatabaseName("ix_audit_logs_entity_name_entity_id");
@@ -113,6 +120,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("revoked_at");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -133,6 +144,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_refresh_tokens");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_refresh_tokens_tenant_id");
 
                     b.HasIndex("TokenHash")
                         .IsUnique()
@@ -192,6 +206,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("Admin")
                         .HasColumnName("role");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -208,6 +226,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_users");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_users_tenant_id");
 
                     b.HasIndex("Username")
                         .IsUnique()
@@ -266,6 +287,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("phone");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -277,9 +302,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_customers");
 
-                    b.HasIndex("Phone")
+                    b.HasIndex("TenantId", "Phone")
                         .IsUnique()
-                        .HasDatabaseName("ix_customers_phone")
+                        .HasDatabaseName("ix_customers_tenant_id_phone")
                         .HasFilter("is_deleted = false");
 
                     b.ToTable("customers", (string)null);
@@ -330,6 +355,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset>("TransactionDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("transaction_date");
@@ -347,6 +376,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("ix_customer_ledger_entries_customer_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_customer_ledger_entries_tenant_id");
 
                     b.ToTable("customer_ledger_entries", (string)null);
                 });
@@ -392,6 +424,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -408,6 +444,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ExpenseDate")
                         .HasDatabaseName("ix_expenses_expense_date");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_expenses_tenant_id");
 
                     b.ToTable("expenses", (string)null);
                 });
@@ -458,6 +497,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("reason");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -471,6 +514,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProductId")
                         .HasDatabaseName("ix_inventory_adjustments_product_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_inventory_adjustments_tenant_id");
 
                     b.ToTable("inventory_adjustments", (string)null);
                 });
@@ -524,6 +570,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("reference_type");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset>("TransactionDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("transaction_date");
@@ -547,6 +597,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProductId")
                         .HasDatabaseName("ix_inventory_transactions_product_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_inventory_transactions_tenant_id");
 
                     b.HasIndex("ReferenceType", "ReferenceId")
                         .HasDatabaseName("ix_inventory_transactions_reference_type_reference_id");
@@ -587,6 +640,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -598,9 +655,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_brands");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_brands_name")
+                        .HasDatabaseName("ix_brands_tenant_id_name")
                         .HasFilter("is_deleted = false");
 
                     b.ToTable("brands", (string)null);
@@ -639,6 +696,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -650,9 +711,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_categories");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_categories_name")
+                        .HasDatabaseName("ix_categories_tenant_id_name")
                         .HasFilter("is_deleted = false");
 
                     b.ToTable("categories", (string)null);
@@ -692,6 +753,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("symbol");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -703,9 +768,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_units");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_units_name")
+                        .HasDatabaseName("ix_units_tenant_id_name")
                         .HasFilter("is_deleted = false");
 
                     b.ToTable("units", (string)null);
@@ -802,6 +867,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("tax_percentage");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<long>("UnitId")
                         .HasColumnType("bigint")
                         .HasColumnName("unit_id");
@@ -821,27 +890,27 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_products");
 
-                    b.HasIndex("Barcode")
-                        .IsUnique()
-                        .HasDatabaseName("ix_products_barcode")
-                        .HasFilter("is_deleted = false");
-
                     b.HasIndex("BrandId")
                         .HasDatabaseName("ix_products_brand_id");
 
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("ix_products_category_id");
 
-                    b.HasIndex("Code")
-                        .IsUnique()
-                        .HasDatabaseName("ix_products_code")
-                        .HasFilter("is_deleted = false");
-
                     b.HasIndex("Name")
                         .HasDatabaseName("ix_products_name");
 
                     b.HasIndex("UnitId")
                         .HasDatabaseName("ix_products_unit_id");
+
+                    b.HasIndex("TenantId", "Barcode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_products_tenant_id_barcode")
+                        .HasFilter("is_deleted = false");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_products_tenant_id_code")
+                        .HasFilter("is_deleted = false");
 
                     b.ToTable("products", (string)null);
                 });
@@ -909,6 +978,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("supplier_id");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("total_amount");
@@ -932,6 +1005,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SupplierId")
                         .HasDatabaseName("ix_purchases_supplier_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_purchases_tenant_id");
 
                     b.ToTable("purchases", (string)null);
                 });
@@ -980,6 +1056,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,3)")
                         .HasColumnName("quantity");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("unit_price");
@@ -1000,6 +1080,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PurchaseId")
                         .HasDatabaseName("ix_purchase_items_purchase_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_purchase_items_tenant_id");
 
                     b.ToTable("purchase_items", (string)null);
                 });
@@ -1039,6 +1122,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("return_date");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("total_amount");
@@ -1056,6 +1143,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PurchaseId")
                         .HasDatabaseName("ix_purchase_returns_purchase_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_purchase_returns_tenant_id");
 
                     b.ToTable("purchase_returns", (string)null);
                 });
@@ -1098,6 +1188,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,3)")
                         .HasColumnName("quantity");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("unit_price");
@@ -1118,6 +1212,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PurchaseReturnId")
                         .HasDatabaseName("ix_purchase_return_items_purchase_return_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_purchase_return_items_tenant_id");
 
                     b.ToTable("purchase_return_items", (string)null);
                 });
@@ -1239,6 +1336,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1250,9 +1351,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_roles");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_roles_name")
+                        .HasDatabaseName("ix_roles_tenant_id_name")
                         .HasFilter("is_deleted = false");
 
                     b.ToTable("roles", (string)null);
@@ -1312,6 +1413,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("role_id");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1325,6 +1430,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("MenuId")
                         .HasDatabaseName("ix_role_menu_permissions_menu_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_role_menu_permissions_tenant_id");
 
                     b.HasIndex("RoleId", "MenuId")
                         .IsUnique()
@@ -1403,6 +1511,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("subtotal_amount");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("total_amount");
@@ -1432,6 +1544,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("ix_sales_customer_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_sales_tenant_id");
 
                     b.ToTable("sales", (string)null);
                 });
@@ -1480,6 +1595,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("sale_id");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitCost")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(12,2)")
@@ -1506,6 +1625,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SaleId")
                         .HasDatabaseName("ix_sale_items_sale_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_sale_items_tenant_id");
 
                     b.ToTable("sale_items", (string)null);
                 });
@@ -1549,6 +1671,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("sale_id");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("total_amount");
@@ -1566,6 +1692,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SaleId")
                         .HasDatabaseName("ix_sale_returns_sale_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_sale_returns_tenant_id");
 
                     b.ToTable("sale_returns", (string)null);
                 });
@@ -1608,6 +1737,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("sale_return_id");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("unit_price");
@@ -1628,6 +1761,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SaleReturnId")
                         .HasDatabaseName("ix_sale_return_items_sale_return_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_sale_return_items_tenant_id");
 
                     b.ToTable("sale_return_items", (string)null);
                 });
@@ -1743,6 +1879,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("shop_phone");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeZone")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1761,6 +1901,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_settings");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_settings_tenant_id");
 
                     b.ToTable("settings", (string)null);
                 });
@@ -1825,6 +1968,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("phone");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1836,9 +1983,9 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_suppliers");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("ix_suppliers_name")
+                        .HasDatabaseName("ix_suppliers_tenant_id_name")
                         .HasFilter("is_deleted = false");
 
                     b.ToTable("suppliers", (string)null);
@@ -1889,6 +2036,10 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("supplier_id");
 
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
                     b.Property<DateTimeOffset>("TransactionDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("transaction_date");
@@ -1907,17 +2058,160 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.HasIndex("SupplierId")
                         .HasDatabaseName("ix_supplier_ledger_entries_supplier_id");
 
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_supplier_ledger_entries_tenant_id");
+
                     b.ToTable("supplier_ledger_entries", (string)null);
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Tenancy.PlatformAdmin", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("full_name");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("password_hash");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("username");
+
+                    b.HasKey("Id")
+                        .HasName("pk_platform_admins");
+
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasDatabaseName("ix_platform_admins_username")
+                        .HasFilter("is_deleted = false");
+
+                    b.ToTable("platform_admins", (string)null);
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Tenancy.Tenant", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenants");
+
+                    b.ToTable("tenants", (string)null);
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Auth.RefreshToken", b =>
                 {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_refresh_tokens_tenants_tenant_id");
+
                     b.HasOne("DailyMart.Domain.Auth.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Auth.User", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_users_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Customers.Customer", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_customers_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Customers.CustomerLedgerEntry", b =>
@@ -1928,6 +2222,23 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_customer_ledger_entries_customers_customer_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_customer_ledger_entries_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Expenses.Expense", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_expenses_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Inventory.InventoryAdjustment", b =>
@@ -1938,6 +2249,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_inventory_adjustments_products_product_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_inventory_adjustments_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Inventory.InventoryTransaction", b =>
@@ -1948,6 +2266,43 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_inventory_transactions_products_product_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_inventory_transactions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.MasterData.Brand", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_brands_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.MasterData.Category", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_categories_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.MasterData.Unit", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_units_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Products.Product", b =>
@@ -1965,6 +2320,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_products_categories_category_id");
 
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_products_tenants_tenant_id");
+
                     b.HasOne("DailyMart.Domain.MasterData.Unit", null)
                         .WithMany()
                         .HasForeignKey("UnitId")
@@ -1981,6 +2343,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_purchases_suppliers_supplier_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchases_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Purchases.PurchaseItem", b =>
@@ -1998,6 +2367,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_purchase_items_purchases_purchase_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_items_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Purchases.PurchaseReturn", b =>
@@ -2008,6 +2384,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_purchase_returns_purchases_purchase_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_returns_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Purchases.PurchaseReturnItem", b =>
@@ -2025,6 +2408,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_purchase_return_items_purchase_returns_purchase_return_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_return_items_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Rbac.Menu", b =>
@@ -2034,6 +2424,16 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_menus_menus_parent_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Rbac.Role", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_roles_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Rbac.RoleMenuPermission", b =>
@@ -2051,6 +2451,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_role_menu_permissions_roles_role_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_role_menu_permissions_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Sales.Sale", b =>
@@ -2060,6 +2467,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_sales_customers_customer_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sales_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Sales.SaleItem", b =>
@@ -2077,6 +2491,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_sale_items_sales_sale_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_items_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Sales.SaleReturn", b =>
@@ -2087,6 +2508,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_sale_returns_sales_sale_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_returns_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Sales.SaleReturnItem", b =>
@@ -2104,6 +2532,33 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_sale_return_items_sale_returns_sale_return_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sale_return_items_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Settings.ShopSettings", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_settings_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Suppliers.Supplier", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_suppliers_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("DailyMart.Domain.Suppliers.SupplierLedgerEntry", b =>
@@ -2114,6 +2569,13 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_supplier_ledger_entries_suppliers_supplier_id");
+
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_supplier_ledger_entries_tenants_tenant_id");
                 });
 #pragma warning restore 612, 618
         }

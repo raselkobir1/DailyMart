@@ -4,12 +4,14 @@ Source of truth for architecture, conventions, and build order. Full requirement
 
 ## 1. Overview
 
-Production-ready management system for a single departmental shop ("DailyMart"): suppliers, purchasing,
-inventory, barcode POS sales, customer/supplier dues, expenses, P&L, reports, dashboard, audit log.
-Single shop for now (multi-branch is explicitly Future scope — do not build for it). Multiple staff users
-**with role-based menu permissions** are in scope (see §4's RBAC bullet) — this supersedes the original
-"single admin user" decision, once a real shop turned out to need a cashier/manager split, not just one
-admin login.
+Production-ready **multi-tenant SaaS** departmental-store management system ("DailyMart"): suppliers,
+purchasing, inventory, barcode POS sales, customer/supplier dues, expenses, P&L, reports, dashboard, audit
+log — sold to many independent shop owners/companies, each getting their own isolated `Tenant` with its own
+data, users, roles, and settings (see §4's Multi-tenancy bullet). This supersedes the original "single shop,
+single admin" decision (and the RBAC multi-user decision before it), once the product turned from an
+internal tool into something sold to many customers. **Multi-branch is still explicitly Future scope** —
+don't conflate the two: a tenant is one company/shop owner's isolated account, not a company operating
+several physical store locations sharing one dataset; that remains unbuilt.
 
 ## 2. Tech Stack
 
@@ -48,6 +50,30 @@ live together within their layer, even though the layer itself is one project.
 
 - **Entities** (`Domain`): inherit a common `AuditableEntity` base (`Id`, `CreatedAt`, `CreatedBy`, `UpdatedAt`,
   `UpdatedBy`, `IsDeleted`). Soft delete everywhere — a global EF Core query filter excludes `IsDeleted = true`.
+  Every entity that belongs to one tenant inherits `TenantOwnedEntity : AuditableEntity` instead (adds
+  `TenantId`) — see the Multi-tenancy bullet below for which entities don't.
+- **Multi-tenancy**: `Tenant` (one row per company/shop) and `PlatformAdmin` (the SaaS vendor's own login,
+  entirely separate identity) are the only entities that inherit `AuditableEntity` directly rather than
+  `TenantOwnedEntity` — along with `Menu`, the shared nav-item list common to every tenant. Isolation is
+  enforced at the EF Core model level, not per-service: `TenancyModelExtensions.ApplyTenancyQueryFilters`
+  applies `!IsDeleted && TenantId == CurrentTenantId` to every `TenantOwnedEntity`, and
+  `ApplyTenantForeignKeys` adds the FK to `Tenant`, both wired once in `DailyMartDbContext.OnModelCreating` —
+  so every existing repository/service query is automatically tenant-scoped with zero code changes needed
+  per module. `ICurrentTenantService` (mirrors `ICurrentUserService`) reads the `tenant_id` JWT claim;
+  `AuditingSaveChangesInterceptor` stamps it on newly-created entities the same way it stamps `CreatedBy`.
+  Deliberately fail-closed: a null current-tenant (a platform-admin token, or seed-time code) makes the
+  filter match zero rows on any tenant table rather than "every tenant" — never trust a missing tenant
+  context to mean "show everything." A brand new tenant is created via `ITenantProvisioningService`
+  (self-service `POST /api/auth/register`, or once at boot for the seeded "Default Company" — see
+  `AdminSeeder`), not by an admin inside another tenant. `User.Username` is deliberately kept globally
+  unique (not per-tenant) so `POST /api/auth/login` can look up which tenant a user belongs to without a
+  separate "pick your company" step first — see `UserConfiguration`'s doc comment. A separate, "basic"
+  platform-admin panel (`api/platform/auth`, `api/platform/tenants` — list every tenant, suspend/activate
+  one) exists for the SaaS vendor's own ops staff, entirely apart from any tenant's own Admin role: its own
+  `PlatformAdmin` login (`[Authorize(Roles = "PlatformAdmin")]`, no tenant claim, no refresh-token flow),
+  own frontend session/guard (`PlatformAuthService`/`platformAuthGuard`, `/platform/login` +
+  `/platform/tenants`, outside the normal app shell). No impersonation, no usage analytics, no billing yet
+  — see §12.
 - **Repository + Unit of Work** (`Infrastructure`): generic `IRepository<T>` for common CRUD, module-specific
   repositories for custom queries (e.g. `ISupplierRepository.GetWithLedgerAsync`). One `IUnitOfWork` wrapping
   `SaveChangesAsync` and repository access; services commit through it.
@@ -70,9 +96,13 @@ live together within their layer, even though the layer itself is one project.
   the global "any authenticated user" fallback policy — per-menu CRUD enforcement for those is a frontend
   concern (hide the button/route), not a backend one; don't add per-endpoint permission checks there without
   discussing the tradeoff first, since that's a deliberate scope line, not an oversight.
-  A `RbacSeeder` runs on every startup (not just once) and grants the system "Admin" role full CRUD on every
-  menu, including ones added after initial seed — add a new module's `Menu` row to its seed list and it's
-  visible to Admin with no manual permissions step.
+  `Role`/`RoleMenuPermission` are `TenantOwnedEntity` — every tenant gets its **own** "Admin" role, not one
+  shared globally, so `Role.Name` is unique per-tenant rather than platform-wide. `RbacSeeder` runs on every
+  startup and upserts the global `Menu` list (add a new module's `Menu` row to its seed list and it's
+  available immediately), then loops over every existing tenant granting its Admin role full CRUD on every
+  current menu (via `ITenantProvisioningService.EnsureAdminRoleHasFullMenuAccessAsync`) — the same method a
+  brand-new tenant's signup uses once, so "a new menu reaches everyone automatically" still holds across
+  every tenant, not just ones created after the menu existed.
 - **Global exception handling**: middleware mapping domain/validation exceptions to consistent
   `ProblemDetails` responses.
 - **CORS**: a named policy (`Cors:AllowedOrigins` config, empty by default) restricts cross-origin calls to
@@ -89,7 +119,9 @@ live together within their layer, even though the layer itself is one project.
 
 ## 5. Database (PostgreSQL)
 
-- One database, one `DailyMartDbContext`, code-first EF Core migrations.
+- One database, one `DailyMartDbContext`, code-first EF Core migrations — shared schema, not
+  database-per-tenant: every tenant-owned table has a `tenant_id` column (see §4's Multi-tenancy bullet),
+  isolation is enforced by the EF Core query filter, not by physical separation.
 - Naming: snake_case for tables/columns (Npgsql convention), PascalCase in C#.
 - Every stock-affecting table change also writes an `InventoryTransaction` row (purchase in, sale out,
   adjustment, damaged, return) — this is the traceability the BRD requires, not just a current-stock counter.
@@ -100,10 +132,13 @@ live together within their layer, even though the layer itself is one project.
 ```
 frontend/dailymart-ui/src/app/
 ├─ core/            # auth service, JWT interceptor, auth guard (functional), error interceptor,
-│                    # perms.ts (RBAC permission signals), theme.ts (light/dark + accent), toast.ts
+│                    # perms.ts (RBAC permission signals), theme.ts (light/dark + accent), toast.ts,
+│                    # platform-auth.service.ts + platform-auth.guard.ts (separate platform-admin session)
 ├─ shared/          # pagination component, toast-container, barcode-print util, models
 ├─ features/
-│  ├─ auth/
+│  ├─ auth/          # login + register (self-service tenant signup)
+│  ├─ platform/      # platform-admin panel: login + tenant list (suspend/activate) - outside the normal
+│  │                 # app shell entirely, gated by platformAuthGuard not authGuard/canView
 │  ├─ dashboard/
 │  ├─ products/     # + categories/brands/units as sub-routes or sibling features
 │  ├─ suppliers/
@@ -119,7 +154,9 @@ frontend/dailymart-ui/src/app/
 │  ├─ roles/        # RBAC: role management (Admin-only)
 │  ├─ menus/         # RBAC: menu/screen management (Admin-only)
 │  └─ permissions/   # RBAC: the role-selector + View/Create/Edit/Delete matrix screen
-└─ app.routes.ts    # lazy-loaded per feature; every route (besides /login) has a canView(menuKey) guard
+└─ app.routes.ts    # lazy-loaded per feature; every tenant-scoped route (besides /login, /register) has
+                    # a canView(menuKey) guard - /platform/* is a separate top-level branch with its own
+                    # platformAuthGuard instead, not nested under the tenant-scoped shell
 ```
 
 - Standalone components, `inject()` over constructor DI, signals for local/component state.
@@ -156,6 +193,16 @@ way (live Postgres + HTTP + browser click-through, including logging in as a del
 "Cashier" role and confirming both the frontend sidebar/buttons AND the backend API itself reject what that
 role can't do). Every future module's Angular UI should follow §6's design system from the start, and its
 seed/setup should add a `Menu` row (see `RbacSeeder`) so Admin can see it immediately.
+
+A full multi-tenant SaaS conversion (branch `SASS-integration`) was completed on top of all of the above —
+see §4's Multi-tenancy bullet for the mechanism. Verified via real Postgres (both a fresh install and a
+pre-multi-tenant database with existing data, confirming the migration backfills it into one "Default
+Company" tenant rather than losing it), real HTTP round-trips (registration → login → cross-tenant business
+endpoints proving isolation both ways, suspend/reactivate, platform-admin fail-closed against ordinary
+business data), and a full browser click-through (self-service registration, the platform-admin panel,
+and a regression pass over every pre-existing module's list/detail pages and the sidebar). Every existing
+Application-layer service needed zero code changes for this — the query filter is applied once at the EF
+Core model level (§4) — confirming that's a safe pattern to keep relying on for future modules too.
 
 Build strictly module-by-module, in this order (later modules depend on earlier ones):
 
@@ -235,11 +282,16 @@ For each module, in order, before moving to the next module:
 
 ## 12. Future (explicitly out of scope for now)
 
-Multi-branch, warehouse, promotions, loyalty, accounting integration, mobile app. Multi-user role-based
-permissions are no longer on this list — see §4's RBAC bullet — but per-field/per-action permissions
-beyond the four CanView/CanCreate/CanEdit/CanDelete flags, and backend-enforced (not just frontend-hidden)
-per-menu authorization on business controllers, both still are; don't add either without discussing the
-tradeoff first.
+Multi-branch (one company/tenant operating several physical store locations sharing one dataset —
+different from the multi-*tenancy* now built, see §1), warehouse, promotions, loyalty, accounting
+integration, mobile app. Multi-user role-based permissions are no longer on this list — see §4's RBAC
+bullet — but per-field/per-action permissions beyond the four CanView/CanCreate/CanEdit/CanDelete flags, and
+backend-enforced (not just frontend-hidden) per-menu authorization on business controllers, both still are;
+don't add either without discussing the tradeoff first.
+
+Billing/subscription plans are also explicitly out of scope for now — every tenant is active/unpaid
+regardless of plan. Platform-admin impersonation and usage analytics are out of scope too (see §4's
+platform-admin note) — the panel is deliberately "basic": list + suspend/activate only.
 
 SMS and email are also no longer on this list, once a real shop turned out to need a way to chase
 customers with an outstanding due — see the Sales module's invoice-delivery feature (`IEmailSender`/

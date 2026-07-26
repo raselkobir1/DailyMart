@@ -13,4 +13,8 @@ public class AuthResponseDto
     public string FullName { get; init; } = string.Empty;
 
     public string Role { get; init; } = string.Empty;
+
+    public long TenantId { get; init; }
+
+    public string CompanyName { get; init; } = string.Empty;
 }

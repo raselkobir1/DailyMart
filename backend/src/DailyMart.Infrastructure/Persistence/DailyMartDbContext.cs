@@ -1,3 +1,4 @@
+using DailyMart.Application.Common.Interfaces;
 using DailyMart.Domain.Auditing;
 using DailyMart.Domain.Auth;
 using DailyMart.Domain.Customers;
@@ -10,16 +11,30 @@ using DailyMart.Domain.Rbac;
 using DailyMart.Domain.Sales;
 using DailyMart.Domain.Settings;
 using DailyMart.Domain.Suppliers;
+using DailyMart.Domain.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace DailyMart.Infrastructure.Persistence;
 
-public class DailyMartDbContext : DbContext
+public class DailyMartDbContext : DbContext, ITenantScopedDbContext
 {
-    public DailyMartDbContext(DbContextOptions<DailyMartDbContext> options)
+    private readonly ICurrentTenantService _currentTenantService;
+
+    public DailyMartDbContext(DbContextOptions<DailyMartDbContext> options, ICurrentTenantService currentTenantService)
         : base(options)
     {
+        _currentTenantService = currentTenantService;
     }
+
+    /// <summary>Read by the tenant query filter (see TenancyModelExtensions) - exposed as a property
+    /// on the DbContext itself, not just consumed inline, so the filter expression can capture this
+    /// DbContext instance and re-evaluate it per query rather than baking in a stale value from
+    /// whenever the model was first built.</summary>
+    public long? CurrentTenantId => _currentTenantService.TenantId;
+
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    public DbSet<PlatformAdmin> PlatformAdmins => Set<PlatformAdmin>();
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
@@ -77,9 +92,11 @@ public class DailyMartDbContext : DbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DailyMartDbContext).Assembly);
 
-        // Every AuditableEntity gets a soft-delete query filter for free, applied by convention
-        // rather than repeated per module (see CLAUDE.md §4).
-        modelBuilder.ApplySoftDeleteQueryFilter();
+        // Every TenantOwnedEntity gets an FK to Tenant plus a combined soft-delete + tenant-isolation
+        // query filter, applied by convention rather than repeated per module (see CLAUDE.md §4 and
+        // TenancyModelExtensions' doc comment for why this replaces the plain soft-delete filter here).
+        modelBuilder.ApplyTenantForeignKeys();
+        modelBuilder.ApplyTenancyQueryFilters(this);
 
         base.OnModelCreating(modelBuilder);
     }

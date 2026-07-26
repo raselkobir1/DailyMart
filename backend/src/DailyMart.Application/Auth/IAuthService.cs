@@ -8,6 +8,10 @@ public interface IAuthService
 
     Task<AuthResponseDto> RefreshAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default);
 
+    /// <summary>Self-service "register your shop" - creates a brand new tenant + its first Admin user
+    /// (via ITenantProvisioningService) and immediately issues tokens for it, same as a fresh login.</summary>
+    Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default);
+
     Task LogoutAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>userId comes from the authenticated caller's JWT claims, never from the request body -
