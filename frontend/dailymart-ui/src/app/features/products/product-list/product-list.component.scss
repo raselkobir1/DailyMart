@@ -1,1 +1,7 @@
-/* Uses only the shared design-system classes from styles.scss - nothing component-specific. */
+/* Long Category/Brand/Unit names were wrapping onto a second line, which grew the row tall enough that
+ * the actions column (Edit/Print/Delete) no longer had room for all three buttons on one line and wrapped
+ * them into a vertical stack instead. Keep every cell single-line - same as the header row already is -
+ * and let .table-wrap's horizontal scroll handle anything that doesn't fit. */
+.table-wrap tbody td {
+  white-space: nowrap;
+}
