@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseReturnService, PurchaseReturnService>();
         services.AddScoped<ISaleService, SaleService>();
         services.AddScoped<ISaleReturnService, SaleReturnService>();
+        services.AddScoped<ISaleInvoiceDeliveryService, SaleInvoiceDeliveryService>();
         services.AddScoped<IProfitLossService, ProfitLossService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);

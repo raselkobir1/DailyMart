@@ -9,6 +9,32 @@
       </div>
       <div style="display: flex; gap: 0.5rem">
         <button class="btn" (click)="viewReturns()">Returns</button>
+        @if (customerHasDue()) {
+          <button
+            class="btn"
+            (click)="sendInvoiceEmail()"
+            [disabled]="sendingEmail()"
+            title="Email this invoice to the customer as a due reminder"
+          >
+            @if (sendingEmail()) {
+              <span class="spinner"></span>
+            } @else {
+              📧 Email
+            }
+          </button>
+          <button
+            class="btn"
+            (click)="sendInvoiceSms()"
+            [disabled]="sendingSms()"
+            title="SMS this invoice to the customer as a due reminder"
+          >
+            @if (sendingSms()) {
+              <span class="spinner"></span>
+            } @else {
+              📱 SMS
+            }
+          </button>
+        }
         <button class="btn" (click)="print()">Print Invoice</button>
         <button class="btn btn-primary" (click)="newSale()">New Sale</button>
       </div>

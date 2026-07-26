@@ -10,11 +10,14 @@ public class SalesController : ControllerBase
 {
     private readonly ISaleService _saleService;
     private readonly ISaleReturnService _saleReturnService;
+    private readonly ISaleInvoiceDeliveryService _saleInvoiceDeliveryService;
 
-    public SalesController(ISaleService saleService, ISaleReturnService saleReturnService)
+    public SalesController(
+        ISaleService saleService, ISaleReturnService saleReturnService, ISaleInvoiceDeliveryService saleInvoiceDeliveryService)
     {
         _saleService = saleService;
         _saleReturnService = saleReturnService;
+        _saleInvoiceDeliveryService = saleInvoiceDeliveryService;
     }
 
     [HttpGet]
@@ -59,5 +62,22 @@ public class SalesController : ControllerBase
     {
         var saleReturn = await _saleReturnService.CreateAsync(saleId, request, cancellationToken);
         return CreatedAtAction(nameof(GetReturnById), new { saleId, returnId = saleReturn.Id }, saleReturn);
+    }
+
+    /// <summary>Emails this sale's invoice to its customer as a due reminder - see
+    /// ISaleInvoiceDeliveryService's doc comment for the business rules (customer required, due &gt; 0,
+    /// contact info on file).</summary>
+    [HttpPost("{id:long}/invoice/email")]
+    public async Task<IActionResult> SendInvoiceEmail(long id, CancellationToken cancellationToken)
+    {
+        await _saleInvoiceDeliveryService.SendInvoiceEmailAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:long}/invoice/sms")]
+    public async Task<IActionResult> SendInvoiceSms(long id, CancellationToken cancellationToken)
+    {
+        await _saleInvoiceDeliveryService.SendInvoiceSmsAsync(id, cancellationToken);
+        return NoContent();
     }
 }

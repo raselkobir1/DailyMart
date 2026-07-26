@@ -7,6 +7,7 @@ using DailyMart.Application.Settings;
 using DailyMart.Domain.Auth;
 using DailyMart.Infrastructure.Auth;
 using DailyMart.Infrastructure.Files;
+using DailyMart.Infrastructure.Notifications;
 using DailyMart.Infrastructure.Persistence;
 using DailyMart.Infrastructure.Persistence.Interceptors;
 using DailyMart.Infrastructure.Persistence.Repositories;
@@ -29,6 +30,10 @@ public static class DependencyInjection
         services.AddScoped<AuditingSaveChangesInterceptor>();
 
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHttpClient<ISmsSender, HttpSmsSender>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         // PasswordHasher<TUser> is stateless/thread-safe - singleton is the standard registration for it.
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();

@@ -10,6 +10,22 @@
     "DefaultUsername": "admin",
     "DefaultPassword": "REPLACE_WITH_A_STRONG_LOCAL_DEV_PASSWORD"
   },
+  "Email": {
+    "Enabled": false,
+    "Host": "smtp.example.com",
+    "Port": 587,
+    "UseSsl": true,
+    "Username": "REPLACE_WITH_SMTP_USERNAME",
+    "Password": "REPLACE_WITH_SMTP_PASSWORD",
+    "FromAddress": "invoices@example.com",
+    "FromName": "DailyMart"
+  },
+  "Sms": {
+    "Enabled": false,
+    "UrlTemplate": "https://your-sms-gateway.example.com/api/send?api_key={apiKey}&senderid={senderId}&number={number}&message={message}",
+    "ApiKey": "REPLACE_WITH_SMS_GATEWAY_API_KEY",
+    "SenderId": "DailyMart"
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",

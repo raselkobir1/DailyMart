@@ -235,11 +235,20 @@ For each module, in order, before moving to the next module:
 
 ## 12. Future (explicitly out of scope for now)
 
-Multi-branch, warehouse, promotions, loyalty, SMS, email, accounting integration, mobile app. Multi-user
-role-based permissions are no longer on this list — see §4's RBAC bullet — but per-field/per-action
-permissions beyond the four CanView/CanCreate/CanEdit/CanDelete flags, and backend-enforced (not just
-frontend-hidden) per-menu authorization on business controllers, both still are; don't add either without
-discussing the tradeoff first.
+Multi-branch, warehouse, promotions, loyalty, accounting integration, mobile app. Multi-user role-based
+permissions are no longer on this list — see §4's RBAC bullet — but per-field/per-action permissions
+beyond the four CanView/CanCreate/CanEdit/CanDelete flags, and backend-enforced (not just frontend-hidden)
+per-menu authorization on business controllers, both still are; don't add either without discussing the
+tradeoff first.
+
+SMS and email are also no longer on this list, once a real shop turned out to need a way to chase
+customers with an outstanding due — see the Sales module's invoice-delivery feature (`IEmailSender`/
+`ISmsSender` in `Application/Common/Interfaces`, `SaleInvoiceDeliveryService`). Both send through
+ops-configured credentials (`Email:*`/`Sms:*` in appsettings/docker-compose env vars, same placement as
+`Jwt:Secret`) rather than admin-UI-editable settings, and both are narrowly scoped to "remind this
+customer about their due" (require `CustomerId` + `CurrentDue > 0` + contact info on file) — not a
+general-purpose notification system. Extending either sender to other modules, or making their config
+admin-editable, is a new scope decision, not something this change already covers.
 
 ## 13. Deployment
 

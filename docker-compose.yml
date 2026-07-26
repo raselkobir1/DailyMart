@@ -37,6 +37,20 @@ services:
       Admin__DefaultUsername: ${ADMIN_USERNAME:-admin}
       Admin__DefaultPassword: ${ADMIN_PASSWORD:-Admin@123456}
       Cors__AllowedOrigins__0: http://localhost:4200
+      # Both default to disabled - invoice email/SMS (Sales module) fails with a clear error until these
+      # are set, rather than silently no-op-ing or crashing on an empty SMTP host/gateway URL.
+      Email__Enabled: ${EMAIL_ENABLED:-false}
+      Email__Host: ${EMAIL_HOST:-}
+      Email__Port: ${EMAIL_PORT:-587}
+      Email__UseSsl: ${EMAIL_USE_SSL:-true}
+      Email__Username: ${EMAIL_USERNAME:-}
+      Email__Password: ${EMAIL_PASSWORD:-}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-}
+      Email__FromName: ${EMAIL_FROM_NAME:-DailyMart}
+      Sms__Enabled: ${SMS_ENABLED:-false}
+      Sms__UrlTemplate: ${SMS_URL_TEMPLATE:-}
+      Sms__ApiKey: ${SMS_API_KEY:-}
+      Sms__SenderId: ${SMS_SENDER_ID:-DailyMart}
     depends_on:
       db:
         condition: service_healthy

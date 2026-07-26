@@ -26,4 +26,12 @@ export class SaleService {
   create(request: SaleRequest): Observable<SaleDto> {
     return this.http.post<SaleDto>('/sales', request);
   }
+
+  sendInvoiceEmail(id: number): Observable<void> {
+    return this.http.post<void>(`/sales/${id}/invoice/email`, {});
+  }
+
+  sendInvoiceSms(id: number): Observable<void> {
+    return this.http.post<void>(`/sales/${id}/invoice/sms`, {});
+  }
 }
