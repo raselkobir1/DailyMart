@@ -80,20 +80,23 @@ export class ProductListComponent implements OnInit {
   }
 
   /** One barcode label per physical unit currently on the shelf - a weight-sold product's fractional
-   * stock (e.g. 12.5 kg) rounds down to a whole label count, since a label sticks to one discrete item. */
+   * stock (e.g. 12.5 kg) rounds down to a whole label count, since a label sticks to one discrete item.
+   * Stock above the print limit is capped rather than rejected - printing the first 500 labels is still
+   * useful, whereas refusing to print anything is not. */
   protected printBarcodes(product: ProductDto): void {
-    const copies = Math.floor(product.currentStock);
+    const stockCopies = Math.floor(product.currentStock);
 
-    if (copies <= 0) {
+    if (stockCopies <= 0) {
       this.toast.error(`${product.name} has no stock on hand - nothing to print.`);
       return;
     }
 
-    if (copies > MAX_BARCODE_PRINT_COPIES) {
-      this.toast.error(
-        `${product.name} has ${copies} in stock, above the ${MAX_BARCODE_PRINT_COPIES}-label print limit. Print in smaller batches.`
+    const copies = Math.min(stockCopies, MAX_BARCODE_PRINT_COPIES);
+
+    if (stockCopies > MAX_BARCODE_PRINT_COPIES) {
+      this.toast.success(
+        `${product.name} has ${stockCopies} in stock - printing the first ${MAX_BARCODE_PRINT_COPIES} labels.`
       );
-      return;
     }
 
     printBarcodeSheet(product.barcode, `${product.name} (${product.code})`, copies);
