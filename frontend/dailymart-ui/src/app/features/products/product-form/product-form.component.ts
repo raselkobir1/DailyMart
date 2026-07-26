@@ -102,8 +102,7 @@ export class ProductFormComponent implements OnInit {
         this.toast.success('Product saved.');
 
         if (id === null) {
-          // Land on the edit page - that's where image upload and barcode printing become available.
-          this.router.navigateByUrl(`/products/${product.id}/edit`);
+          this.router.navigateByUrl('/products');
         } else {
           this.applyProduct(product);
         }
