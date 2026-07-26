@@ -7,7 +7,7 @@
       <nav>
         @for (item of navTree(); track item.menuId) {
           <div class="nav-group" [class.child-active]="hasActiveChild(item)">
-            <a class="nav-link" [routerLink]="item.route" routerLinkActive="active">
+            <a class="nav-link" [routerLink]="item.route" routerLinkActive="active" (click)="onNavLinkClick(item)">
               <span class="icon">{{ item.icon }}</span> {{ item.label }}
             </a>
             @if (item.children.length > 0) {

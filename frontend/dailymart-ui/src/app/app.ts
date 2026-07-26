@@ -86,6 +86,16 @@ export class App {
     return item.children.some((child) => this.currentUrl() === child.route || this.currentUrl().startsWith(child.route + '/'));
   }
 
+  /** Clicking a group's own label used to only navigate (via its routerLink) and leave the arrow as the
+   * sole way to expand/collapse - the label and the arrow now both toggle, since a user clicking the text
+   * expects the same expand behavior the arrow already gives. Groups without children have nothing to
+   * expand, so this is a no-op for them and their routerLink navigation is unaffected. */
+  protected onNavLinkClick(item: NavNode): void {
+    if (item.children.length > 0) {
+      this.toggleExpand(item);
+    }
+  }
+
   /** Accordion behavior: expanding one top-level group explicitly collapses every other one, even a group
    * that was only showing expanded via the hasActiveChild default (not an override) - otherwise that group
    * would keep looking "open" alongside the one just clicked. */
