@@ -69,6 +69,14 @@ export class App {
     { initialValue: this.router.url }
   );
 
+  /** The shell below is keyed on authService.isAuthenticated() alone, which says nothing about which
+   * route is active - a tenant-authenticated shop admin landing on /platform/login (e.g. via the
+   * browser back button) would otherwise still get wrapped in this shop's own sidebar/menu, the same
+   * class of bug already fixed once for /login itself (see guestGuard's doc comment). The platform
+   * panel is a wholly separate identity/shell (PlatformShellComponent) that must never nest inside
+   * this one, regardless of whether a tenant session happens to exist in the same browser. */
+  protected readonly isPlatformRoute = computed(() => this.currentUrl().startsWith('/platform'));
+
   protected isExpanded(item: NavNode): boolean {
     const override = this.expandOverrides().get(item.menuId);
     if (override !== undefined) {
