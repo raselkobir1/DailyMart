@@ -20,9 +20,13 @@ export class PlatformLoginComponent {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  // Pre-filled with the seeded default platform-admin credentials (see PlatformAdminSeeder /
+  // docker-compose.yml's PlatformAdmin__DefaultUsername/DefaultPassword) - same convenience as the
+  // tenant LoginComponent. Clear/overwrite these first if logging in as an account whose password has
+  // since been changed.
   protected readonly form = this.fb.nonNullable.group({
-    username: ['', Validators.required],
-    password: ['', Validators.required]
+    username: ['platform', Validators.required],
+    password: ['Platform@123456', Validators.required]
   });
 
   protected submit(): void {
