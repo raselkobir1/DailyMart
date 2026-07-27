@@ -22,6 +22,16 @@ export const authGuard: CanActivateFn = () => {
   return true;
 };
 
+/** Gates the login/register routes - an already-authenticated session landing here (e.g. via the
+ * browser back button right after logging in) should bounce back into the app instead of rendering the
+ * login form, since app.html's shell/sidebar toggle keys off isAuthenticated() alone, not the route. */
+export const guestGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  return authService.isAuthenticated() ? router.createUrlTree(['/']) : true;
+};
+
 /** Per-route factory guard - denies access to a menu the current user's role can't view, redirecting to
  * their first permitted menu instead (never a blank/broken page). */
 export function canView(menuKey: string): CanActivateFn {
