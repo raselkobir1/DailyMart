@@ -1,1 +1,8 @@
-/* Uses only the shared design-system classes from styles.scss - nothing component-specific. */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  color: var(--ink);
+}

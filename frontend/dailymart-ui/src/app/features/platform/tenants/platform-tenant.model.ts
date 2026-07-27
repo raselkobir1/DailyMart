@@ -11,4 +11,5 @@ export interface PlatformTenantDto {
   activeUsers: number;
   lastLoginAt: string | null;
   lastActivityAt: string | null;
+  lastActiveAt: string | null;
 }

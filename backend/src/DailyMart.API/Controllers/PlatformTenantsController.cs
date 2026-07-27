@@ -35,9 +35,12 @@ public class PlatformTenantsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<TenantSummaryDto>>> GetPaged(
-        [FromQuery] PagedRequest request, CancellationToken cancellationToken)
+        [FromQuery] PagedRequest request,
+        [FromQuery] string? status,
+        [FromQuery] string? billingStatus,
+        CancellationToken cancellationToken)
     {
-        return Ok(await _platformTenantService.GetPagedAsync(request, cancellationToken));
+        return Ok(await _platformTenantService.GetPagedAsync(request, status, billingStatus, cancellationToken));
     }
 
     [HttpGet("{id:long}")]

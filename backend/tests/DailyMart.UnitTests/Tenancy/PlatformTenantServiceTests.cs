@@ -29,13 +29,13 @@ public class PlatformTenantServiceTests
         _sut = new PlatformTenantService(_unitOfWork.Object, _subscriptionService.Object, _usageAnalyticsService.Object);
     }
 
+    private void SetTenants(params Tenant[] tenants) =>
+        _tenantRepository.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(tenants.ToList());
+
     [Fact]
     public async Task GetPagedAsync_maps_tenants_to_summary_dtos()
     {
-        var tenant = new Tenant { Id = 1, Name = "Acme Corp", IsActive = true };
-        _tenantRepository
-            .Setup(r => r.GetPagedAsync(It.IsAny<PagedRequest>(), null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PagedResult<Tenant> { Items = [tenant], TotalCount = 1, PageNumber = 1, PageSize = 20 });
+        SetTenants(new Tenant { Id = 1, Name = "Acme Corp", IsActive = true });
 
         var result = await _sut.GetPagedAsync(new PagedRequest());
 
@@ -43,6 +43,88 @@ public class PlatformTenantServiceTests
         Assert.Equal(1, dto.Id);
         Assert.Equal("Acme Corp", dto.Name);
         Assert.True(dto.IsActive);
+        Assert.Equal(1, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_filters_by_search_term_case_insensitively()
+    {
+        SetTenants(
+            new Tenant { Id = 1, Name = "Acme Corp", IsActive = true },
+            new Tenant { Id = 2, Name = "Beta Shop", IsActive = true });
+
+        var result = await _sut.GetPagedAsync(new PagedRequest { SearchTerm = "acme" });
+
+        var dto = Assert.Single(result.Items);
+        Assert.Equal("Acme Corp", dto.Name);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_filters_by_status()
+    {
+        SetTenants(
+            new Tenant { Id = 1, Name = "Active Co", IsActive = true },
+            new Tenant { Id = 2, Name = "Suspended Co", IsActive = false });
+
+        var result = await _sut.GetPagedAsync(new PagedRequest(), status: "suspended");
+
+        var dto = Assert.Single(result.Items);
+        Assert.Equal("Suspended Co", dto.Name);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_filters_by_billing_status_overdue()
+    {
+        var tenants = new[]
+        {
+            new Tenant { Id = 1, Name = "Overdue Co", IsActive = true },
+            new Tenant { Id = 2, Name = "Paid Co", IsActive = true },
+            new Tenant { Id = 3, Name = "Free Co", IsActive = true }
+        };
+        SetTenants(tenants);
+
+        _usageAnalyticsService
+            .Setup(s => s.GetSnapshotsByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, TenantUsageSnapshotDto>());
+        _subscriptionService
+            .Setup(s => s.GetSummariesByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, TenantSubscriptionDto>
+            {
+                [1] = new TenantSubscriptionDto { TenantId = 1, IsFree = false, IsOverdue = true },
+                [2] = new TenantSubscriptionDto { TenantId = 2, IsFree = false, IsOverdue = false },
+                [3] = new TenantSubscriptionDto { TenantId = 3, IsFree = true, IsOverdue = false }
+            });
+
+        var result = await _sut.GetPagedAsync(new PagedRequest(), billingStatus: "overdue");
+
+        var dto = Assert.Single(result.Items);
+        Assert.Equal("Overdue Co", dto.Name);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_sorts_by_name_descending()
+    {
+        SetTenants(
+            new Tenant { Id = 1, Name = "Alpha", IsActive = true },
+            new Tenant { Id = 2, Name = "Zeta", IsActive = true });
+
+        var result = await _sut.GetPagedAsync(new PagedRequest { SortBy = "name", SortDescending = true });
+
+        Assert.Equal(["Zeta", "Alpha"], result.Items.Select(d => d.Name));
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_paginates_the_sorted_and_filtered_result()
+    {
+        SetTenants(
+            new Tenant { Id = 1, Name = "Alpha", IsActive = true },
+            new Tenant { Id = 2, Name = "Beta", IsActive = true },
+            new Tenant { Id = 3, Name = "Gamma", IsActive = true });
+
+        var result = await _sut.GetPagedAsync(new PagedRequest { SortBy = "name", PageNumber = 2, PageSize = 1 });
+
+        Assert.Equal(["Beta"], result.Items.Select(d => d.Name));
+        Assert.Equal(3, result.TotalCount);
     }
 
     [Fact]
@@ -97,5 +179,6 @@ public class PlatformTenantServiceTests
         Assert.Equal(3, result.TotalUsers);
         Assert.Equal(2, result.ActiveUsers);
         Assert.Equal(lastLogin, result.LastLoginAt);
+        Assert.Equal(lastLogin, result.LastActiveAt);
     }
 }

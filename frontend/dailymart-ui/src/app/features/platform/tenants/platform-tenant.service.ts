@@ -8,10 +8,19 @@ import { PlatformTenantDto } from './platform-tenant.model';
 export class PlatformTenantService {
   private readonly http = inject(HttpClient);
 
-  getPaged(request: PagedRequest): Observable<PagedResult<PlatformTenantDto>> {
+  getPaged(
+    request: PagedRequest,
+    status?: 'active' | 'suspended',
+    billingStatus?: 'overdue' | 'paid' | 'free'
+  ): Observable<PagedResult<PlatformTenantDto>> {
     let params = new HttpParams();
     if (request.pageNumber) params = params.set('pageNumber', request.pageNumber);
     if (request.pageSize) params = params.set('pageSize', request.pageSize);
+    if (request.searchTerm) params = params.set('searchTerm', request.searchTerm);
+    if (request.sortBy) params = params.set('sortBy', request.sortBy);
+    if (request.sortDescending) params = params.set('sortDescending', request.sortDescending);
+    if (status) params = params.set('status', status);
+    if (billingStatus) params = params.set('billingStatus', billingStatus);
 
     return this.http.get<PagedResult<PlatformTenantDto>>('/platform/tenants', { params });
   }

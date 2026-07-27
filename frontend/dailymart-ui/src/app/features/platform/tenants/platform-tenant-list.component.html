@@ -5,6 +5,30 @@
   </div>
 </div>
 
+<div class="toolbar">
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+    <input class="input" placeholder="Search by company name" [(ngModel)]="searchTerm" (keyup.enter)="search()" />
+  </div>
+  <button class="btn btn-sm" (click)="search()">Search</button>
+
+  <select class="input" style="width: auto" [ngModel]="statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
+    <option value="">All statuses</option>
+    <option value="active">Active</option>
+    <option value="suspended">Suspended</option>
+  </select>
+
+  <select class="input" style="width: auto" [ngModel]="billingFilter()" (ngModelChange)="onBillingFilterChange($event)">
+    <option value="">All billing</option>
+    <option value="overdue">Overdue</option>
+    <option value="paid">Paid</option>
+    <option value="free">Free</option>
+  </select>
+</div>
+
 @if (loading()) {
   <div class="spinner-page"><span class="spinner lg"></span></div>
 } @else {
@@ -13,14 +37,14 @@
       <table>
         <thead>
           <tr>
-            <th>Company</th>
-            <th>Status</th>
-            <th>Plan</th>
-            <th>Paid Until</th>
+            <th class="sortable" (click)="onSort('name')">Company{{ sortIndicator('name') }}</th>
+            <th class="sortable" (click)="onSort('status')">Status{{ sortIndicator('status') }}</th>
+            <th class="sortable" (click)="onSort('plan')">Plan{{ sortIndicator('plan') }}</th>
+            <th class="sortable" (click)="onSort('paidUntil')">Paid Until{{ sortIndicator('paidUntil') }}</th>
             <th>Billing</th>
-            <th>Users</th>
-            <th>Last Active</th>
-            <th>Created</th>
+            <th class="sortable" (click)="onSort('users')">Users{{ sortIndicator('users') }}</th>
+            <th class="sortable" (click)="onSort('lastActive')">Last Active{{ sortIndicator('lastActive') }}</th>
+            <th class="sortable" (click)="onSort('created')">Created{{ sortIndicator('created') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -41,7 +65,7 @@
                 }
               </td>
               <td>{{ tenant.activeUsers }}/{{ tenant.totalUsers }}</td>
-              <td>{{ lastActiveAt(tenant) ? (lastActiveAt(tenant) | date: 'medium') : 'Never' }}</td>
+              <td>{{ tenant.lastActiveAt ? (tenant.lastActiveAt | date: 'medium') : 'Never' }}</td>
               <td>{{ tenant.createdAt | date: 'medium' }}</td>
               <td>
                 <a class="btn btn-sm" [routerLink]="['/platform/tenants', tenant.id]">Manage</a>
@@ -53,7 +77,7 @@
               </td>
             </tr>
           } @empty {
-            <tr class="empty-row"><td colspan="9">No companies yet.</td></tr>
+            <tr class="empty-row"><td colspan="9">No companies match these filters.</td></tr>
           }
         </tbody>
       </table>

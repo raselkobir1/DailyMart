@@ -10,7 +10,12 @@ namespace DailyMart.Application.Tenancy;
 /// </summary>
 public interface IPlatformTenantService
 {
-    Task<PagedResult<TenantSummaryDto>> GetPagedAsync(PagedRequest request, CancellationToken cancellationToken = default);
+    /// <summary>status: "active"|"suspended"|null(all). billingStatus: "overdue"|"paid"|"free"|null(all).
+    /// Sorting/filtering happens across every tenant (see PlatformTenantService's doc comment on why),
+    /// so PagedRequest.SortBy/SortDescending work against any TenantSummaryDto field, not just Tenant's
+    /// own columns.</summary>
+    Task<PagedResult<TenantSummaryDto>> GetPagedAsync(
+        PagedRequest request, string? status = null, string? billingStatus = null, CancellationToken cancellationToken = default);
 
     Task<TenantSummaryDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
 
