@@ -1,6 +1,7 @@
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Domain.Auditing;
 using DailyMart.Domain.Auth;
+using DailyMart.Domain.Billing;
 using DailyMart.Domain.Customers;
 using DailyMart.Domain.Expenses;
 using DailyMart.Domain.Inventory;
@@ -35,6 +36,12 @@ public class DailyMartDbContext : DbContext, ITenantScopedDbContext
     public DbSet<Tenant> Tenants => Set<Tenant>();
 
     public DbSet<PlatformAdmin> PlatformAdmins => Set<PlatformAdmin>();
+
+    public DbSet<Plan> Plans => Set<Plan>();
+
+    public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
+
+    public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 

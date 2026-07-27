@@ -1,0 +1,186 @@
+import { DatePipe } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { PlatformAuthService } from '../../../../core/auth/platform-auth.service';
+import { Toast } from '../../../../core/toast';
+import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
+import { PlanDto } from '../../plans/plan.model';
+import { PlanService } from '../../plans/plan.service';
+import { SubscriptionPaymentDto, TenantSubscriptionDto } from '../platform-subscription.model';
+import { PlatformSubscriptionService } from '../platform-subscription.service';
+import { PlatformTenantDto } from '../platform-tenant.model';
+import { PlatformTenantService } from '../platform-tenant.service';
+
+/** Per-tenant billing management - change plan, record a manual payment, see payment history. See
+ * ISubscriptionService's doc comment on the backend for why this is manual-only (no gateway). */
+@Component({
+  selector: 'app-platform-tenant-detail',
+  standalone: true,
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, PaginationComponent],
+  templateUrl: './platform-tenant-detail.component.html',
+  styleUrl: './platform-tenant-detail.component.scss'
+})
+export class PlatformTenantDetailComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly platformTenantService = inject(PlatformTenantService);
+  private readonly subscriptionService = inject(PlatformSubscriptionService);
+  private readonly planService = inject(PlanService);
+  private readonly platformAuthService = inject(PlatformAuthService);
+  private readonly toast = inject(Toast);
+
+  private readonly tenantId = Number(this.route.snapshot.paramMap.get('id'));
+
+  protected readonly currentAdmin = this.platformAuthService.currentAdmin;
+  protected readonly tenant = signal<PlatformTenantDto | null>(null);
+  protected readonly subscription = signal<TenantSubscriptionDto | null>(null);
+  protected readonly activePlans = signal<PlanDto[]>([]);
+
+  protected readonly payments = signal<SubscriptionPaymentDto[]>([]);
+  protected readonly totalCount = signal(0);
+  protected readonly pageSize = signal(20);
+  protected readonly pageNumber = signal(1);
+  protected readonly loading = signal(true);
+
+  protected readonly changingPlan = signal(false);
+  protected readonly paymentFormVisible = signal(false);
+  protected readonly recordingPayment = signal(false);
+
+  protected readonly planForm = this.fb.nonNullable.group({
+    planId: [0, Validators.required]
+  });
+
+  protected readonly paymentForm = this.fb.nonNullable.group({
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    paidUntil: ['', Validators.required],
+    method: ['', Validators.required],
+    notes: ['']
+  });
+
+  ngOnInit(): void {
+    this.loadTenant();
+    this.loadSubscription();
+    this.loadPayments();
+
+    this.planService.getActive().subscribe({
+      next: (plans) => this.activePlans.set(plans),
+      error: () => this.toast.error('Could not load plans.')
+    });
+  }
+
+  protected startChangePlan(): void {
+    const current = this.subscription();
+    this.planForm.reset({ planId: current?.planId ?? 0 });
+    this.changingPlan.set(true);
+  }
+
+  protected cancelChangePlan(): void {
+    this.changingPlan.set(false);
+  }
+
+  protected changePlan(): void {
+    if (this.planForm.invalid) {
+      this.planForm.markAllAsTouched();
+      return;
+    }
+
+    this.subscriptionService.changePlan(this.tenantId, { planId: this.planForm.getRawValue().planId }).subscribe({
+      next: (subscription) => {
+        this.subscription.set(subscription);
+        this.changingPlan.set(false);
+        this.toast.success('Plan changed.');
+      },
+      error: (error) => this.toast.error(error.error?.title ?? 'Could not change plan.')
+    });
+  }
+
+  protected startRecordPayment(): void {
+    this.paymentForm.reset({ amount: 0, paidUntil: '', method: '', notes: '' });
+    this.paymentFormVisible.set(true);
+  }
+
+  protected cancelRecordPayment(): void {
+    this.paymentFormVisible.set(false);
+  }
+
+  protected recordPayment(): void {
+    if (this.paymentForm.invalid) {
+      this.paymentForm.markAllAsTouched();
+      return;
+    }
+
+    const raw = this.paymentForm.getRawValue();
+    this.recordingPayment.set(true);
+
+    this.subscriptionService
+      .recordPayment(this.tenantId, {
+        amount: raw.amount,
+        paidUntil: `${raw.paidUntil}T00:00:00.000Z`,
+        method: raw.method,
+        notes: raw.notes || null
+      })
+      .subscribe({
+        next: () => {
+          this.recordingPayment.set(false);
+          this.paymentFormVisible.set(false);
+          this.toast.success('Payment recorded.');
+          this.loadSubscription();
+          this.loadPayments();
+        },
+        error: (error) => {
+          this.recordingPayment.set(false);
+          this.toast.error(error.error?.title ?? 'Could not record payment.');
+        }
+      });
+  }
+
+  protected onPageChange(pageNumber: number): void {
+    this.pageNumber.set(pageNumber);
+    this.loadPayments();
+  }
+
+  protected onPageSizeChange(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.pageNumber.set(1);
+    this.loadPayments();
+  }
+
+  protected logout(): void {
+    this.platformAuthService.logout();
+    this.router.navigateByUrl('/platform/login');
+  }
+
+  private loadTenant(): void {
+    this.platformTenantService.getById(this.tenantId).subscribe({
+      next: (tenant) => this.tenant.set(tenant),
+      error: () => this.toast.error('Could not load this company.')
+    });
+  }
+
+  private loadSubscription(): void {
+    this.subscriptionService.get(this.tenantId).subscribe({
+      next: (subscription) => this.subscription.set(subscription),
+      error: () => this.toast.error('Could not load the subscription.')
+    });
+  }
+
+  private loadPayments(): void {
+    this.loading.set(true);
+
+    this.subscriptionService
+      .getPaymentHistory(this.tenantId, { pageNumber: this.pageNumber(), pageSize: this.pageSize() })
+      .subscribe({
+        next: (result) => {
+          this.payments.set(result.items);
+          this.totalCount.set(result.totalCount);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.toast.error('Could not load payment history.');
+        }
+      });
+  }
+}

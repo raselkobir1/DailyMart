@@ -1,3 +1,4 @@
+using DailyMart.Application.Billing;
 using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
@@ -11,12 +12,16 @@ public class PlatformTenantServiceTests
 {
     private readonly Mock<IRepository<Tenant>> _tenantRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<ISubscriptionService> _subscriptionService = new();
     private readonly PlatformTenantService _sut;
 
     public PlatformTenantServiceTests()
     {
         _unitOfWork.Setup(u => u.Repository<Tenant>()).Returns(_tenantRepository.Object);
-        _sut = new PlatformTenantService(_unitOfWork.Object);
+        _subscriptionService
+            .Setup(s => s.GetSummariesByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, TenantSubscriptionDto>());
+        _sut = new PlatformTenantService(_unitOfWork.Object, _subscriptionService.Object);
     }
 
     [Fact]

@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<AdminSeeder>();
         services.AddScoped<PlatformAdminSeeder>();
         services.AddScoped<RbacSeeder>();
+        services.AddScoped<PlanSeeder>();
 
         services.AddDbContext<DailyMartDbContext>((sp, options) =>
         {

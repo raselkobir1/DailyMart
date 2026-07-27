@@ -1,0 +1,122 @@
+<div class="content" style="padding: 1.5rem">
+  <div class="page-head">
+    <nav style="display: flex; gap: 0.5rem">
+      <a class="btn btn-sm" routerLink="/platform/tenants">Companies</a>
+      <a class="btn btn-sm btn-primary" routerLink="/platform/plans">Plans</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 0.75rem">
+      @if (currentAdmin(); as admin) {
+        <span class="subtitle">{{ admin.fullName }}</span>
+      }
+      <button class="btn btn-sm" (click)="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h2>Plans</h2>
+      <div class="subtitle">{{ totalCount() }} plans</div>
+    </div>
+    <button class="btn btn-primary" (click)="startCreate()">Add Plan</button>
+  </div>
+
+  @if (formVisible()) {
+    <div class="card card-pad" style="margin-bottom: 1rem; max-width: 720px">
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="row">
+          <div class="field grow">
+            <label>Name</label>
+            <input class="input" formControlName="name" />
+          </div>
+          <div class="field grow">
+            <label>Description</label>
+            <input class="input" formControlName="description" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label><input type="checkbox" formControlName="isFree" /> Free plan</label>
+          </div>
+          @if (!form.controls.isFree.value) {
+            <div class="field">
+              <label>Price</label>
+              <input class="input" type="number" formControlName="price" />
+            </div>
+            <div class="field">
+              <label>Billing Cycle</label>
+              <select class="input" formControlName="billingCycle">
+                @for (cycle of billingCycles; track cycle.value) {
+                  <option [ngValue]="cycle.value">{{ cycle.label }}</option>
+                }
+              </select>
+            </div>
+          }
+          <div class="field">
+            <label>Sort Order</label>
+            <input class="input" type="number" formControlName="sortOrder" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit" [disabled]="saving()">Save</button>
+          <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="spinner-page"><span class="spinner lg"></span></div>
+  } @else {
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th class="num">Price</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (plan of items(); track plan.id) {
+              <tr>
+                <td>{{ plan.name }}</td>
+                <td>{{ plan.description }}</td>
+                <td class="num">
+                  @if (plan.isFree) {
+                    <span class="chip">Free</span>
+                  } @else {
+                    {{ plan.price }} / {{ plan.billingCycle }}
+                  }
+                </td>
+                <td><span class="badge" [class.on]="plan.isActive" [class.off]="!plan.isActive">{{ plan.isActive ? 'Active' : 'Retired' }}</span></td>
+                <td>
+                  <button class="btn btn-icon" (click)="startEdit(plan)" aria-label="Edit">✏️</button>
+                  @if (plan.isActive) {
+                    <button class="btn btn-icon" (click)="deactivate(plan)" aria-label="Retire">🗑️</button>
+                  } @else {
+                    <button class="btn btn-icon" (click)="activate(plan)" aria-label="Reactivate">↩️</button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr class="empty-row"><td colspan="5">No plans yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [total]="totalCount()"
+        [pageNumber]="pageNumber()"
+        [pageSize]="pageSize()"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)"
+      />
+    </div>
+  }
+</div>

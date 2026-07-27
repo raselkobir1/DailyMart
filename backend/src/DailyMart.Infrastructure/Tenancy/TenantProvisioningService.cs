@@ -1,5 +1,6 @@
 using DailyMart.Application.Tenancy;
 using DailyMart.Domain.Auth;
+using DailyMart.Domain.Billing;
 using DailyMart.Domain.Rbac;
 using DailyMart.Domain.Settings;
 using DailyMart.Domain.Tenancy;
@@ -38,6 +39,19 @@ public class TenantProvisioningService : ITenantProvisioningService
         await _context.SaveChangesAsync(cancellationToken);
 
         _context.ShopSettings.Add(new ShopSettings { TenantId = tenant.Id, ShopName = companyName });
+
+        // Every new tenant starts on the Free plan (see PlanSeeder, which guarantees this row exists
+        // before any HTTP request - including this anonymous signup one - is ever served).
+        var freePlan = await _context.Plans.FirstOrDefaultAsync(p => p.IsFree, cancellationToken)
+            ?? throw new InvalidOperationException("No Free plan is seeded - PlanSeeder should have created one at startup.");
+
+        _context.TenantSubscriptions.Add(new TenantSubscription
+        {
+            TenantId = tenant.Id,
+            PlanId = freePlan.Id,
+            CurrentPeriodStart = DateTimeOffset.UtcNow,
+            CurrentPeriodEnd = null
+        });
 
         var admin = new User
         {

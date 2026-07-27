@@ -1,5 +1,6 @@
 using DailyMart.Application.AuditLogs;
 using DailyMart.Application.Auth;
+using DailyMart.Application.Billing;
 using DailyMart.Application.Customers;
 using DailyMart.Application.Dashboard;
 using DailyMart.Application.Expenses;
@@ -47,6 +48,8 @@ public static class DependencyInjection
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IPlatformAdminAuthService, PlatformAdminAuthService>();
         services.AddScoped<IPlatformTenantService, PlatformTenantService>();
+        services.AddScoped<IPlanService, PlanService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;

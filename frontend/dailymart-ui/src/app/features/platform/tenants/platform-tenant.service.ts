@@ -16,6 +16,10 @@ export class PlatformTenantService {
     return this.http.get<PagedResult<PlatformTenantDto>>('/platform/tenants', { params });
   }
 
+  getById(id: number): Observable<PlatformTenantDto> {
+    return this.http.get<PlatformTenantDto>(`/platform/tenants/${id}`);
+  }
+
   activate(id: number): Observable<PlatformTenantDto> {
     return this.http.post<PlatformTenantDto>(`/platform/tenants/${id}/activate`, {});
   }

@@ -328,5 +328,19 @@ export const routes: Routes = [
       import('./features/platform/tenants/platform-tenant-list.component').then(
         (m) => m.PlatformTenantListComponent
       )
+  },
+  {
+    path: 'platform/tenants/:id',
+    canActivate: [platformAuthGuard],
+    loadComponent: () =>
+      import('./features/platform/tenants/platform-tenant-detail/platform-tenant-detail.component').then(
+        (m) => m.PlatformTenantDetailComponent
+      )
+  },
+  {
+    path: 'platform/plans',
+    canActivate: [platformAuthGuard],
+    loadComponent: () =>
+      import('./features/platform/plans/plan-list/plan-list.component').then((m) => m.PlanListComponent)
   }
 ];

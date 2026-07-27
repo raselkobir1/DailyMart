@@ -1,18 +1,20 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { PlatformAuthService } from '../../../core/auth/platform-auth.service';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { PlatformTenantDto } from './platform-tenant.model';
 import { PlatformTenantService } from './platform-tenant.service';
 
-/** The "basic" platform-admin panel's one screen - list every tenant, suspend/activate one. No
- * create/edit/delete: tenants are only ever created via self-service registration. */
+/** The platform-admin panel's company list - list every tenant, suspend/activate one, and see/manage
+ * its billing plan at a glance (Plan/Paid Until/Overdue columns - see PlatformTenantService's doc
+ * comment on TenantSummaryDto). No create/edit/delete for the tenant itself: tenants are only ever
+ * created via self-service registration. */
 @Component({
   selector: 'app-platform-tenant-list',
   standalone: true,
-  imports: [DatePipe, PaginationComponent],
+  imports: [DatePipe, RouterLink, PaginationComponent],
   templateUrl: './platform-tenant-list.component.html',
   styleUrl: './platform-tenant-list.component.scss'
 })

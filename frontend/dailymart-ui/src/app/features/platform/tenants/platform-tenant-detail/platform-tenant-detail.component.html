@@ -1,0 +1,152 @@
+<div class="content" style="padding: 1.5rem">
+  <div class="page-head">
+    <nav style="display: flex; gap: 0.5rem">
+      <a class="btn btn-sm btn-primary" routerLink="/platform/tenants">Companies</a>
+      <a class="btn btn-sm" routerLink="/platform/plans">Plans</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 0.75rem">
+      @if (currentAdmin(); as admin) {
+        <span class="subtitle">{{ admin.fullName }}</span>
+      }
+      <button class="btn btn-sm" (click)="logout()">Sign out</button>
+    </div>
+  </div>
+
+  @if (tenant(); as t) {
+    <div class="page-head">
+      <div>
+        <h2>{{ t.name }}</h2>
+        <div class="subtitle">
+          <span class="badge" [class.on]="t.isActive" [class.off]="!t.isActive">{{ t.isActive ? 'Active' : 'Suspended' }}</span>
+        </div>
+      </div>
+      <a class="btn" routerLink="/platform/tenants">Back to Companies</a>
+    </div>
+  }
+
+  @if (subscription(); as s) {
+    <div class="card card-pad" style="margin-bottom: 1rem; max-width: 720px">
+      <div class="row">
+        <div class="field">
+          <label>Plan</label>
+          <div>
+            {{ s.planName }}
+            @if (s.isFree) {
+              <span class="chip">Free</span>
+            } @else if (s.isOverdue) {
+              <span class="badge low">Overdue</span>
+            } @else {
+              <span class="badge on">Paid</span>
+            }
+          </div>
+        </div>
+        <div class="field">
+          <label>Paid Until</label>
+          <div>{{ s.currentPeriodEnd ? (s.currentPeriodEnd | date: 'mediumDate') : '—' }}</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="button" (click)="startChangePlan()">Change Plan</button>
+        @if (!s.isFree) {
+          <button class="btn btn-primary" type="button" (click)="startRecordPayment()">Record Payment</button>
+        }
+      </div>
+
+      @if (changingPlan()) {
+        <form [formGroup]="planForm" (ngSubmit)="changePlan()" style="margin-top: 1rem">
+          <div class="row">
+            <div class="field grow">
+              <label>New Plan</label>
+              <select class="input" formControlName="planId">
+                <option [ngValue]="0" disabled>Select a plan</option>
+                @for (plan of activePlans(); track plan.id) {
+                  <option [ngValue]="plan.id">{{ plan.name }} @if (!plan.isFree) { ({{ plan.price }}/{{ plan.billingCycle }}) }</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <button class="btn" type="button" (click)="cancelChangePlan()">Cancel</button>
+          </div>
+        </form>
+      }
+
+      @if (paymentFormVisible()) {
+        <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()" style="margin-top: 1rem">
+          <div class="row">
+            <div class="field">
+              <label>Amount</label>
+              <input class="input" type="number" formControlName="amount" />
+            </div>
+            <div class="field">
+              <label>Paid Until</label>
+              <input class="input" type="date" formControlName="paidUntil" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Method</label>
+              <input class="input" formControlName="method" placeholder="Bank Transfer, bKash, Cash..." />
+            </div>
+            <div class="field grow">
+              <label>Notes</label>
+              <input class="input" formControlName="notes" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit" [disabled]="recordingPayment()">Save</button>
+            <button class="btn" type="button" (click)="cancelRecordPayment()">Cancel</button>
+          </div>
+        </form>
+      }
+    </div>
+  }
+
+  <div class="card">
+    <div class="card-pad" style="padding-bottom: 0">
+      <h3 style="margin: 0">Payment History</h3>
+    </div>
+    @if (loading()) {
+      <div class="spinner-page"><span class="spinner lg"></span></div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">Amount</th>
+              <th>Covers</th>
+              <th>Method</th>
+              <th>Notes</th>
+              <th>Recorded By</th>
+              <th>Recorded At</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of payments(); track payment.id) {
+              <tr>
+                <td class="num">{{ payment.amount }}</td>
+                <td>{{ payment.periodStart | date: 'mediumDate' }} – {{ payment.periodEnd | date: 'mediumDate' }}</td>
+                <td>{{ payment.method }}</td>
+                <td>{{ payment.notes }}</td>
+                <td>{{ payment.createdBy }}</td>
+                <td>{{ payment.createdAt | date: 'medium' }}</td>
+              </tr>
+            } @empty {
+              <tr class="empty-row"><td colspan="6">No payments recorded yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [total]="totalCount()"
+        [pageNumber]="pageNumber()"
+        [pageSize]="pageSize()"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)"
+      />
+    }
+  </div>
+</div>

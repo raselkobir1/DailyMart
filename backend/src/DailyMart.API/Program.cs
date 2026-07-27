@@ -125,6 +125,12 @@ try
 
         var platformAdminSeeder = scope.ServiceProvider.GetRequiredService<PlatformAdminSeeder>();
         await platformAdminSeeder.SeedAsync();
+
+        // Order-independent relative to the seeders above - only needs the Tenants table to exist, which
+        // the migration guarantees. Seeds the Free plan and backfills any tenant without a subscription
+        // yet (the "Default Company" tenant, or one from before this feature shipped).
+        var planSeeder = scope.ServiceProvider.GetRequiredService<PlanSeeder>();
+        await planSeeder.SeedAsync();
     }
 
     app.UseExceptionHandler();

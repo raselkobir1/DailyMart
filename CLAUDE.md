@@ -72,8 +72,23 @@ live together within their layer, even though the layer itself is one project.
   one) exists for the SaaS vendor's own ops staff, entirely apart from any tenant's own Admin role: its own
   `PlatformAdmin` login (`[Authorize(Roles = "PlatformAdmin")]`, no tenant claim, no refresh-token flow),
   own frontend session/guard (`PlatformAuthService`/`platformAuthGuard`, `/platform/login` +
-  `/platform/tenants`, outside the normal app shell). No impersonation, no usage analytics, no billing yet
-  — see §12.
+  `/platform/tenants`, outside the normal app shell). No impersonation, no usage analytics — see §12.
+- **Billing (subscription plans, manual payment tracking)**: `Plan`, `TenantSubscription`, and the
+  append-only `SubscriptionPayment` ledger are global entities (`AuditableEntity` directly, like
+  `Tenant`/`Menu`/`PlatformAdmin`) managed entirely from the platform-admin panel
+  (`api/platform/plans`, and the `{id}/subscription*` routes nested on `PlatformTenantsController`) —
+  `IPlanService`/`ISubscriptionService`. Deliberately **manual-payment-only**: no gateway, no webhooks,
+  no online checkout — the platform admin records "paid until X" for money already collected outside the
+  app (bank transfer, mobile banking, cash). A `Plan` is also deliberately just a **billing label**:
+  nothing elsewhere in the app reads it to gate a feature or enforce a limit (a Free-plan tenant gets the
+  same functionality as a Pro-plan tenant) — payment-gateway integration and feature-gated plans are both
+  still separate future scope decisions, not something this covers (see §12). Every new tenant starts on
+  a seeded "Free" plan (`PlanSeeder`, and `ITenantProvisioningService.ProvisionNewTenantAsync` for
+  self-service signups going forward); `IsOverdue` is never stored, always recomputed
+  (`!plan.IsFree && (CurrentPeriodEnd is null or in the past)`) — the same "recompute-and-compare" spirit
+  as Supplier Due (§8). The main tenant list itself shows Plan/Paid-Until/Overdue per row (via
+  `ISubscriptionService.GetSummariesByTenantIdsAsync`) so a platform admin can see who to chase without a
+  drill-in click; `/platform/tenants/:id` is where a plan actually gets changed or a payment recorded.
 - **Repository + Unit of Work** (`Infrastructure`): generic `IRepository<T>` for common CRUD, module-specific
   repositories for custom queries (e.g. `ISupplierRepository.GetWithLedgerAsync`). One `IUnitOfWork` wrapping
   `SaveChangesAsync` and repository access; services commit through it.
@@ -289,9 +304,11 @@ bullet — but per-field/per-action permissions beyond the four CanView/CanCreat
 backend-enforced (not just frontend-hidden) per-menu authorization on business controllers, both still are;
 don't add either without discussing the tradeoff first.
 
-Billing/subscription plans are also explicitly out of scope for now — every tenant is active/unpaid
-regardless of plan. Platform-admin impersonation and usage analytics are out of scope too (see §4's
-platform-admin note) — the panel is deliberately "basic": list + suspend/activate only.
+Platform-admin impersonation and usage analytics are out of scope too (see §4's platform-admin note) —
+the panel is deliberately "basic": list + suspend/activate, plus the billing bullet in §4. Payment-gateway
+integration (online checkout, webhooks, recurring auto-billing) and feature-gated plans (a plan enforcing
+a concrete limit like max users/products) are both still separate future scope decisions on top of the
+manual-tracking-only billing that does exist — see §4's Billing bullet.
 
 SMS and email are also no longer on this list, once a real shop turned out to need a way to chase
 customers with an outstanding due — see the Sales module's invoice-delivery feature (`IEmailSender`/
