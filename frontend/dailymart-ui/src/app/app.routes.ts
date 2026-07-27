@@ -314,33 +314,40 @@ export const routes: Routes = [
   },
   // A separate top-level branch, not nested under the tenant-scoped '' block above - a platform admin
   // isn't tenant-scoped RBAC at all (see platformAuthGuard's doc comment), so it gets its own guard and
-  // no shared layout with the main app shell (app.html only renders that shell when the tenant
-  // AuthService reports authenticated, which a platform-only session never does).
+  // its own shell (PlatformShellComponent - reuses the tenant app's sidebar/topbar CSS classes, but a
+  // flat 2-item nav with no RBAC) rather than the main app shell, which only renders when the tenant
+  // AuthService reports authenticated - a platform-only session never does.
   {
     path: 'platform/login',
     loadComponent: () =>
       import('./features/platform/login/platform-login.component').then((m) => m.PlatformLoginComponent)
   },
   {
-    path: 'platform/tenants',
+    path: 'platform',
     canActivate: [platformAuthGuard],
     loadComponent: () =>
-      import('./features/platform/tenants/platform-tenant-list.component').then(
-        (m) => m.PlatformTenantListComponent
-      )
-  },
-  {
-    path: 'platform/tenants/:id',
-    canActivate: [platformAuthGuard],
-    loadComponent: () =>
-      import('./features/platform/tenants/platform-tenant-detail/platform-tenant-detail.component').then(
-        (m) => m.PlatformTenantDetailComponent
-      )
-  },
-  {
-    path: 'platform/plans',
-    canActivate: [platformAuthGuard],
-    loadComponent: () =>
-      import('./features/platform/plans/plan-list/plan-list.component').then((m) => m.PlanListComponent)
+      import('./features/platform/shell/platform-shell.component').then((m) => m.PlatformShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'tenants' },
+      {
+        path: 'tenants',
+        loadComponent: () =>
+          import('./features/platform/tenants/platform-tenant-list.component').then(
+            (m) => m.PlatformTenantListComponent
+          )
+      },
+      {
+        path: 'tenants/:id',
+        loadComponent: () =>
+          import('./features/platform/tenants/platform-tenant-detail/platform-tenant-detail.component').then(
+            (m) => m.PlatformTenantDetailComponent
+          )
+      },
+      {
+        path: 'plans',
+        loadComponent: () =>
+          import('./features/platform/plans/plan-list/plan-list.component').then((m) => m.PlanListComponent)
+      }
+    ]
   }
 ];

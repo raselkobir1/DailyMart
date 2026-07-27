@@ -1,85 +1,70 @@
-<div class="content" style="padding: 1.5rem">
-  <div class="page-head">
-    <nav style="display: flex; gap: 0.5rem">
-      <a class="btn btn-sm btn-primary" routerLink="/platform/tenants">Companies</a>
-      <a class="btn btn-sm" routerLink="/platform/plans">Plans</a>
-    </nav>
-    <div style="display: flex; align-items: center; gap: 0.75rem">
-      @if (currentAdmin(); as admin) {
-        <span class="subtitle">{{ admin.fullName }}</span>
-      }
-      <button class="btn btn-sm" (click)="logout()">Sign out</button>
-    </div>
+<div class="page-head">
+  <div>
+    <h2>Companies</h2>
+    <div class="subtitle">{{ totalCount() }} companies</div>
   </div>
-
-  <div class="page-head">
-    <div>
-      <h2>Companies</h2>
-      <div class="subtitle">{{ totalCount() }} companies</div>
-    </div>
-  </div>
-
-  @if (loading()) {
-    <div class="spinner-page"><span class="spinner lg"></span></div>
-  } @else {
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Status</th>
-              <th>Plan</th>
-              <th>Paid Until</th>
-              <th>Billing</th>
-              <th>Users</th>
-              <th>Last Active</th>
-              <th>Created</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (tenant of items(); track tenant.id) {
-              <tr>
-                <td>{{ tenant.name }}</td>
-                <td><span class="badge" [class.on]="tenant.isActive" [class.off]="!tenant.isActive">{{ tenant.isActive ? 'Active' : 'Suspended' }}</span></td>
-                <td>{{ tenant.planName }}</td>
-                <td>{{ tenant.currentPeriodEnd ? (tenant.currentPeriodEnd | date: 'mediumDate') : '—' }}</td>
-                <td>
-                  @if (tenant.isOverdue) {
-                    <span class="badge low">Overdue</span>
-                  } @else if (tenant.isFree) {
-                    <span class="chip">Free</span>
-                  } @else {
-                    <span class="badge on">Paid</span>
-                  }
-                </td>
-                <td>{{ tenant.activeUsers }}/{{ tenant.totalUsers }}</td>
-                <td>{{ lastActiveAt(tenant) ? (lastActiveAt(tenant) | date: 'medium') : 'Never' }}</td>
-                <td>{{ tenant.createdAt | date: 'medium' }}</td>
-                <td>
-                  <a class="btn btn-sm" [routerLink]="['/platform/tenants', tenant.id]">Manage</a>
-                  @if (tenant.isActive) {
-                    <button class="btn btn-sm" (click)="suspend(tenant)">Suspend</button>
-                  } @else {
-                    <button class="btn btn-sm btn-primary" (click)="activate(tenant)">Activate</button>
-                  }
-                </td>
-              </tr>
-            } @empty {
-              <tr class="empty-row"><td colspan="9">No companies yet.</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
-
-      <app-pagination
-        [total]="totalCount()"
-        [pageNumber]="pageNumber()"
-        [pageSize]="pageSize()"
-        (pageChange)="onPageChange($event)"
-        (pageSizeChange)="onPageSizeChange($event)"
-      />
-    </div>
-  }
 </div>
+
+@if (loading()) {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+} @else {
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Status</th>
+            <th>Plan</th>
+            <th>Paid Until</th>
+            <th>Billing</th>
+            <th>Users</th>
+            <th>Last Active</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tenant of items(); track tenant.id) {
+            <tr>
+              <td>{{ tenant.name }}</td>
+              <td><span class="badge" [class.on]="tenant.isActive" [class.off]="!tenant.isActive">{{ tenant.isActive ? 'Active' : 'Suspended' }}</span></td>
+              <td>{{ tenant.planName }}</td>
+              <td>{{ tenant.currentPeriodEnd ? (tenant.currentPeriodEnd | date: 'mediumDate') : '—' }}</td>
+              <td>
+                @if (tenant.isOverdue) {
+                  <span class="badge low">Overdue</span>
+                } @else if (tenant.isFree) {
+                  <span class="chip">Free</span>
+                } @else {
+                  <span class="badge on">Paid</span>
+                }
+              </td>
+              <td>{{ tenant.activeUsers }}/{{ tenant.totalUsers }}</td>
+              <td>{{ lastActiveAt(tenant) ? (lastActiveAt(tenant) | date: 'medium') : 'Never' }}</td>
+              <td>{{ tenant.createdAt | date: 'medium' }}</td>
+              <td>
+                <a class="btn btn-sm" [routerLink]="['/platform/tenants', tenant.id]">Manage</a>
+                @if (tenant.isActive) {
+                  <button class="btn btn-sm" (click)="suspend(tenant)">Suspend</button>
+                } @else {
+                  <button class="btn btn-sm btn-primary" (click)="activate(tenant)">Activate</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row"><td colspan="9">No companies yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [total]="totalCount()"
+      [pageNumber]="pageNumber()"
+      [pageSize]="pageSize()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"
+    />
+  </div>
+}

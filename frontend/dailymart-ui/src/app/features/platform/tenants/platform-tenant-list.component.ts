@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { PlatformAuthService } from '../../../core/auth/platform-auth.service';
+import { RouterLink } from '@angular/router';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { PlatformTenantDto } from './platform-tenant.model';
@@ -10,7 +9,8 @@ import { PlatformTenantService } from './platform-tenant.service';
 /** The platform-admin panel's company list - list every tenant, suspend/activate one, and see/manage
  * its billing plan at a glance (Plan/Paid Until/Overdue columns - see PlatformTenantService's doc
  * comment on TenantSummaryDto). No create/edit/delete for the tenant itself: tenants are only ever
- * created via self-service registration. */
+ * created via self-service registration. Rendered inside PlatformShellComponent's <router-outlet> -
+ * navigation/sign-out live in the shell, not here. */
 @Component({
   selector: 'app-platform-tenant-list',
   standalone: true,
@@ -20,17 +20,13 @@ import { PlatformTenantService } from './platform-tenant.service';
 })
 export class PlatformTenantListComponent implements OnInit {
   private readonly platformTenantService = inject(PlatformTenantService);
-  private readonly platformAuthService = inject(PlatformAuthService);
   private readonly toast = inject(Toast);
-  private readonly router = inject(Router);
 
   protected readonly items = signal<PlatformTenantDto[]>([]);
   protected readonly totalCount = signal(0);
   protected readonly pageSize = signal(20);
   protected readonly pageNumber = signal(1);
   protected readonly loading = signal(false);
-
-  protected readonly currentAdmin = this.platformAuthService.currentAdmin;
 
   ngOnInit(): void {
     this.load();
@@ -69,11 +65,6 @@ export class PlatformTenantListComponent implements OnInit {
       },
       error: () => this.toast.error('Could not reactivate this company.')
     });
-  }
-
-  protected logout(): void {
-    this.platformAuthService.logout();
-    this.router.navigateByUrl('/platform/login');
   }
 
   /** The more recent of LastLoginAt/LastActivityAt - kept out of the DTO to keep it a simple data

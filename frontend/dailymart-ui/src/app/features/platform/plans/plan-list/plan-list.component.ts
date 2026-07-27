@@ -1,7 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { PlatformAuthService } from '../../../../core/auth/platform-auth.service';
 import { Toast } from '../../../../core/toast';
 import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
 import { BILLING_CYCLES, PlanDto } from '../plan.model';
@@ -9,23 +7,21 @@ import { PlanService } from '../plan.service';
 
 /** The platform-admin Plan catalog (Free/Basic/Pro/...) - a billing label only, see Plan's backend doc
  * comment. No perms gating anywhere in this panel (unlike the tenant-scoped app) - reaching this route
- * at all already requires a PlatformAdmin session (platformAuthGuard). */
+ * at all already requires a PlatformAdmin session (platformAuthGuard). Rendered inside
+ * PlatformShellComponent's <router-outlet> - navigation/sign-out live in the shell, not here. */
 @Component({
   selector: 'app-plan-list',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, PaginationComponent],
+  imports: [ReactiveFormsModule, PaginationComponent],
   templateUrl: './plan-list.component.html',
   styleUrl: './plan-list.component.scss'
 })
 export class PlanListComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly planService = inject(PlanService);
-  private readonly platformAuthService = inject(PlatformAuthService);
   private readonly toast = inject(Toast);
-  private readonly router = inject(Router);
 
   protected readonly billingCycles = BILLING_CYCLES;
-  protected readonly currentAdmin = this.platformAuthService.currentAdmin;
 
   protected readonly items = signal<PlanDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -139,11 +135,6 @@ export class PlanListComponent implements OnInit {
       },
       error: () => this.toast.error('Could not reactivate this plan.')
     });
-  }
-
-  protected logout(): void {
-    this.platformAuthService.logout();
-    this.router.navigateByUrl('/platform/login');
   }
 
   private load(): void {

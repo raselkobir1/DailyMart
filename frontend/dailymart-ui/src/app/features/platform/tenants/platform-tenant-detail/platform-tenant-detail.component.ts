@@ -1,8 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { PlatformAuthService } from '../../../../core/auth/platform-auth.service';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Toast } from '../../../../core/toast';
 import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
 import { PlanDto } from '../../plans/plan.model';
@@ -15,7 +14,8 @@ import { TenantUsageSnapshotDto } from '../platform-tenant-usage.model';
 import { PlatformTenantUsageService } from '../platform-tenant-usage.service';
 
 /** Per-tenant billing management - change plan, record a manual payment, see payment history. See
- * ISubscriptionService's doc comment on the backend for why this is manual-only (no gateway). */
+ * ISubscriptionService's doc comment on the backend for why this is manual-only (no gateway).
+ * Rendered inside PlatformShellComponent's <router-outlet> - navigation/sign-out live in the shell. */
 @Component({
   selector: 'app-platform-tenant-detail',
   standalone: true,
@@ -26,17 +26,14 @@ import { PlatformTenantUsageService } from '../platform-tenant-usage.service';
 export class PlatformTenantDetailComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly platformTenantService = inject(PlatformTenantService);
   private readonly subscriptionService = inject(PlatformSubscriptionService);
   private readonly usageService = inject(PlatformTenantUsageService);
   private readonly planService = inject(PlanService);
-  private readonly platformAuthService = inject(PlatformAuthService);
   private readonly toast = inject(Toast);
 
   private readonly tenantId = Number(this.route.snapshot.paramMap.get('id'));
 
-  protected readonly currentAdmin = this.platformAuthService.currentAdmin;
   protected readonly tenant = signal<PlatformTenantDto | null>(null);
   protected readonly subscription = signal<TenantSubscriptionDto | null>(null);
   protected readonly usage = signal<TenantUsageSnapshotDto | null>(null);
@@ -150,11 +147,6 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.pageSize.set(pageSize);
     this.pageNumber.set(1);
     this.loadPayments();
-  }
-
-  protected logout(): void {
-    this.platformAuthService.logout();
-    this.router.navigateByUrl('/platform/login');
   }
 
   private loadTenant(): void {

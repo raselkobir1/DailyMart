@@ -1,0 +1,47 @@
+<div class="shell">
+  <aside class="sidebar no-print">
+    <div class="brand"><span>🏪</span> DailyMart</div>
+    <div class="section-label">Platform Admin</div>
+
+    <nav>
+      <div class="nav-group">
+        <a class="nav-link" routerLink="/platform/tenants" routerLinkActive="active">
+          <span class="icon">🏢</span> Companies
+        </a>
+      </div>
+      <div class="nav-group">
+        <a class="nav-link" routerLink="/platform/plans" routerLinkActive="active">
+          <span class="icon">💳</span> Plans
+        </a>
+      </div>
+    </nav>
+
+    <div class="user-card">
+      <span class="avatar sm">{{ initials() }}</span>
+      <div>
+        <div class="name">{{ platformAuthService.currentAdmin()?.fullName }}</div>
+        <div class="role">Platform Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-column">
+    <header class="topbar no-print">
+      <div class="greeting">
+        Welcome back, {{ platformAuthService.currentAdmin()?.fullName }} 👋
+        <div class="subtitle">DailyMart operations panel.</div>
+      </div>
+
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn" (click)="toggleTheme()" aria-label="Toggle theme">
+          {{ theme.getMode() === 'dark' ? '☀️' : '🌙' }}
+        </button>
+        <button type="button" class="btn btn-sm" (click)="logout()">Sign out</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
