@@ -32,6 +32,8 @@
               <th>Plan</th>
               <th>Paid Until</th>
               <th>Billing</th>
+              <th>Users</th>
+              <th>Last Active</th>
               <th>Created</th>
               <th></th>
             </tr>
@@ -52,6 +54,8 @@
                     <span class="badge on">Paid</span>
                   }
                 </td>
+                <td>{{ tenant.activeUsers }}/{{ tenant.totalUsers }}</td>
+                <td>{{ lastActiveAt(tenant) ? (lastActiveAt(tenant) | date: 'medium') : 'Never' }}</td>
                 <td>{{ tenant.createdAt | date: 'medium' }}</td>
                 <td>
                   <a class="btn btn-sm" [routerLink]="['/platform/tenants', tenant.id]">Manage</a>
@@ -63,7 +67,7 @@
                 </td>
               </tr>
             } @empty {
-              <tr class="empty-row"><td colspan="7">No companies yet.</td></tr>
+              <tr class="empty-row"><td colspan="9">No companies yet.</td></tr>
             }
           </tbody>
         </table>

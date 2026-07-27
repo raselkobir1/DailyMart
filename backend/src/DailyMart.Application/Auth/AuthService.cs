@@ -56,8 +56,13 @@ public class AuthService : IAuthService
         if (verification == PasswordVerificationResult.SuccessRehashNeeded)
         {
             user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
-            _userRepository.Update(user);
         }
+
+        // One Update() call covers both this write and the rehash above - Update() marks the whole
+        // tracked entity dirty regardless of which fields actually changed (see
+        // AuditingSaveChangesInterceptor's doc comment), so there's no need for a second call.
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        _userRepository.Update(user);
 
         var tenant = await GetActiveTenantOrThrowAsync(user.TenantId, cancellationToken);
         return await IssueTokensAsync(user, tenant, cancellationToken);
@@ -103,6 +108,11 @@ public class AuthService : IAuthService
 
         var admin = await _tenantProvisioningService.ProvisionNewTenantAsync(
             request.CompanyName.Trim(), request.Username.Trim(), passwordHash, request.FullName.Trim(), cancellationToken);
+
+        // The auto-login right after signup counts as a real login too - otherwise a brand-new tenant
+        // would show "Never" logged in on the platform-admin usage snapshot despite using the app.
+        admin.LastLoginAt = DateTimeOffset.UtcNow;
+        _userRepository.Update(admin);
 
         var tenant = await GetActiveTenantOrThrowAsync(admin.TenantId, cancellationToken);
         return await IssueTokensAsync(admin, tenant, cancellationToken);

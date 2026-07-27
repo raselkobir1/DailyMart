@@ -7,4 +7,8 @@ export interface PlatformTenantDto {
   isFree: boolean;
   currentPeriodEnd: string | null;
   isOverdue: boolean;
+  totalUsers: number;
+  activeUsers: number;
+  lastLoginAt: string | null;
+  lastActivityAt: string | null;
 }

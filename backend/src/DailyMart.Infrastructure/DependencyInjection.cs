@@ -5,6 +5,7 @@ using DailyMart.Application.Common.Options;
 using DailyMart.Application.Products;
 using DailyMart.Application.Settings;
 using DailyMart.Application.Tenancy;
+using DailyMart.Application.UsageAnalytics;
 using DailyMart.Domain.Auth;
 using DailyMart.Domain.Tenancy;
 using DailyMart.Infrastructure.Auth;
@@ -16,6 +17,7 @@ using DailyMart.Infrastructure.Persistence.Repositories;
 using DailyMart.Infrastructure.Persistence.Seed;
 using DailyMart.Infrastructure.Services;
 using DailyMart.Infrastructure.Tenancy;
+using DailyMart.Infrastructure.UsageAnalytics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -58,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogRepository>(sp => new AuditLogRepository(sp.GetRequiredService<DailyMartDbContext>()));
 
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
         services.AddScoped<AdminSeeder>();
         services.AddScoped<PlatformAdminSeeder>();
         services.AddScoped<RbacSeeder>();

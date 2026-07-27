@@ -104,6 +104,49 @@
     </div>
   }
 
+  @if (usage(); as u) {
+    <div class="card card-pad" style="margin-bottom: 1rem; max-width: 900px">
+      <h3 style="margin: 0 0 1rem">Usage</h3>
+      <div class="row">
+        <div class="field">
+          <label>Users</label>
+          <div>{{ u.activeUsers }} active / {{ u.totalUsers }} total</div>
+        </div>
+        <div class="field">
+          <label>Last Login</label>
+          <div>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'medium') : 'Never' }}</div>
+        </div>
+        <div class="field">
+          <label>Last Activity</label>
+          <div>{{ u.lastActivityAt ? (u.lastActivityAt | date: 'medium') : 'Never' }}</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="margin-top: 1rem">
+        <div class="kpi-card">
+          <div class="kpi-label">Products</div>
+          <div class="kpi-value">{{ u.productCount }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Customers</div>
+          <div class="kpi-value">{{ u.customerCount }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Suppliers</div>
+          <div class="kpi-value">{{ u.supplierCount }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Sales</div>
+          <div class="kpi-value">{{ u.saleCount }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Purchases</div>
+          <div class="kpi-value">{{ u.purchaseCount }}</div>
+        </div>
+      </div>
+    </div>
+  }
+
   <div class="card">
     <div class="card-pad" style="padding-bottom: 0">
       <h3 style="margin: 0">Payment History</h3>

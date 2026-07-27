@@ -18,4 +18,10 @@ public class User : TenantOwnedEntity
     public string Role { get; set; } = "Admin";
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Stamped by AuthService on a real login (LoginAsync/RegisterAsync) - deliberately NOT
+    /// touched by RefreshAsync, which is a silent token renewal rather than a new login event. Feeds the
+    /// platform-admin usage snapshot (IUsageAnalyticsService) so "who's actually using this" can be
+    /// distinguished from "who's just paying."</summary>
+    public DateTimeOffset? LastLoginAt { get; set; }
 }

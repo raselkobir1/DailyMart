@@ -76,6 +76,14 @@ export class PlatformTenantListComponent implements OnInit {
     this.router.navigateByUrl('/platform/login');
   }
 
+  /** The more recent of LastLoginAt/LastActivityAt - kept out of the DTO to keep it a simple data
+   * carrier; null if the tenant has never logged in AND has no audited activity. */
+  protected lastActiveAt(tenant: PlatformTenantDto): string | null {
+    if (!tenant.lastLoginAt) return tenant.lastActivityAt;
+    if (!tenant.lastActivityAt) return tenant.lastLoginAt;
+    return tenant.lastLoginAt > tenant.lastActivityAt ? tenant.lastLoginAt : tenant.lastActivityAt;
+  }
+
   private load(): void {
     this.loading.set(true);
 

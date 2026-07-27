@@ -1,6 +1,7 @@
 using DailyMart.Application.Billing;
 using DailyMart.Application.Common.Models;
 using DailyMart.Application.Tenancy;
+using DailyMart.Application.UsageAnalytics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,9 +11,9 @@ namespace DailyMart.API.Controllers;
 /// business data. [Authorize(Roles = "PlatformAdmin")] works the same way [Authorize(Roles = "Admin")]
 /// already does for Users/Roles/Menus - the global JWT bearer scheme, just checking a different role
 /// claim value. A regular tenant User's token can never carry "PlatformAdmin", so this is naturally
-/// exclusive to platform-admin tokens. Also carries the {id}/subscription sub-routes (billing) - nested
-/// resource in the same controller, matching PurchasesController's {id}/returns convention rather than a
-/// separate controller.</summary>
+/// exclusive to platform-admin tokens. Also carries the {id}/subscription (billing) and {id}/usage
+/// sub-routes - nested resources in the same controller, matching PurchasesController's {id}/returns
+/// convention rather than a separate controller per concern.</summary>
 [ApiController]
 [Route("api/platform/tenants")]
 [Authorize(Roles = "PlatformAdmin")]
@@ -20,12 +21,16 @@ public class PlatformTenantsController : ControllerBase
 {
     private readonly IPlatformTenantService _platformTenantService;
     private readonly ISubscriptionService _subscriptionService;
+    private readonly IUsageAnalyticsService _usageAnalyticsService;
 
     public PlatformTenantsController(
-        IPlatformTenantService platformTenantService, ISubscriptionService subscriptionService)
+        IPlatformTenantService platformTenantService,
+        ISubscriptionService subscriptionService,
+        IUsageAnalyticsService usageAnalyticsService)
     {
         _platformTenantService = platformTenantService;
         _subscriptionService = subscriptionService;
+        _usageAnalyticsService = usageAnalyticsService;
     }
 
     [HttpGet]
@@ -79,5 +84,12 @@ public class PlatformTenantsController : ControllerBase
     {
         var payment = await _subscriptionService.RecordPaymentAsync(id, request, cancellationToken);
         return Ok(payment);
+    }
+
+    [HttpGet("{id:long}/usage")]
+    public async Task<ActionResult<TenantUsageSnapshotDto>> GetUsage(long id, CancellationToken cancellationToken)
+    {
+        var snapshots = await _usageAnalyticsService.GetSnapshotsByTenantIdsAsync([id], cancellationToken);
+        return Ok(snapshots[id]);
     }
 }

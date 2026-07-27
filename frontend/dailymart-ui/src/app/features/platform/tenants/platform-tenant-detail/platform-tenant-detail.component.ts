@@ -11,6 +11,8 @@ import { SubscriptionPaymentDto, TenantSubscriptionDto } from '../platform-subsc
 import { PlatformSubscriptionService } from '../platform-subscription.service';
 import { PlatformTenantDto } from '../platform-tenant.model';
 import { PlatformTenantService } from '../platform-tenant.service';
+import { TenantUsageSnapshotDto } from '../platform-tenant-usage.model';
+import { PlatformTenantUsageService } from '../platform-tenant-usage.service';
 
 /** Per-tenant billing management - change plan, record a manual payment, see payment history. See
  * ISubscriptionService's doc comment on the backend for why this is manual-only (no gateway). */
@@ -27,6 +29,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly platformTenantService = inject(PlatformTenantService);
   private readonly subscriptionService = inject(PlatformSubscriptionService);
+  private readonly usageService = inject(PlatformTenantUsageService);
   private readonly planService = inject(PlanService);
   private readonly platformAuthService = inject(PlatformAuthService);
   private readonly toast = inject(Toast);
@@ -36,6 +39,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   protected readonly currentAdmin = this.platformAuthService.currentAdmin;
   protected readonly tenant = signal<PlatformTenantDto | null>(null);
   protected readonly subscription = signal<TenantSubscriptionDto | null>(null);
+  protected readonly usage = signal<TenantUsageSnapshotDto | null>(null);
   protected readonly activePlans = signal<PlanDto[]>([]);
 
   protected readonly payments = signal<SubscriptionPaymentDto[]>([]);
@@ -62,6 +66,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   ngOnInit(): void {
     this.loadTenant();
     this.loadSubscription();
+    this.loadUsage();
     this.loadPayments();
 
     this.planService.getActive().subscribe({
@@ -163,6 +168,13 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.subscriptionService.get(this.tenantId).subscribe({
       next: (subscription) => this.subscription.set(subscription),
       error: () => this.toast.error('Could not load the subscription.')
+    });
+  }
+
+  private loadUsage(): void {
+    this.usageService.get(this.tenantId).subscribe({
+      next: (usage) => this.usage.set(usage),
+      error: () => this.toast.error('Could not load usage.')
     });
   }
 

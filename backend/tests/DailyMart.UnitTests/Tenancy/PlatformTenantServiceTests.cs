@@ -3,6 +3,7 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Application.Tenancy;
+using DailyMart.Application.UsageAnalytics;
 using DailyMart.Domain.Tenancy;
 using Moq;
 
@@ -13,6 +14,7 @@ public class PlatformTenantServiceTests
     private readonly Mock<IRepository<Tenant>> _tenantRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ISubscriptionService> _subscriptionService = new();
+    private readonly Mock<IUsageAnalyticsService> _usageAnalyticsService = new();
     private readonly PlatformTenantService _sut;
 
     public PlatformTenantServiceTests()
@@ -21,7 +23,10 @@ public class PlatformTenantServiceTests
         _subscriptionService
             .Setup(s => s.GetSummariesByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<long, TenantSubscriptionDto>());
-        _sut = new PlatformTenantService(_unitOfWork.Object, _subscriptionService.Object);
+        _usageAnalyticsService
+            .Setup(s => s.GetSnapshotsByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, TenantUsageSnapshotDto>());
+        _sut = new PlatformTenantService(_unitOfWork.Object, _subscriptionService.Object, _usageAnalyticsService.Object);
     }
 
     [Fact]
@@ -71,5 +76,26 @@ public class PlatformTenantServiceTests
         var result = await _sut.SetActiveAsync(1, isActive: true);
 
         Assert.True(result.IsActive);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_merges_the_usage_snapshot_into_the_summary_dto()
+    {
+        var tenant = new Tenant { Id = 1, Name = "Acme Corp", IsActive = true };
+        _tenantRepository.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(tenant);
+
+        var lastLogin = DateTimeOffset.UtcNow.AddDays(-1);
+        _usageAnalyticsService
+            .Setup(s => s.GetSnapshotsByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, TenantUsageSnapshotDto>
+            {
+                [1] = new TenantUsageSnapshotDto { TenantId = 1, TotalUsers = 3, ActiveUsers = 2, LastLoginAt = lastLogin }
+            });
+
+        var result = await _sut.GetByIdAsync(1);
+
+        Assert.Equal(3, result.TotalUsers);
+        Assert.Equal(2, result.ActiveUsers);
+        Assert.Equal(lastLogin, result.LastLoginAt);
     }
 }
