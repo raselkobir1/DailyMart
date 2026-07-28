@@ -133,6 +133,67 @@
     </div>
   }
 
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 900px">
+    <h3 style="margin: 0 0 0.25rem">Features</h3>
+    <p class="subtitle" style="margin: 0 0 1rem">
+      Every company gets every generally-available menu automatically. The menus below are restricted -
+      only granted companies can see them.
+    </p>
+
+    @if (featuresLoading()) {
+      <div class="spinner-page"><span class="spinner lg"></span></div>
+    } @else if (restrictedFeatures().length === 0) {
+      <p class="subtitle">No restricted/exclusive features exist yet - every menu is generally available.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (feature of restrictedFeatures(); track feature.menuId) {
+              <tr>
+                <td>{{ feature.label }}</td>
+                <td>
+                  @if (feature.isGranted) {
+                    <span class="badge on">Granted</span>
+                  } @else {
+                    <span class="badge off">Not granted</span>
+                  }
+                </td>
+                <td>
+                  @if (feature.isGranted) {
+                    <button
+                      class="btn"
+                      type="button"
+                      [disabled]="grantingMenuId() === feature.menuId"
+                      (click)="revokeFeature(feature.menuId)"
+                    >
+                      Revoke
+                    </button>
+                  } @else {
+                    <button
+                      class="btn btn-primary"
+                      type="button"
+                      [disabled]="grantingMenuId() === feature.menuId"
+                      (click)="grantFeature(feature.menuId)"
+                    >
+                      Grant
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
   <div class="card">
     <div class="card-pad" style="padding-bottom: 0">
       <h3 style="margin: 0">Payment History</h3>

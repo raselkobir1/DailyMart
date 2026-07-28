@@ -10,10 +10,17 @@ namespace DailyMart.Application.Rbac;
 public class RoleService : IRoleService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFeatureEntitlementService _featureEntitlementService;
+    private readonly ICurrentTenantService _currentTenantService;
 
-    public RoleService(IUnitOfWork unitOfWork)
+    public RoleService(
+        IUnitOfWork unitOfWork,
+        IFeatureEntitlementService featureEntitlementService,
+        ICurrentTenantService currentTenantService)
     {
         _unitOfWork = unitOfWork;
+        _featureEntitlementService = featureEntitlementService;
+        _currentTenantService = currentTenantService;
     }
 
     private IRepository<Role> Repository => _unitOfWork.Repository<Role>();
@@ -112,12 +119,19 @@ public class RoleService : IRoleService
     {
         await EnsureRoleExistsAsync(roleId, cancellationToken);
 
+        // Only menus this tenant is actually entitled to are offered here - otherwise a tenant's own
+        // Admin could self-grant CanView on a restricted menu the platform never entitled them to (see
+        // IFeatureEntitlementService's doc comment).
+        var availableMenuIds = await _featureEntitlementService.GetAvailableMenuIdsAsync(
+            _currentTenantService.TenantId ?? 0, cancellationToken);
+
         var menus = await _unitOfWork.Repository<Menu>().GetAllAsync(cancellationToken);
         var permissions = await _unitOfWork.Repository<RoleMenuPermission>()
             .FindAsync(p => p.RoleId == roleId, cancellationToken);
         var permissionsByMenu = permissions.ToDictionary(p => p.MenuId);
 
         return menus
+            .Where(m => availableMenuIds.Contains(m.Id))
             .OrderBy(m => m.SortOrder)
             .Select(m =>
             {
@@ -151,6 +165,16 @@ public class RoleService : IRoleService
         if (existingMenuCount.Count != menuIds.Count)
         {
             throw new BusinessRuleException("One or more menus in the permission list do not exist.");
+        }
+
+        // Rejects a submission naming a menu this tenant isn't entitled to - GetPermissionsAsync already
+        // never offers one, but that alone only hides it from the UI; without this check a tenant Admin
+        // could still self-grant it by posting the id directly.
+        var availableMenuIds = await _featureEntitlementService.GetAvailableMenuIdsAsync(
+            _currentTenantService.TenantId ?? 0, cancellationToken);
+        if (menuIds.Except(availableMenuIds).Any())
+        {
+            throw new BusinessRuleException("One or more menus in the permission list are not available to this tenant.");
         }
 
         var permissionRepository = _unitOfWork.Repository<RoleMenuPermission>();

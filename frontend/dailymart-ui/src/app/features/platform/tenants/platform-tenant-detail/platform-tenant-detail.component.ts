@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Toast } from '../../../../core/toast';
@@ -12,6 +12,8 @@ import { PlatformTenantDto } from '../platform-tenant.model';
 import { PlatformTenantService } from '../platform-tenant.service';
 import { TenantUsageSnapshotDto } from '../platform-tenant-usage.model';
 import { PlatformTenantUsageService } from '../platform-tenant-usage.service';
+import { TenantMenuAvailabilityDto } from '../platform-feature.model';
+import { PlatformFeatureService } from '../platform-feature.service';
 
 /** Per-tenant billing management - change plan, record a manual payment, see payment history. See
  * ISubscriptionService's doc comment on the backend for why this is manual-only (no gateway).
@@ -30,6 +32,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   private readonly subscriptionService = inject(PlatformSubscriptionService);
   private readonly usageService = inject(PlatformTenantUsageService);
   private readonly planService = inject(PlanService);
+  private readonly featureService = inject(PlatformFeatureService);
   private readonly toast = inject(Toast);
 
   private readonly tenantId = Number(this.route.snapshot.paramMap.get('id'));
@@ -38,6 +41,12 @@ export class PlatformTenantDetailComponent implements OnInit {
   protected readonly subscription = signal<TenantSubscriptionDto | null>(null);
   protected readonly usage = signal<TenantUsageSnapshotDto | null>(null);
   protected readonly activePlans = signal<PlanDto[]>([]);
+  protected readonly features = signal<TenantMenuAvailabilityDto[]>([]);
+  protected readonly featuresLoading = signal(true);
+  protected readonly grantingMenuId = signal<number | null>(null);
+  /** Only restricted menus ever need a grant/revoke action - generally-available ones need no row here
+   * at all beyond the summary count shown alongside the table. */
+  protected readonly restrictedFeatures = computed(() => this.features().filter((f) => !f.isGenerallyAvailable));
 
   protected readonly payments = signal<SubscriptionPaymentDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -65,10 +74,55 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.loadSubscription();
     this.loadUsage();
     this.loadPayments();
+    this.loadFeatures();
 
     this.planService.getActive().subscribe({
       next: (plans) => this.activePlans.set(plans),
       error: () => this.toast.error('Could not load plans.')
+    });
+  }
+
+  protected grantFeature(menuId: number): void {
+    this.grantingMenuId.set(menuId);
+    this.featureService.grant(this.tenantId, menuId).subscribe({
+      next: () => {
+        this.grantingMenuId.set(null);
+        this.toast.success('Feature granted.');
+        this.loadFeatures();
+      },
+      error: (error) => {
+        this.grantingMenuId.set(null);
+        this.toast.error(error.error?.title ?? 'Could not grant this feature.');
+      }
+    });
+  }
+
+  protected revokeFeature(menuId: number): void {
+    this.grantingMenuId.set(menuId);
+    this.featureService.revoke(this.tenantId, menuId).subscribe({
+      next: () => {
+        this.grantingMenuId.set(null);
+        this.toast.success('Feature revoked.');
+        this.loadFeatures();
+      },
+      error: (error) => {
+        this.grantingMenuId.set(null);
+        this.toast.error(error.error?.title ?? 'Could not revoke this feature.');
+      }
+    });
+  }
+
+  private loadFeatures(): void {
+    this.featuresLoading.set(true);
+    this.featureService.getFeatures(this.tenantId).subscribe({
+      next: (features) => {
+        this.features.set(features);
+        this.featuresLoading.set(false);
+      },
+      error: () => {
+        this.featuresLoading.set(false);
+        this.toast.error('Could not load features.');
+      }
     });
   }
 

@@ -91,7 +91,7 @@ public class TenantProvisioningService : ITenantProvisioningService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        var menuIds = await _context.Menus.Select(m => m.Id).ToListAsync(cancellationToken);
+        var menuIds = await GetAvailableMenuIdsAsync(tenantId, cancellationToken);
 
         var existingPermissions = await _context.RoleMenuPermissions.IgnoreQueryFilters()
             .Where(p => p.RoleId == adminRole.Id && !p.IsDeleted)
@@ -124,5 +124,40 @@ public class TenantProvisioningService : ITenantProvisioningService
                 CanDelete = true
             });
         }
+    }
+
+    public async Task RevokeMenuAccessAsync(long tenantId, long menuId, CancellationToken cancellationToken = default)
+    {
+        var permissions = await _context.RoleMenuPermissions.IgnoreQueryFilters()
+            .Where(p => p.TenantId == tenantId && p.MenuId == menuId && !p.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var permission in permissions)
+        {
+            _context.RoleMenuPermissions.Remove(permission);
+        }
+    }
+
+    /// <summary>Every Menu.IsGenerallyAvailable=true id, plus any restricted menu this tenant holds an
+    /// active TenantFeatureGrant for. Queried directly against _context (not through
+    /// IFeatureEntitlementService) so this class stays self-contained the way the rest of it already is -
+    /// injecting the Application-layer grant/revoke service here would create a circular dependency,
+    /// since that service in turn calls back into this one to re-sync Admin's permissions after a grant.
+    /// TenantFeatureGrant is AuditableEntity-direct like Menu (global, not tenant-filtered), so its
+    /// model-level query filter is soft-delete-only - no IgnoreQueryFilters() needed here, same as every
+    /// other Menu/TenantSubscription-style query in this class.</summary>
+    private async Task<List<long>> GetAvailableMenuIdsAsync(long tenantId, CancellationToken cancellationToken)
+    {
+        var generallyAvailableMenuIds = await _context.Menus
+            .Where(m => m.IsGenerallyAvailable)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+
+        var grantedMenuIds = await _context.TenantFeatureGrants
+            .Where(g => g.TenantId == tenantId)
+            .Select(g => g.MenuId)
+            .ToListAsync(cancellationToken);
+
+        return generallyAvailableMenuIds.Union(grantedMenuIds).ToList();
     }
 }

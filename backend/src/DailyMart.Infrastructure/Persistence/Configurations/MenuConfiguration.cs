@@ -16,6 +16,7 @@ public class MenuConfiguration : IEntityTypeConfiguration<Menu>
         builder.Property(m => m.Label).HasMaxLength(200).IsRequired();
         builder.Property(m => m.Route).HasMaxLength(200).IsRequired();
         builder.Property(m => m.Icon).HasMaxLength(20).IsRequired();
+        builder.Property(m => m.IsGenerallyAvailable).HasDefaultValue(true);
 
         builder.HasIndex(m => m.Key).IsUnique().HasFilter("is_deleted = false");
 

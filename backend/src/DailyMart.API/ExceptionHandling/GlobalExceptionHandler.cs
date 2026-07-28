@@ -30,6 +30,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         {
             AuthenticationFailedException => (StatusCodes.Status401Unauthorized, exception.Message),
             NotFoundException => (StatusCodes.Status404NotFound, exception.Message),
+            FeatureNotEntitledException => (StatusCodes.Status403Forbidden, exception.Message),
             BusinessRuleException => (StatusCodes.Status400BadRequest, exception.Message),
             // A uniqueness check-then-insert (product code/barcode, category/brand/unit name, role name,
             // ...) has a TOCTOU race: two concurrent requests can both pass the app-level "does this

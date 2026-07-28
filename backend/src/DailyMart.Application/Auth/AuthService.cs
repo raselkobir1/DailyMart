@@ -19,6 +19,7 @@ public class AuthService : IAuthService
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly ITenantProvisioningService _tenantProvisioningService;
+    private readonly IFeatureEntitlementService _featureEntitlementService;
     private readonly JwtSettings _jwtSettings;
 
     public AuthService(
@@ -28,6 +29,7 @@ public class AuthService : IAuthService
         IJwtTokenGenerator jwtTokenGenerator,
         IPasswordHasher<User> passwordHasher,
         ITenantProvisioningService tenantProvisioningService,
+        IFeatureEntitlementService featureEntitlementService,
         IOptions<JwtSettings> jwtSettings)
     {
         _userRepository = userRepository;
@@ -36,6 +38,7 @@ public class AuthService : IAuthService
         _jwtTokenGenerator = jwtTokenGenerator;
         _passwordHasher = passwordHasher;
         _tenantProvisioningService = tenantProvisioningService;
+        _featureEntitlementService = featureEntitlementService;
         _jwtSettings = jwtSettings.Value;
     }
 
@@ -174,13 +177,19 @@ public class AuthService : IAuthService
             return [];
         }
 
+        // Intersected with entitlement (not just role permission) so a menu revoked from this tenant
+        // stops appearing in the sidebar/route guards immediately, even if a stale RoleMenuPermission
+        // row for it somehow still exists (RevokeAsync already strips those, but this is the same
+        // "trust the boundary, not just the cleanup" defense the tenant-isolation filter itself uses).
+        var availableMenuIds = await _featureEntitlementService.GetAvailableMenuIdsAsync(user.TenantId, cancellationToken);
+
         var menus = await _unitOfWork.Repository<Menu>().GetAllAsync(cancellationToken);
         var permissions = await _unitOfWork.Repository<RoleMenuPermission>()
             .FindAsync(p => p.RoleId == role.Id && p.CanView, cancellationToken);
         var permissionsByMenu = permissions.ToDictionary(p => p.MenuId);
 
         return menus
-            .Where(m => permissionsByMenu.ContainsKey(m.Id))
+            .Where(m => permissionsByMenu.ContainsKey(m.Id) && availableMenuIds.Contains(m.Id))
             .OrderBy(m => m.SortOrder)
             .Select(m =>
             {

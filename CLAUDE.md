@@ -81,8 +81,11 @@ live together within their layer, even though the layer itself is one project.
   no online checkout — the platform admin records "paid until X" for money already collected outside the
   app (bank transfer, mobile banking, cash). A `Plan` is also deliberately just a **billing label**:
   nothing elsewhere in the app reads it to gate a feature or enforce a limit (a Free-plan tenant gets the
-  same functionality as a Pro-plan tenant) — payment-gateway integration and feature-gated plans are both
-  still separate future scope decisions, not something this covers (see §12). Every new tenant starts on
+  same functionality as a Pro-plan tenant) — payment-gateway integration and *plan-tier* feature gating
+  (a `Plan` itself enforcing a concrete limit like max users/products) are both still separate future
+  scope decisions, not something this covers (see §12). Per-tenant feature entitlement — one specific
+  company getting a specific exclusive menu — is a different, now-built mechanism entirely independent
+  of `Plan`; see this section's own bullet above. Every new tenant starts on
   a seeded "Free" plan (`PlanSeeder`, and `ITenantProvisioningService.ProvisionNewTenantAsync` for
   self-service signups going forward); `IsOverdue` is never stored, always recomputed
   (`!plan.IsFree && (CurrentPeriodEnd is null or in the past)`) — the same "recompute-and-compare" spirit
@@ -118,6 +121,21 @@ live together within their layer, even though the layer itself is one project.
   current menu (via `ITenantProvisioningService.EnsureAdminRoleHasFullMenuAccessAsync`) — the same method a
   brand-new tenant's signup uses once, so "a new menu reaches everyone automatically" still holds across
   every tenant, not just ones created after the menu existed.
+- **Per-tenant feature entitlement**: a `Menu` can be marked `IsGenerallyAvailable = false` in
+  `RbacSeeder`'s seed list to make it an exclusive/beta feature — `EnsureAdminRoleHasFullMenuAccessAsync`
+  then stops auto-granting it to every tenant, and a tenant only gets it via an explicit
+  `TenantFeatureGrant` (a global entity, `AuditableEntity` directly like `Menu`/`Plan`) that the SaaS
+  vendor's own platform-admin staff creates for that one company — independent of `Plan`/billing, and not
+  something a tenant's own Admin can grant themselves. `IFeatureEntitlementService` is the single place
+  all three "which menus can this tenant see" call sites (`RoleService.GetPermissionsAsync`/
+  `SetPermissionsAsync`, `AuthService.GetMyPermissionsAsync`, `EnsureAdminRoleHasFullMenuAccessAsync`) read
+  from, so a tenant's own Admin can neither see nor self-grant a restricted menu the platform hasn't
+  entitled it to. Unlike the CanView/CanCreate/CanEdit/CanDelete RBAC model above — deliberately
+  frontend-only enforcement — entitlement is a platform/billing boundary, so it's also backend-enforced:
+  `RequireFeatureAttribute` (API layer, opt-in per controller/action) rejects a direct API call for a menu
+  the current tenant isn't entitled to, via `FeatureNotEntitledException` → 403. Managed from
+  `api/platform/tenants/{id}/features` on `PlatformTenantsController`, alongside the
+  `{id}/subscription`/`{id}/usage` sub-routes.
 - **Global exception handling**: middleware mapping domain/validation exceptions to consistent
   `ProblemDetails` responses.
 - **CORS**: a named policy (`Cors:AllowedOrigins` config, empty by default) restricts cross-origin calls to
@@ -219,6 +237,14 @@ and a regression pass over every pre-existing module's list/detail pages and the
 Application-layer service needed zero code changes for this — the query filter is applied once at the EF
 Core model level (§4) — confirming that's a safe pattern to keep relying on for future modules too.
 
+Per-tenant feature entitlement (§4's own bullet) was added on top of the SaaS conversion once a real need
+came up: giving one specific company an exclusive/beta menu without shipping it to every tenant. Verified
+via `dotnet test` (`FeatureEntitlementServiceTests`, plus the existing `RoleServiceTests`/`AuthServiceTests`
+re-run against the now-entitlement-aware `GetPermissionsAsync`/`SetPermissionsAsync`/`GetMyPermissionsAsync`)
+and a full backend + frontend build. Every existing generally-available menu needed zero behavior change —
+`Menu.IsGenerallyAvailable` defaults to `true`, so this only ever affects a menu a developer deliberately
+marks restricted in `RbacSeeder`'s seed list going forward.
+
 Build strictly module-by-module, in this order (later modules depend on earlier ones):
 
 0. **Cross-cutting infrastructure** — solution/project scaffolding, DbContext + Npgsql, JWT plumbing, global
@@ -301,14 +327,19 @@ Multi-branch (one company/tenant operating several physical store locations shar
 different from the multi-*tenancy* now built, see §1), warehouse, promotions, loyalty, accounting
 integration, mobile app. Multi-user role-based permissions are no longer on this list — see §4's RBAC
 bullet — but per-field/per-action permissions beyond the four CanView/CanCreate/CanEdit/CanDelete flags, and
-backend-enforced (not just frontend-hidden) per-menu authorization on business controllers, both still are;
-don't add either without discussing the tradeoff first.
+backend-enforced (not just frontend-hidden) per-menu authorization on business controllers *for that
+per-role RBAC model specifically*, both still are; don't add either without discussing the tradeoff first.
+This is a different boundary from the per-tenant feature entitlement mechanism now built (§4's Per-tenant
+feature entitlement bullet) — that one is deliberately backend-enforced via `RequireFeatureAttribute`,
+since it gates what a tenant is entitled to at all rather than which of a tenant's own roles can use it.
 
 Platform-admin impersonation and usage analytics are out of scope too (see §4's platform-admin note) —
 the panel is deliberately "basic": list + suspend/activate, plus the billing bullet in §4. Payment-gateway
-integration (online checkout, webhooks, recurring auto-billing) and feature-gated plans (a plan enforcing
-a concrete limit like max users/products) are both still separate future scope decisions on top of the
-manual-tracking-only billing that does exist — see §4's Billing bullet.
+integration (online checkout, webhooks, recurring auto-billing) and *plan-tier* feature gating (a `Plan`
+itself enforcing a concrete limit like max users/products) are both still separate future scope decisions
+on top of the manual-tracking-only billing that does exist — see §4's Billing bullet. Per-tenant feature
+entitlement (one specific company getting a specific exclusive menu, independent of `Plan`) is a
+different, already-built mechanism — see §4's Per-tenant feature entitlement bullet.
 
 SMS and email are also no longer on this list, once a real shop turned out to need a way to chase
 customers with an outstanding due — see the Sales module's invoice-delivery feature (`IEmailSender`/

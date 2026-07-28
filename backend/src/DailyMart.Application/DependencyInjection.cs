@@ -1,5 +1,6 @@
 using DailyMart.Application.AuditLogs;
 using DailyMart.Application.Auth;
+using DailyMart.Application.BetaAnalytics;
 using DailyMart.Application.Billing;
 using DailyMart.Application.Customers;
 using DailyMart.Application.Dashboard;
@@ -31,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<IFeatureEntitlementService, FeatureEntitlementService>();
+        services.AddScoped<IBetaAnalyticsService, BetaAnalyticsService>();
         services.AddScoped<IShopSettingsService, ShopSettingsService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IBrandService, BrandService>();

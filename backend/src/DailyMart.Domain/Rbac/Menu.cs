@@ -22,4 +22,11 @@ public class Menu : AuditableEntity
     public int SortOrder { get; set; }
 
     public long? ParentId { get; set; }
+
+    /// <summary>True (the default) means every tenant gets this menu automatically, same as before this
+    /// flag existed. False marks it an exclusive/beta feature: RbacSeeder and
+    /// ITenantProvisioningService.EnsureAdminRoleHasFullMenuAccessAsync stop auto-granting it to every
+    /// tenant, and a tenant only gets it via an explicit <see cref="TenantFeatureGrant"/> from the
+    /// platform-admin panel. See IFeatureEntitlementService for the one place that reconciles this.</summary>
+    public bool IsGenerallyAvailable { get; set; } = true;
 }

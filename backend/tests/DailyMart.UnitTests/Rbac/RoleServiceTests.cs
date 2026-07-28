@@ -16,6 +16,8 @@ public class RoleServiceTests
     private readonly Mock<IRepository<Menu>> _menuRepository = new();
     private readonly Mock<IRepository<RoleMenuPermission>> _permissionRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IFeatureEntitlementService> _featureEntitlementService = new();
+    private readonly Mock<ICurrentTenantService> _currentTenantService = new();
     private readonly RoleService _sut;
 
     public RoleServiceTests()
@@ -29,7 +31,15 @@ public class RoleServiceTests
             .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Role, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _sut = new RoleService(_unitOfWork.Object);
+        _currentTenantService.Setup(t => t.TenantId).Returns(1);
+        // Menu id 1 is every existing test's menu - entitlement mocked "wide open" here so these tests
+        // keep exercising role-permission behavior, not entitlement. See FeatureEntitlementServiceTests
+        // for entitlement-specific coverage.
+        _featureEntitlementService
+            .Setup(s => s.GetAvailableMenuIdsAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<long> { 1 });
+
+        _sut = new RoleService(_unitOfWork.Object, _featureEntitlementService.Object, _currentTenantService.Object);
     }
 
     [Fact]

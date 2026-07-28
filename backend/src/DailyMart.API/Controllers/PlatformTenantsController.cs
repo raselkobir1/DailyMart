@@ -1,5 +1,6 @@
 using DailyMart.Application.Billing;
 using DailyMart.Application.Common.Models;
+using DailyMart.Application.Rbac;
 using DailyMart.Application.Tenancy;
 using DailyMart.Application.UsageAnalytics;
 using Microsoft.AspNetCore.Authorization;
@@ -11,9 +12,10 @@ namespace DailyMart.API.Controllers;
 /// business data. [Authorize(Roles = "PlatformAdmin")] works the same way [Authorize(Roles = "Admin")]
 /// already does for Users/Roles/Menus - the global JWT bearer scheme, just checking a different role
 /// claim value. A regular tenant User's token can never carry "PlatformAdmin", so this is naturally
-/// exclusive to platform-admin tokens. Also carries the {id}/subscription (billing) and {id}/usage
-/// sub-routes - nested resources in the same controller, matching PurchasesController's {id}/returns
-/// convention rather than a separate controller per concern.</summary>
+/// exclusive to platform-admin tokens. Also carries the {id}/subscription (billing), {id}/usage, and
+/// {id}/features (per-tenant feature entitlement - see IFeatureEntitlementService) sub-routes - nested
+/// resources in the same controller, matching PurchasesController's {id}/returns convention rather than
+/// a separate controller per concern.</summary>
 [ApiController]
 [Route("api/platform/tenants")]
 [Authorize(Roles = "PlatformAdmin")]
@@ -22,15 +24,18 @@ public class PlatformTenantsController : ControllerBase
     private readonly IPlatformTenantService _platformTenantService;
     private readonly ISubscriptionService _subscriptionService;
     private readonly IUsageAnalyticsService _usageAnalyticsService;
+    private readonly IFeatureEntitlementService _featureEntitlementService;
 
     public PlatformTenantsController(
         IPlatformTenantService platformTenantService,
         ISubscriptionService subscriptionService,
-        IUsageAnalyticsService usageAnalyticsService)
+        IUsageAnalyticsService usageAnalyticsService,
+        IFeatureEntitlementService featureEntitlementService)
     {
         _platformTenantService = platformTenantService;
         _subscriptionService = subscriptionService;
         _usageAnalyticsService = usageAnalyticsService;
+        _featureEntitlementService = featureEntitlementService;
     }
 
     [HttpGet]
@@ -94,5 +99,25 @@ public class PlatformTenantsController : ControllerBase
     {
         var snapshots = await _usageAnalyticsService.GetSnapshotsByTenantIdsAsync([id], cancellationToken);
         return Ok(snapshots[id]);
+    }
+
+    [HttpGet("{id:long}/features")]
+    public async Task<ActionResult<IReadOnlyList<TenantMenuAvailabilityDto>>> GetFeatures(long id, CancellationToken cancellationToken)
+    {
+        return Ok(await _featureEntitlementService.GetMenuAvailabilityForTenantAsync(id, cancellationToken));
+    }
+
+    [HttpPost("{id:long}/features/{menuId:long}/grant")]
+    public async Task<IActionResult> GrantFeature(long id, long menuId, CancellationToken cancellationToken)
+    {
+        await _featureEntitlementService.GrantAsync(id, menuId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:long}/features/{menuId:long}/revoke")]
+    public async Task<IActionResult> RevokeFeature(long id, long menuId, CancellationToken cancellationToken)
+    {
+        await _featureEntitlementService.RevokeAsync(id, menuId, cancellationToken);
+        return NoContent();
     }
 }

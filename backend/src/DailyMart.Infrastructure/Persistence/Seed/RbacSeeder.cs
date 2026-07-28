@@ -41,10 +41,19 @@ public class RbacSeeder
     /// separate pages - each one's Route points at its first child so clicking the group header still
     /// navigates somewhere real rather than needing a dedicated "no route" concept. SortOrder only needs
     /// to be unique among siblings (children are grouped by parent before sorting), not globally.
+    /// Every entry below omits the trailing isGenerallyAvailable arg, so it defaults to true - the
+    /// existing "every tenant gets every menu" behavior. To ship a feature exclusive to specific tenants,
+    /// add `isGenerallyAvailable: false` on its seed row here; it then only reaches a tenant once the
+    /// platform admin grants it a TenantFeatureGrant (see IFeatureEntitlementService).
     /// </summary>
     private static readonly MenuSeed[] SeedMenus =
     [
         new("dashboard", "Dashboard", "/dashboard", "📊", 10, null),
+
+        // Demo of the per-tenant feature entitlement mechanism (CLAUDE.md §4) - restricted
+        // (isGenerallyAvailable: false), so no tenant sees it until a platform admin grants it via
+        // api/platform/tenants/{id}/features/{menuId}/grant. See BetaAnalyticsController's doc comment.
+        new("beta-analytics", "Beta Analytics", "/beta-analytics", "🧪", 15, null, IsGenerallyAvailable: false),
 
         new("catalog", "Catalog", "/products", "🗂️", 20, null),
         new("products", "Products", "/products", "🛍️", 10, "catalog"),
@@ -137,13 +146,15 @@ public class RbacSeeder
         if (existingByKey.TryGetValue(seed.Key, out var existing))
         {
             if (existing.Label != seed.Label || existing.Route != seed.Route || existing.Icon != seed.Icon ||
-                existing.SortOrder != seed.SortOrder || existing.ParentId != parentId)
+                existing.SortOrder != seed.SortOrder || existing.ParentId != parentId ||
+                existing.IsGenerallyAvailable != seed.IsGenerallyAvailable)
             {
                 existing.Label = seed.Label;
                 existing.Route = seed.Route;
                 existing.Icon = seed.Icon;
                 existing.SortOrder = seed.SortOrder;
                 existing.ParentId = parentId;
+                existing.IsGenerallyAvailable = seed.IsGenerallyAvailable;
                 _logger.LogInformation("Updated menu '{Key}' to match the current seed definition.", seed.Key);
             }
 
@@ -158,7 +169,8 @@ public class RbacSeeder
             Route = seed.Route,
             Icon = seed.Icon,
             SortOrder = seed.SortOrder,
-            ParentId = parentId
+            ParentId = parentId,
+            IsGenerallyAvailable = seed.IsGenerallyAvailable
         };
         _context.Menus.Add(menu);
         await _context.SaveChangesAsync(cancellationToken);
@@ -168,5 +180,7 @@ public class RbacSeeder
         return menu.Id;
     }
 
-    private sealed record MenuSeed(string Key, string Label, string Route, string Icon, int SortOrder, string? ParentKey);
+    private sealed record MenuSeed(
+        string Key, string Label, string Route, string Icon, int SortOrder, string? ParentKey,
+        bool IsGenerallyAvailable = true);
 }

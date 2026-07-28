@@ -1,0 +1,20 @@
+<div class="page-head">
+  <h2>🧪 Beta Analytics</h2>
+</div>
+
+@if (error(); as e) {
+  <p class="badge low">{{ e }}</p>
+} @else if (snapshot(); as s) {
+  <div class="card card-pad" style="max-width: 640px">
+    <p style="margin-top: 0">{{ s.headline }}</p>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Signal Score</div>
+        <div class="kpi-value">{{ s.signalScore }}</div>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-bottom: 0">Generated {{ s.generatedAt | date: 'medium' }}</p>
+  </div>
+} @else {
+  <div class="spinner-page"><span class="spinner lg"></span></div>
+}

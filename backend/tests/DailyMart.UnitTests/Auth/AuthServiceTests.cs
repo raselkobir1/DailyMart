@@ -5,6 +5,7 @@ using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Application.Common.Options;
+using DailyMart.Application.Rbac;
 using DailyMart.Application.Tenancy;
 using DailyMart.Domain.Auth;
 using DailyMart.Domain.Tenancy;
@@ -23,6 +24,7 @@ public class AuthServiceTests
     private readonly Mock<IJwtTokenGenerator> _jwtTokenGenerator = new();
     private readonly Mock<IPasswordHasher<User>> _passwordHasher = new();
     private readonly Mock<ITenantProvisioningService> _tenantProvisioningService = new();
+    private readonly Mock<IFeatureEntitlementService> _featureEntitlementService = new();
     private readonly AuthService _sut;
 
     public AuthServiceTests()
@@ -42,6 +44,7 @@ public class AuthServiceTests
             _jwtTokenGenerator.Object,
             _passwordHasher.Object,
             _tenantProvisioningService.Object,
+            _featureEntitlementService.Object,
             Options.Create(new JwtSettings { RefreshTokenDays = 7 }));
     }
 

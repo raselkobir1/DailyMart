@@ -55,6 +55,8 @@ public class DailyMartDbContext : DbContext, ITenantScopedDbContext
 
     public DbSet<RoleMenuPermission> RoleMenuPermissions => Set<RoleMenuPermission>();
 
+    public DbSet<TenantFeatureGrant> TenantFeatureGrants => Set<TenantFeatureGrant>();
+
     public DbSet<ShopSettings> ShopSettings => Set<ShopSettings>();
 
     public DbSet<Category> Categories => Set<Category>();

@@ -25,6 +25,14 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent)
       },
       {
+        path: 'beta-analytics',
+        canActivate: [canView('beta-analytics')],
+        loadComponent: () =>
+          import('./features/beta-analytics/beta-analytics-list/beta-analytics-list.component').then(
+            (m) => m.BetaAnalyticsListComponent
+          )
+      },
+      {
         path: 'audit-log',
         canActivate: [canView('audit-log')],
         loadComponent: () =>
