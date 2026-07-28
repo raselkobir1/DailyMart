@@ -2402,6 +2402,143 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                     b.ToTable("platform_admins", (string)null);
                 });
 
+            modelBuilder.Entity("DailyMart.Domain.Tenancy.PlatformNotification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AdminUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("admin_username");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_read");
+
+                    b.Property<long?>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TenantName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("tenant_name");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_platform_notifications");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_platform_notifications_created_at");
+
+                    b.HasIndex("IsRead")
+                        .HasDatabaseName("ix_platform_notifications_is_read");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_platform_notifications_tenant_id");
+
+                    b.ToTable("platform_notifications", (string)null);
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Tenancy.SupportMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("FromPlatformAdmin")
+                        .HasColumnType("boolean")
+                        .HasColumnName("from_platform_admin");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<bool>("IsReadByPlatformAdmin")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_read_by_platform_admin");
+
+                    b.Property<bool>("IsReadByTenant")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_read_by_tenant");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("message");
+
+                    b.Property<long>("TenantId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_support_messages");
+
+                    b.HasIndex("IsReadByTenant")
+                        .HasDatabaseName("ix_support_messages_is_read_by_tenant");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("ix_support_messages_tenant_id_created_at");
+
+                    b.HasIndex("TenantId", "IsReadByPlatformAdmin")
+                        .HasDatabaseName("ix_support_messages_tenant_id_is_read_by_platform_admin");
+
+                    b.ToTable("support_messages", (string)null);
+                });
+
             modelBuilder.Entity("DailyMart.Domain.Tenancy.Tenant", b =>
                 {
                     b.Property<long>("Id")
@@ -2900,6 +3037,25 @@ namespace DailyMart.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_supplier_ledger_entries_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Tenancy.PlatformNotification", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_platform_notifications_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("DailyMart.Domain.Tenancy.SupportMessage", b =>
+                {
+                    b.HasOne("DailyMart.Domain.Tenancy.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_support_messages_tenants_tenant_id");
                 });
 #pragma warning restore 612, 618
         }

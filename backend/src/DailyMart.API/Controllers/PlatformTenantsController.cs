@@ -26,19 +26,22 @@ public class PlatformTenantsController : ControllerBase
     private readonly IUsageAnalyticsService _usageAnalyticsService;
     private readonly IFeatureEntitlementService _featureEntitlementService;
     private readonly ITenantReminderEmailService _tenantReminderEmailService;
+    private readonly ISupportChatService _supportChatService;
 
     public PlatformTenantsController(
         IPlatformTenantService platformTenantService,
         ISubscriptionService subscriptionService,
         IUsageAnalyticsService usageAnalyticsService,
         IFeatureEntitlementService featureEntitlementService,
-        ITenantReminderEmailService tenantReminderEmailService)
+        ITenantReminderEmailService tenantReminderEmailService,
+        ISupportChatService supportChatService)
     {
         _platformTenantService = platformTenantService;
         _subscriptionService = subscriptionService;
         _usageAnalyticsService = usageAnalyticsService;
         _featureEntitlementService = featureEntitlementService;
         _tenantReminderEmailService = tenantReminderEmailService;
+        _supportChatService = supportChatService;
     }
 
     [HttpGet]
@@ -127,6 +130,27 @@ public class PlatformTenantsController : ControllerBase
     public async Task<IActionResult> RevokeFeature(long id, long menuId, CancellationToken cancellationToken)
     {
         await _featureEntitlementService.RevokeAsync(id, menuId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("{id:long}/support-chat")]
+    public async Task<ActionResult<IReadOnlyList<SupportMessageDto>>> GetSupportChat(
+        long id, [FromQuery] int take, CancellationToken cancellationToken)
+    {
+        return Ok(await _supportChatService.GetConversationAsync(id, take <= 0 ? 50 : take, cancellationToken));
+    }
+
+    [HttpPost("{id:long}/support-chat")]
+    public async Task<ActionResult<SupportMessageDto>> SendSupportChatMessage(
+        long id, SendSupportMessageRequestDto request, CancellationToken cancellationToken)
+    {
+        return Ok(await _supportChatService.SendFromPlatformAdminAsync(id, request.Message, cancellationToken));
+    }
+
+    [HttpPost("{id:long}/support-chat/read")]
+    public async Task<IActionResult> MarkSupportChatRead(long id, CancellationToken cancellationToken)
+    {
+        await _supportChatService.MarkReadByPlatformAdminAsync(id, cancellationToken);
         return NoContent();
     }
 }

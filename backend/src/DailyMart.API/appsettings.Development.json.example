@@ -22,7 +22,8 @@
     "Username": "REPLACE_WITH_SMTP_USERNAME",
     "Password": "REPLACE_WITH_SMTP_PASSWORD",
     "FromAddress": "invoices@example.com",
-    "FromName": "DailyMart"
+    "FromName": "DailyMart",
+    "PlatformNotificationAddress": "owner@example.com"
   },
   "Sms": {
     "Enabled": false,

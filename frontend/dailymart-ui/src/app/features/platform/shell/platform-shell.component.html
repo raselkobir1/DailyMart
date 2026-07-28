@@ -33,6 +33,52 @@
       </div>
 
       <div class="topbar-actions">
+        <div style="position: relative" #notificationMenu>
+          <button type="button" class="icon-btn" (click)="toggleNotifications()" aria-label="Notifications">
+            🔔
+          </button>
+          @if (platformRealtimeService.unreadCount() > 0) {
+            <span
+              style="position: absolute; top: -2px; right: -2px; min-width: 1.1rem; height: 1.1rem; padding: 0 0.3rem;
+                     border-radius: 999px; background: var(--red); color: white; font-size: 0.65rem; font-weight: 700;
+                     display: flex; align-items: center; justify-content: center; line-height: 1"
+            >
+              {{ platformRealtimeService.unreadCount() > 9 ? '9+' : platformRealtimeService.unreadCount() }}
+            </span>
+          }
+
+          @if (notificationsOpen()) {
+            <div class="card" style="position: absolute; right: 0; top: 2.75rem; width: 320px; z-index: 20; padding: 0.5rem">
+              <div style="font-weight: 600; padding: 0.5rem 0.5rem 0.25rem">Notifications</div>
+              @if (platformRealtimeService.notifications().length === 0) {
+                <p class="subtitle" style="padding: 0 0.5rem 0.5rem">No notifications yet.</p>
+              } @else {
+                <div style="max-height: 320px; overflow-y: auto">
+                  @for (notification of platformRealtimeService.notifications(); track notification.id) {
+                    <button
+                      type="button"
+                      class="nav-link"
+                      style="width: 100%; text-align: left; display: block; padding: 0.5rem"
+                      [class.child-active]="!notification.read"
+                      (click)="openNotification(notification)"
+                    >
+                      <div style="font-weight: 600">
+                        @if (!notification.read) {
+                          <span aria-hidden="true">🟢</span>
+                        }
+                        New signup: {{ notification.tenantName }}
+                      </div>
+                      <div class="subtitle">
+                        Admin: {{ notification.adminUsername }} · {{ notification.receivedAt | date: 'medium' }}
+                      </div>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
         <button type="button" class="icon-btn" (click)="toggleTheme()" aria-label="Toggle theme">
           {{ theme.getMode() === 'dark' ? '☀️' : '🌙' }}
         </button>

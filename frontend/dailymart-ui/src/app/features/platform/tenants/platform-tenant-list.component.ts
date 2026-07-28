@@ -1,7 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { PlatformRealtimeService } from '../../../core/platform-realtime';
+import { PlatformSupportChatRealtimeService } from '../../../core/platform-support-chat-realtime';
 import { Toast } from '../../../core/toast';
 import { PaginationComponent } from '../../../shared/pagination/pagination.component';
 import { PlatformTenantDto } from './platform-tenant.model';
@@ -24,9 +27,13 @@ type BillingFilter = '' | 'overdue' | 'paid' | 'free';
   templateUrl: './platform-tenant-list.component.html',
   styleUrl: './platform-tenant-list.component.scss'
 })
-export class PlatformTenantListComponent implements OnInit {
+export class PlatformTenantListComponent implements OnInit, OnDestroy {
   private readonly platformTenantService = inject(PlatformTenantService);
+  private readonly platformRealtimeService = inject(PlatformRealtimeService);
+  private readonly platformSupportChatRealtimeService = inject(PlatformSupportChatRealtimeService);
   private readonly toast = inject(Toast);
+  private newSignupSubscription?: Subscription;
+  private supportChatSubscription?: Subscription;
 
   protected readonly items = signal<PlatformTenantDto[]>([]);
   protected readonly totalCount = signal(0);
@@ -43,6 +50,20 @@ export class PlatformTenantListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+
+    // Live push (see PlatformRealtimeService's doc comment) - the toast itself is shown once, shell-wide,
+    // by PlatformShellComponent; this only re-loads the list so a new row appears live when this happens
+    // to be the page currently open, without a manual refresh.
+    this.newSignupSubscription = this.platformRealtimeService.newTenantSignup$.subscribe(() => this.load());
+
+    // Same live-refresh reasoning as above - a new support-chat message anywhere updates this row's
+    // unread badge without a manual refresh.
+    this.supportChatSubscription = this.platformSupportChatRealtimeService.conversationUpdated$.subscribe(() => this.load());
+  }
+
+  ngOnDestroy(): void {
+    this.newSignupSubscription?.unsubscribe();
+    this.supportChatSubscription?.unsubscribe();
   }
 
   protected onPageChange(pageNumber: number): void {

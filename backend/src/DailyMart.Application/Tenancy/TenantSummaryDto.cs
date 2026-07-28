@@ -34,4 +34,8 @@ public class TenantSummaryDto
     /// separately on both the frontend and in PlatformTenantService's sort logic - null only if the
     /// tenant has never logged in AND has no audited activity.</summary>
     public DateTimeOffset? LastActiveAt { get; init; }
+
+    /// <summary>Messages from this tenant the platform admin hasn't read yet - see
+    /// ISupportChatService.GetUnreadCountsForPlatformAdminAsync.</summary>
+    public int UnreadSupportMessages { get; init; }
 }

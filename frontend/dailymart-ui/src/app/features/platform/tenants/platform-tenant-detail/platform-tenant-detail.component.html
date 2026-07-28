@@ -199,6 +199,27 @@
     }
   </div>
 
+  <div class="card card-pad" style="margin-bottom: 1rem; max-width: 600px">
+    <h3 style="margin: 0 0 0.75rem">Support Chat</h3>
+
+    <div class="platform-chat-messages">
+      @if (chatMessages().length === 0) {
+        <p class="subtitle" style="text-align: center; margin-top: 1rem">No messages yet.</p>
+      }
+      @for (message of chatMessages(); track message.id) {
+        <div class="platform-chat-message" [class.from-admin]="message.fromPlatformAdmin">
+          <div class="platform-chat-message-meta">{{ message.senderName }} · {{ message.createdAt | date: 'short' }}</div>
+          <div class="platform-chat-message-bubble">{{ message.message }}</div>
+        </div>
+      }
+    </div>
+
+    <form class="row" style="margin-top: 0.75rem" (ngSubmit)="sendChatMessage()">
+      <input class="input grow" placeholder="Reply to this company..." [(ngModel)]="chatDraftMessage" name="chatDraftMessage" autocomplete="off" />
+      <button class="btn btn-primary" type="submit" [disabled]="!chatDraftMessage.trim()">Send</button>
+    </form>
+  </div>
+
   <div class="card">
     <div class="card-pad" style="padding-bottom: 0">
       <h3 style="margin: 0">Payment History</h3>

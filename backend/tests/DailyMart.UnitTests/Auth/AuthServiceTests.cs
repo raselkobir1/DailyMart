@@ -25,6 +25,7 @@ public class AuthServiceTests
     private readonly Mock<IPasswordHasher<User>> _passwordHasher = new();
     private readonly Mock<ITenantProvisioningService> _tenantProvisioningService = new();
     private readonly Mock<IFeatureEntitlementService> _featureEntitlementService = new();
+    private readonly Mock<IPlatformNotificationService> _platformNotificationService = new();
     private readonly AuthService _sut;
 
     public AuthServiceTests()
@@ -45,6 +46,7 @@ public class AuthServiceTests
             _passwordHasher.Object,
             _tenantProvisioningService.Object,
             _featureEntitlementService.Object,
+            _platformNotificationService.Object,
             Options.Create(new JwtSettings { RefreshTokenDays = 7 }));
     }
 
@@ -297,7 +299,7 @@ public class AuthServiceTests
         };
         _tenantProvisioningService
             .Setup(s => s.ProvisionNewTenantAsync(
-                "Acme Corp", "newadmin", It.IsAny<string>(), "New Admin", It.IsAny<CancellationToken>()))
+                "Acme Corp", "newadmin", It.IsAny<string>(), "New Admin", "owner@acme.test", It.IsAny<CancellationToken>()))
             .ReturnsAsync(newAdmin);
         _tenantRepository
             .Setup(r => r.GetByIdAsync(5, It.IsAny<CancellationToken>()))
@@ -308,13 +310,17 @@ public class AuthServiceTests
             CompanyName = "Acme Corp",
             Username = "newadmin",
             Password = "correct-password",
-            FullName = "New Admin"
+            FullName = "New Admin",
+            Email = "owner@acme.test"
         });
 
         Assert.Equal("fake-jwt", result.AccessToken);
         Assert.Equal("newadmin", result.Username);
         Assert.Equal(5, result.TenantId);
         Assert.Equal("Acme Corp", result.CompanyName);
+
+        _platformNotificationService.Verify(
+            s => s.NotifyNewTenantSignupAsync(5, "Acme Corp", "newadmin", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -334,7 +340,7 @@ public class AuthServiceTests
 
         _tenantProvisioningService.Verify(
             s => s.ProvisionNewTenantAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }

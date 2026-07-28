@@ -20,6 +20,7 @@ public class AuthService : IAuthService
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly ITenantProvisioningService _tenantProvisioningService;
     private readonly IFeatureEntitlementService _featureEntitlementService;
+    private readonly IPlatformNotificationService _platformNotificationService;
     private readonly JwtSettings _jwtSettings;
 
     public AuthService(
@@ -30,6 +31,7 @@ public class AuthService : IAuthService
         IPasswordHasher<User> passwordHasher,
         ITenantProvisioningService tenantProvisioningService,
         IFeatureEntitlementService featureEntitlementService,
+        IPlatformNotificationService platformNotificationService,
         IOptions<JwtSettings> jwtSettings)
     {
         _userRepository = userRepository;
@@ -39,6 +41,7 @@ public class AuthService : IAuthService
         _passwordHasher = passwordHasher;
         _tenantProvisioningService = tenantProvisioningService;
         _featureEntitlementService = featureEntitlementService;
+        _platformNotificationService = platformNotificationService;
         _jwtSettings = jwtSettings.Value;
     }
 
@@ -110,7 +113,8 @@ public class AuthService : IAuthService
         var passwordHash = _passwordHasher.HashPassword(passwordHashPlaceholder, request.Password);
 
         var admin = await _tenantProvisioningService.ProvisionNewTenantAsync(
-            request.CompanyName.Trim(), request.Username.Trim(), passwordHash, request.FullName.Trim(), cancellationToken);
+            request.CompanyName.Trim(), request.Username.Trim(), passwordHash, request.FullName.Trim(),
+            request.Email.Trim(), cancellationToken);
 
         // The auto-login right after signup counts as a real login too - otherwise a brand-new tenant
         // would show "Never" logged in on the platform-admin usage snapshot despite using the app.
@@ -118,6 +122,12 @@ public class AuthService : IAuthService
         _userRepository.Update(admin);
 
         var tenant = await GetActiveTenantOrThrowAsync(admin.TenantId, cancellationToken);
+
+        // Best-effort, never blocks/fails the registration itself - see PlatformNotificationService's
+        // doc comment.
+        await _platformNotificationService.NotifyNewTenantSignupAsync(
+            tenant.Id, tenant.Name, admin.Username, cancellationToken);
+
         return await IssueTokensAsync(admin, tenant, cancellationToken);
     }
 

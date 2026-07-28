@@ -37,6 +37,10 @@ public class DailyMartDbContext : DbContext, ITenantScopedDbContext
 
     public DbSet<PlatformAdmin> PlatformAdmins => Set<PlatformAdmin>();
 
+    public DbSet<PlatformNotification> PlatformNotifications => Set<PlatformNotification>();
+
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
+
     public DbSet<Plan> Plans => Set<Plan>();
 
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();

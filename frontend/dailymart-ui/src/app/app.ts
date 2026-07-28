@@ -7,7 +7,9 @@ import { MenuPermission } from './core/menu-permission.model';
 import { NavHistory } from './core/nav-history';
 import { Perms } from './core/perms';
 import { ShopBranding } from './core/shop-branding';
+import { SupportChatRealtimeService } from './core/support-chat-realtime';
 import { ACCENT_NAMES, ACCENT_PREVIEW, AccentName, Theme } from './core/theme';
+import { SupportChatWidgetComponent } from './shared/support-chat-widget/support-chat-widget.component';
 import { ToastContainerComponent } from './shared/toast-container/toast-container.component';
 
 interface NavNode extends MenuPermission {
@@ -17,7 +19,7 @@ interface NavNode extends MenuPermission {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastContainerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastContainerComponent, SupportChatWidgetComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -26,6 +28,7 @@ export class App {
   protected readonly authService = inject(AuthService);
   protected readonly perms = inject(Perms);
   protected readonly shopBranding = inject(ShopBranding);
+  private readonly supportChatRealtimeService = inject(SupportChatRealtimeService);
   protected readonly theme = inject(Theme);
   /** Constructed here (root component) purely so it starts observing navigation from app bootstrap -
    * every page's "Back" button injects the same singleton to actually use it. */
@@ -177,6 +180,7 @@ export class App {
   private afterLogout(): void {
     this.perms.clear();
     this.shopBranding.clear();
+    this.supportChatRealtimeService.clear();
     this.router.navigateByUrl('/login');
   }
 }

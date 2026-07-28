@@ -51,7 +51,18 @@
         <tbody>
           @for (tenant of items(); track tenant.id) {
             <tr>
-              <td>{{ tenant.name }}</td>
+              <td>
+                {{ tenant.name }}
+                @if (tenant.unreadSupportMessages > 0) {
+                  <span
+                    class="badge low"
+                    style="margin-left: 0.4rem"
+                    [attr.title]="tenant.unreadSupportMessages + ' unread support message(s)'"
+                  >
+                    💬 {{ tenant.unreadSupportMessages }}
+                  </span>
+                }
+              </td>
               <td><span class="badge" [class.on]="tenant.isActive" [class.off]="!tenant.isActive">{{ tenant.isActive ? 'Active' : 'Suspended' }}</span></td>
               <td>{{ tenant.planName }}</td>
               <td>{{ tenant.currentPeriodEnd ? (tenant.currentPeriodEnd | date: 'mediumDate') : '—' }}</td>

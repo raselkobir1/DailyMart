@@ -1,0 +1,43 @@
+<div class="chat-widget no-print" #chatWidget>
+  <button type="button" class="chat-bubble-btn" (click)="toggle()" aria-label="Chat with support">
+    💬
+    @if (unreadCount() > 0) {
+      <span class="chat-bubble-badge">{{ unreadCount() > 9 ? '9+' : unreadCount() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="card chat-panel">
+      <div class="chat-panel-header">
+        <strong>Chat with Support</strong>
+        <button type="button" class="icon-btn" (click)="open.set(false)" aria-label="Close chat">✕</button>
+      </div>
+
+      <div class="chat-panel-messages">
+        @if (messages().length === 0) {
+          <p class="subtitle" style="text-align: center; margin-top: 1rem">
+            Send a message and the DailyMart team will get back to you here.
+          </p>
+        }
+        @for (message of messages(); track message.id) {
+          <div class="chat-message" [class.from-support]="message.fromPlatformAdmin">
+            <div class="chat-message-meta">{{ message.fromPlatformAdmin ? 'DailyMart Support' : message.senderName }}</div>
+            <div class="chat-message-bubble">{{ message.message }}</div>
+            <div class="chat-message-time">{{ message.createdAt | date: 'short' }}</div>
+          </div>
+        }
+      </div>
+
+      <form class="chat-panel-input" (ngSubmit)="send()">
+        <input
+          class="input"
+          placeholder="Type a message..."
+          [(ngModel)]="draftMessage"
+          name="draftMessage"
+          autocomplete="off"
+        />
+        <button class="btn btn-primary" type="submit" [disabled]="!draftMessage.trim()">Send</button>
+      </form>
+    </div>
+  }
+</div>

@@ -13,14 +13,17 @@ namespace DailyMart.Application.Tenancy;
 public interface ITenantProvisioningService
 {
     /// <summary>Creates a brand new Tenant, its own "Admin" role with full access to every current
-    /// menu, a default ShopSettings row, and the first User (adminPasswordHash is already hashed -
-    /// this service has no opinion on hashing). One atomic unit - if any step fails, nothing is
+    /// menu, a ShopSettings row (ShopEmail populated from shopEmail - required at signup, see
+    /// RegisterRequestValidator - unlike its usual optional/blank default for an existing tenant that
+    /// hasn't visited Settings yet), and the first User (adminPasswordHash is already hashed - this
+    /// service has no opinion on hashing). One atomic unit - if any step fails, nothing is
     /// committed.</summary>
     Task<User> ProvisionNewTenantAsync(
         string companyName,
         string adminUsername,
         string adminPasswordHash,
         string adminFullName,
+        string shopEmail,
         CancellationToken cancellationToken = default);
 
     /// <summary>Ensures the given (already-existing) tenant has an "Admin" role with CanView/Create/

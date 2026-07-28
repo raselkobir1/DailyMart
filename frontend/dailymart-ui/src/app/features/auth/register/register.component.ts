@@ -29,7 +29,8 @@ export class RegisterComponent {
     companyName: ['', Validators.required],
     fullName: ['', Validators.required],
     username: ['', Validators.required],
-    password: ['', [Validators.required, Validators.minLength(8)]]
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    email: ['', [Validators.required, Validators.email]]
   });
 
   protected submit(): void {

@@ -1,1 +1,42 @@
-/* Uses only the shared design-system classes from styles.scss - nothing component-specific. */
+/* Uses only the shared design-system classes from styles.scss - nothing component-specific, except the
+   Support Chat message list below, which has no existing app-wide equivalent to reuse. */
+
+.platform-chat-messages {
+  min-height: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.platform-chat-message {
+  max-width: 85%;
+  align-self: flex-start;
+}
+
+.platform-chat-message.from-admin {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.platform-chat-message-meta {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+}
+
+.platform-chat-message-bubble {
+  background: var(--hover);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+  display: inline-block;
+}
+
+.platform-chat-message.from-admin .platform-chat-message-bubble {
+  background: var(--brand-soft);
+  color: var(--brand);
+}

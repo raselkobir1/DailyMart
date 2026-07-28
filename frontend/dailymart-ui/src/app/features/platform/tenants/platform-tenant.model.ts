@@ -12,4 +12,5 @@ export interface PlatformTenantDto {
   lastLoginAt: string | null;
   lastActivityAt: string | null;
   lastActiveAt: string | null;
+  unreadSupportMessages: number;
 }

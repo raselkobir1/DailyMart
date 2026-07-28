@@ -39,6 +39,9 @@ public static class DependencyInjection
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddSignalR();
+        services.AddScoped<IPlatformRealtimeNotifier, SignalRPlatformRealtimeNotifier>();
+        services.AddScoped<ISupportChatRealtimeNotifier, SignalRSupportChatRealtimeNotifier>();
         services.AddHttpClient<ISmsSender, HttpSmsSender>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         // PasswordHasher<TUser> is stateless/thread-safe - singleton is the standard registration for it.

@@ -1,11 +1,15 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { PlatformSupportChatRealtimeService } from '../../../../core/platform-support-chat-realtime';
+import { SupportMessageDto } from '../../../../core/support-chat.model';
 import { Toast } from '../../../../core/toast';
 import { PaginationComponent } from '../../../../shared/pagination/pagination.component';
 import { PlanDto } from '../../plans/plan.model';
 import { PlanService } from '../../plans/plan.service';
+import { PlatformSupportChatService } from '../platform-support-chat.service';
 import { SubscriptionPaymentDto, TenantSubscriptionDto } from '../platform-subscription.model';
 import { PlatformSubscriptionService } from '../platform-subscription.service';
 import { PlatformTenantDto } from '../platform-tenant.model';
@@ -17,15 +21,18 @@ import { PlatformFeatureService } from '../platform-feature.service';
 
 /** Per-tenant billing management - change plan, record a manual payment, see payment history. See
  * ISubscriptionService's doc comment on the backend for why this is manual-only (no gateway).
- * Rendered inside PlatformShellComponent's <router-outlet> - navigation/sign-out live in the shell. */
+ * Rendered inside PlatformShellComponent's <router-outlet> - navigation/sign-out live in the shell.
+ * Also the platform-admin half of the support chat with this one company - joins this tenant's SignalR
+ * room on init, leaves it on destroy (see SupportChatHub's doc comment on why a platform-admin
+ * connection has to explicitly move rooms rather than auto-joining like a tenant connection does). */
 @Component({
   selector: 'app-platform-tenant-detail',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, PaginationComponent],
+  imports: [DatePipe, FormsModule, ReactiveFormsModule, RouterLink, PaginationComponent],
   templateUrl: './platform-tenant-detail.component.html',
   styleUrl: './platform-tenant-detail.component.scss'
 })
-export class PlatformTenantDetailComponent implements OnInit {
+export class PlatformTenantDetailComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly platformTenantService = inject(PlatformTenantService);
@@ -33,6 +40,8 @@ export class PlatformTenantDetailComponent implements OnInit {
   private readonly usageService = inject(PlatformTenantUsageService);
   private readonly planService = inject(PlanService);
   private readonly featureService = inject(PlatformFeatureService);
+  private readonly supportChatService = inject(PlatformSupportChatService);
+  private readonly supportChatRealtimeService = inject(PlatformSupportChatRealtimeService);
   private readonly toast = inject(Toast);
 
   private readonly tenantId = Number(this.route.snapshot.paramMap.get('id'));
@@ -59,6 +68,10 @@ export class PlatformTenantDetailComponent implements OnInit {
   protected readonly recordingPayment = signal(false);
   protected readonly sendingReminder = signal(false);
 
+  protected readonly chatMessages = signal<SupportMessageDto[]>([]);
+  protected chatDraftMessage = '';
+  private chatMessageSubscription?: Subscription;
+
   protected readonly planForm = this.fb.nonNullable.group({
     planId: [0, Validators.required]
   });
@@ -76,11 +89,48 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.loadUsage();
     this.loadPayments();
     this.loadFeatures();
+    this.loadChat();
 
     this.planService.getActive().subscribe({
       next: (plans) => this.activePlans.set(plans),
       error: () => this.toast.error('Could not load plans.')
     });
+  }
+
+  ngOnDestroy(): void {
+    this.chatMessageSubscription?.unsubscribe();
+    this.supportChatRealtimeService.leaveTenantConversation(this.tenantId);
+  }
+
+  private loadChat(): void {
+    this.supportChatRealtimeService.joinTenantConversation(this.tenantId);
+
+    this.supportChatService.getConversation(this.tenantId).subscribe({
+      next: (messages) => this.chatMessages.set(messages),
+      error: () => this.toast.error('Could not load the support chat.')
+    });
+    this.supportChatService.markRead(this.tenantId).subscribe();
+
+    this.chatMessageSubscription = this.supportChatRealtimeService.newMessage$.subscribe((message) => {
+      if (message.tenantId !== this.tenantId) {
+        return;
+      }
+      this.chatMessages.update((list) => [...list, message]);
+      if (!message.fromPlatformAdmin) {
+        this.supportChatService.markRead(this.tenantId).subscribe();
+      }
+    });
+  }
+
+  protected sendChatMessage(): void {
+    const text = this.chatDraftMessage.trim();
+    if (!text) {
+      return;
+    }
+    this.supportChatService.send(this.tenantId, text).subscribe({
+      error: () => this.toast.error('Could not send the message.')
+    });
+    this.chatDraftMessage = '';
   }
 
   protected grantFeature(menuId: number): void {

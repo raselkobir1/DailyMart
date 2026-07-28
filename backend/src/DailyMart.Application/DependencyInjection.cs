@@ -54,6 +54,9 @@ public static class DependencyInjection
         services.AddScoped<IPlanService, PlanService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<ITenantReminderEmailService, TenantReminderEmailService>();
+        services.AddScoped<IPlatformNotificationService, PlatformNotificationService>();
+        services.AddScoped<ISupportChatService, SupportChatService>();
+        services.AddScoped<IPlatformNotificationStore, PlatformNotificationStore>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;

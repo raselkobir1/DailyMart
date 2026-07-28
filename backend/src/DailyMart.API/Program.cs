@@ -4,6 +4,7 @@ using DailyMart.API.Filters;
 using DailyMart.Application;
 using DailyMart.Application.Common.Options;
 using DailyMart.Infrastructure;
+using DailyMart.Infrastructure.Notifications;
 using DailyMart.Infrastructure.Persistence;
 using DailyMart.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -65,7 +66,11 @@ try
         {
             if (corsAllowedOrigins.Length > 0)
             {
-                policy.WithOrigins(corsAllowedOrigins).AllowAnyHeader().AllowAnyMethod();
+                // AllowCredentials is required for the SignalR platform-notifications hub to work
+                // cross-origin (its negotiate handshake needs it even though the actual connection auths
+                // via a bearer token, not a cookie) - only valid alongside explicit origins, never
+                // AllowAnyOrigin, which this branch already guarantees.
+                policy.WithOrigins(corsAllowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
             }
         });
     });
@@ -89,6 +94,25 @@ try
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.FromSeconds(30)
+            };
+
+            // The browser WebSocket API can't set an Authorization header, so the SignalR JS client
+            // sends the token as an "access_token" query param instead for hub connections - this reads
+            // it from there and treats it exactly like a normal bearer token, but only for requests to
+            // the hub path, so every ordinary REST endpoint still requires a real Authorization header.
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(accessToken) &&
+                        context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                }
             };
         });
 
@@ -154,6 +178,8 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+    app.MapHub<PlatformNotificationHub>("/hubs/platform-notifications");
+    app.MapHub<SupportChatHub>("/hubs/support-chat");
 
     app.Run();
 

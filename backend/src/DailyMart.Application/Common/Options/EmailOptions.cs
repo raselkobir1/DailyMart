@@ -22,4 +22,10 @@ public class EmailOptions
     public string FromAddress { get; set; } = string.Empty;
 
     public string FromName { get; set; } = "DailyMart";
+
+    /// <summary>Where a "new company signed up" notification goes (see IPlatformNotificationService) -
+    /// blank by default, same as everything else here. Unlike Enabled=false on the tenant-facing sends,
+    /// a blank/unset value here never throws - a new tenant's registration must never fail just because
+    /// nobody's listening for signup notifications yet.</summary>
+    public string? PlatformNotificationAddress { get; set; }
 }

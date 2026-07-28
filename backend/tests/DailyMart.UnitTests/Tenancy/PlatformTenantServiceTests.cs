@@ -15,6 +15,7 @@ public class PlatformTenantServiceTests
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ISubscriptionService> _subscriptionService = new();
     private readonly Mock<IUsageAnalyticsService> _usageAnalyticsService = new();
+    private readonly Mock<ISupportChatService> _supportChatService = new();
     private readonly PlatformTenantService _sut;
 
     public PlatformTenantServiceTests()
@@ -26,7 +27,11 @@ public class PlatformTenantServiceTests
         _usageAnalyticsService
             .Setup(s => s.GetSnapshotsByTenantIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<long, TenantUsageSnapshotDto>());
-        _sut = new PlatformTenantService(_unitOfWork.Object, _subscriptionService.Object, _usageAnalyticsService.Object);
+        _supportChatService
+            .Setup(s => s.GetUnreadCountsForPlatformAdminAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, int>());
+        _sut = new PlatformTenantService(
+            _unitOfWork.Object, _subscriptionService.Object, _usageAnalyticsService.Object, _supportChatService.Object);
     }
 
     private void SetTenants(params Tenant[] tenants) =>

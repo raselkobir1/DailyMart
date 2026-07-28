@@ -31,6 +31,7 @@ public class TenantProvisioningService : ITenantProvisioningService
         string adminUsername,
         string adminPasswordHash,
         string adminFullName,
+        string shopEmail,
         CancellationToken cancellationToken = default)
     {
         var tenant = new Tenant { Name = companyName, IsActive = true };
@@ -38,7 +39,7 @@ public class TenantProvisioningService : ITenantProvisioningService
         // Saved now so tenant.Id is populated before everything below references it.
         await _context.SaveChangesAsync(cancellationToken);
 
-        _context.ShopSettings.Add(new ShopSettings { TenantId = tenant.Id, ShopName = companyName });
+        _context.ShopSettings.Add(new ShopSettings { TenantId = tenant.Id, ShopName = companyName, ShopEmail = shopEmail });
 
         // Every new tenant starts on the Free plan (see PlanSeeder, which guarantees this row exists
         // before any HTTP request - including this anonymous signup one - is ever served).

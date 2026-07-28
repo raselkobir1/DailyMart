@@ -49,6 +49,7 @@ services:
       Email__Password: ${EMAIL_PASSWORD:-}
       Email__FromAddress: ${EMAIL_FROM_ADDRESS:-}
       Email__FromName: ${EMAIL_FROM_NAME:-DailyMart}
+      Email__PlatformNotificationAddress: ${EMAIL_PLATFORM_NOTIFICATION_ADDRESS:-}
       Sms__Enabled: ${SMS_ENABLED:-false}
       Sms__UrlTemplate: ${SMS_URL_TEMPLATE:-}
       Sms__ApiKey: ${SMS_API_KEY:-}

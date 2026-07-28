@@ -19,13 +19,18 @@ public class PlatformTenantService : IPlatformTenantService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ISubscriptionService _subscriptionService;
     private readonly IUsageAnalyticsService _usageAnalyticsService;
+    private readonly ISupportChatService _supportChatService;
 
     public PlatformTenantService(
-        IUnitOfWork unitOfWork, ISubscriptionService subscriptionService, IUsageAnalyticsService usageAnalyticsService)
+        IUnitOfWork unitOfWork,
+        ISubscriptionService subscriptionService,
+        IUsageAnalyticsService usageAnalyticsService,
+        ISupportChatService supportChatService)
     {
         _unitOfWork = unitOfWork;
         _subscriptionService = subscriptionService;
         _usageAnalyticsService = usageAnalyticsService;
+        _supportChatService = supportChatService;
     }
 
     public async Task<PagedResult<TenantSummaryDto>> GetPagedAsync(
@@ -36,9 +41,11 @@ public class PlatformTenantService : IPlatformTenantService
 
         var subscriptions = await _subscriptionService.GetSummariesByTenantIdsAsync(tenantIds, cancellationToken);
         var usageSnapshots = await _usageAnalyticsService.GetSnapshotsByTenantIdsAsync(tenantIds, cancellationToken);
+        var unreadCounts = await _supportChatService.GetUnreadCountsForPlatformAdminAsync(tenantIds, cancellationToken);
 
         IEnumerable<TenantSummaryDto> dtos = tenants
-            .Select(t => ToDto(t, subscriptions.GetValueOrDefault(t.Id), usageSnapshots.GetValueOrDefault(t.Id)));
+            .Select(t => ToDto(
+                t, subscriptions.GetValueOrDefault(t.Id), usageSnapshots.GetValueOrDefault(t.Id), unreadCounts.GetValueOrDefault(t.Id)));
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -95,7 +102,8 @@ public class PlatformTenantService : IPlatformTenantService
         var tenant = await GetEntityAsync(id, cancellationToken);
         var subscriptions = await _subscriptionService.GetSummariesByTenantIdsAsync([id], cancellationToken);
         var usageSnapshots = await _usageAnalyticsService.GetSnapshotsByTenantIdsAsync([id], cancellationToken);
-        return ToDto(tenant, subscriptions.GetValueOrDefault(id), usageSnapshots.GetValueOrDefault(id));
+        var unreadCounts = await _supportChatService.GetUnreadCountsForPlatformAdminAsync([id], cancellationToken);
+        return ToDto(tenant, subscriptions.GetValueOrDefault(id), usageSnapshots.GetValueOrDefault(id), unreadCounts.GetValueOrDefault(id));
     }
 
     public async Task<TenantSummaryDto> SetActiveAsync(
@@ -109,7 +117,8 @@ public class PlatformTenantService : IPlatformTenantService
 
         var subscriptions = await _subscriptionService.GetSummariesByTenantIdsAsync([id], cancellationToken);
         var usageSnapshots = await _usageAnalyticsService.GetSnapshotsByTenantIdsAsync([id], cancellationToken);
-        return ToDto(tenant, subscriptions.GetValueOrDefault(id), usageSnapshots.GetValueOrDefault(id));
+        var unreadCounts = await _supportChatService.GetUnreadCountsForPlatformAdminAsync([id], cancellationToken);
+        return ToDto(tenant, subscriptions.GetValueOrDefault(id), usageSnapshots.GetValueOrDefault(id), unreadCounts.GetValueOrDefault(id));
     }
 
     private async Task<Tenant> GetEntityAsync(long id, CancellationToken cancellationToken) =>
@@ -117,7 +126,7 @@ public class PlatformTenantService : IPlatformTenantService
             ?? throw new NotFoundException(nameof(Tenant), id);
 
     private static TenantSummaryDto ToDto(
-        Tenant tenant, TenantSubscriptionDto? subscription, TenantUsageSnapshotDto? usage) => new()
+        Tenant tenant, TenantSubscriptionDto? subscription, TenantUsageSnapshotDto? usage, int unreadSupportMessages) => new()
     {
         Id = tenant.Id,
         Name = tenant.Name,
@@ -131,7 +140,8 @@ public class PlatformTenantService : IPlatformTenantService
         ActiveUsers = usage?.ActiveUsers ?? 0,
         LastLoginAt = usage?.LastLoginAt,
         LastActivityAt = usage?.LastActivityAt,
-        LastActiveAt = ComputeLastActiveAt(usage)
+        LastActiveAt = ComputeLastActiveAt(usage),
+        UnreadSupportMessages = unreadSupportMessages
     };
 
     private static DateTimeOffset? ComputeLastActiveAt(TenantUsageSnapshotDto? usage)

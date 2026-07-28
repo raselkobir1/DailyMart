@@ -12,4 +12,9 @@ public class RegisterRequestDto
     public string Password { get; init; } = string.Empty;
 
     public string FullName { get; init; } = string.Empty;
+
+    /// <summary>Required at signup (unlike ShopSettings.ShopEmail's usual optional/blank default for a
+    /// tenant that later fills in Settings) - stored as ShopSettings.ShopEmail immediately, so every new
+    /// tenant is reachable for billing reminders (TenantReminderEmailService) from day one.</summary>
+    public string Email { get; init; } = string.Empty;
 }
