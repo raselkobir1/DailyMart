@@ -4,6 +4,10 @@ Mini departmental store management system - suppliers, purchasing, inventory, ba
 dues, and audit logging. See `CLAUDE.md` for architecture/conventions and
 `Mini_Departmental_Store_Modular_Monolith_Requirements.txt` for the full business requirements.
 
+For everything above a single tenant's own business data - Platform Admin vs. Shop Admin, the
+Role/Menu/Permission model, manual billing/subscriptions, and how to ship a feature to only specific
+companies - see `PLATFORM_ADMIN_GUIDE.md`.
+
 Products support bulk create/update from an Excel (`.xlsx`) upload - from the Products page, use **Template**
 to download a starter workbook (with a reference sheet of valid Category/Brand/Unit names) and **Import
 Excel** to upload it back once filled in. A row whose Code already exists updates that product; any other
