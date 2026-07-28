@@ -4,6 +4,7 @@ using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Customers;
 using DailyMart.Application.Inventory;
 using DailyMart.Application.Sales;
+using DailyMart.Application.Settings;
 using DailyMart.Domain.Common;
 using DailyMart.Domain.Customers;
 using DailyMart.Domain.Inventory;
@@ -22,6 +23,7 @@ public class SaleServiceTests
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IInventoryService> _inventoryService = new();
     private readonly Mock<ICustomerService> _customerService = new();
+    private readonly Mock<IShopSettingsService> _shopSettingsService = new();
     private readonly SaleService _sut;
 
     public SaleServiceTests()
@@ -30,6 +32,13 @@ public class SaleServiceTests
         _unitOfWork.Setup(u => u.Repository<SaleItem>()).Returns(_itemRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Customer>()).Returns(_customerRepository.Object);
         _unitOfWork.Setup(u => u.Repository<Product>()).Returns(_productRepository.Object);
+
+        // Default: no VAT, so every pre-existing amount-calculation test below (written before VAT was
+        // shop-settings-driven) keeps working unchanged - only the tests that explicitly care about VAT
+        // override this.
+        _shopSettingsService
+            .Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShopSettingsDto { DefaultVatPercentage = 0 });
 
         _customerRepository
             .Setup(r => r.ExistsAsync(It.IsAny<Expression<Func<Customer, bool>>>(), It.IsAny<CancellationToken>()))
@@ -47,7 +56,7 @@ public class SaleServiceTests
             .Callback<Sale, CancellationToken>((s, _) => s.Id = 10)
             .Returns(Task.CompletedTask);
 
-        _sut = new SaleService(_unitOfWork.Object, _inventoryService.Object, _customerService.Object);
+        _sut = new SaleService(_unitOfWork.Object, _inventoryService.Object, _customerService.Object, _shopSettingsService.Object);
     }
 
     private static SaleRequestDto ValidRequest(
@@ -55,7 +64,6 @@ public class SaleServiceTests
         long? customerId = null,
         decimal paidAmount = 0,
         decimal headerDiscount = 0,
-        decimal headerVat = 0,
         decimal itemQuantity = 2,
         decimal itemUnitPrice = 50,
         decimal itemDiscount = 0) => new()
@@ -64,7 +72,6 @@ public class SaleServiceTests
         SaleDate = DateTimeOffset.UtcNow,
         PaymentType = paymentType,
         DiscountAmount = headerDiscount,
-        VatAmount = headerVat,
         PaidAmount = paidAmount,
         Items = [new SaleItemRequestDto { ProductId = 1, Quantity = itemQuantity, UnitPrice = itemUnitPrice, DiscountAmount = itemDiscount }]
     };
@@ -72,15 +79,29 @@ public class SaleServiceTests
     [Fact]
     public async Task CreateAsync_computes_line_totals_and_amounts_for_Cash()
     {
-        var request = ValidRequest(headerDiscount: 10, headerVat: 5, itemDiscount: 5);
+        var request = ValidRequest(headerDiscount: 10, itemDiscount: 5);
 
         var result = await _sut.CreateAsync(request);
 
         Assert.Equal(95, result.SubtotalAmount); // (2 * 50) - 5
-        Assert.Equal(90, result.TotalAmount); // 95 - 10 + 5
-        Assert.Equal(90, result.PaidAmount);
+        Assert.Equal(85, result.TotalAmount); // 95 - 10 + 0 vat
+        Assert.Equal(85, result.PaidAmount);
         Assert.Equal(0, result.DueAmount);
         Assert.Equal(95, result.Items[0].LineTotal);
+    }
+
+    [Fact]
+    public async Task CreateAsync_computes_VatAmount_from_ShopSettings_DefaultVatPercentage_and_ignores_the_client()
+    {
+        _shopSettingsService
+            .Setup(s => s.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShopSettingsDto { DefaultVatPercentage = 5 });
+
+        // itemQuantity 2 * itemUnitPrice 50 = subtotal 100 -> 5% VAT = 5.
+        var result = await _sut.CreateAsync(ValidRequest());
+
+        Assert.Equal(5, result.VatAmount);
+        Assert.Equal(105, result.TotalAmount);
     }
 
     [Fact]

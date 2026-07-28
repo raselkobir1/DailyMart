@@ -10,7 +10,6 @@ internal static class SaleMappingExtensions
         SaleDate = request.SaleDate,
         PaymentType = request.PaymentType,
         DiscountAmount = request.DiscountAmount,
-        VatAmount = request.VatAmount,
         PaidAmount = request.PaidAmount,
         Notes = request.Notes
     };

@@ -4,6 +4,7 @@ using DailyMart.Application.Common.Interfaces;
 using DailyMart.Application.Common.Models;
 using DailyMart.Application.Customers;
 using DailyMart.Application.Inventory;
+using DailyMart.Application.Settings;
 using DailyMart.Domain.Common;
 using DailyMart.Domain.Customers;
 using DailyMart.Domain.Inventory;
@@ -17,12 +18,18 @@ public class SaleService : ISaleService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IInventoryService _inventoryService;
     private readonly ICustomerService _customerService;
+    private readonly IShopSettingsService _shopSettingsService;
 
-    public SaleService(IUnitOfWork unitOfWork, IInventoryService inventoryService, ICustomerService customerService)
+    public SaleService(
+        IUnitOfWork unitOfWork,
+        IInventoryService inventoryService,
+        ICustomerService customerService,
+        IShopSettingsService shopSettingsService)
     {
         _unitOfWork = unitOfWork;
         _inventoryService = inventoryService;
         _customerService = customerService;
+        _shopSettingsService = shopSettingsService;
     }
 
     public async Task<PagedResult<SaleDto>> GetPagedAsync(
@@ -76,7 +83,8 @@ public class SaleService : ISaleService
         var products = await GetProductsAsync(items.Select(i => i.ProductId), cancellationToken);
         EnsureProductsExist(items.Select(i => i.ProductId), products);
 
-        ComputeAmounts(sale, items, products);
+        var shopSettings = await _shopSettingsService.GetAsync(cancellationToken);
+        ComputeAmounts(sale, items, products, shopSettings.DefaultVatPercentage);
 
         var saleRepository = _unitOfWork.Repository<Sale>();
         await saleRepository.AddAsync(sale, cancellationToken);
@@ -134,10 +142,13 @@ public class SaleService : ISaleService
     }
 
     /// <summary>Sets each item's UnitCost (snapshotted from Product.PurchasePrice) and LineTotal, then the
-    /// header's Subtotal/Total/TotalCost/ProfitAmount/Paid/Due amounts. PaidAmount is derived from
-    /// PaymentType rather than trusted verbatim from the caller - identical reasoning to
-    /// PurchaseService.ComputeAmounts.</summary>
-    private static void ComputeAmounts(Sale sale, IReadOnlyList<SaleItem> items, IReadOnlyDictionary<long, Product> products)
+    /// header's Subtotal/Vat/Total/TotalCost/ProfitAmount/Paid/Due amounts. VatAmount is derived from the
+    /// shop's ShopSettings.DefaultVatPercentage applied to the subtotal - never trusted from the caller,
+    /// same reasoning as PaidAmount (and PurchaseService.ComputeAmounts): a company-wide tax rate is a
+    /// system-computed fact, not something a cashier (or a direct API call bypassing the disabled POS
+    /// field) gets to override per sale.</summary>
+    private static void ComputeAmounts(
+        Sale sale, IReadOnlyList<SaleItem> items, IReadOnlyDictionary<long, Product> products, decimal vatPercentage)
     {
         foreach (var item in items)
         {
@@ -146,6 +157,7 @@ public class SaleService : ISaleService
         }
 
         sale.SubtotalAmount = items.Sum(i => i.LineTotal);
+        sale.VatAmount = sale.SubtotalAmount * (vatPercentage / 100m);
         sale.TotalAmount = sale.SubtotalAmount - sale.DiscountAmount + sale.VatAmount;
         sale.TotalCost = items.Sum(i => i.Quantity * i.UnitCost);
         sale.ProfitAmount = sale.TotalAmount - sale.TotalCost;

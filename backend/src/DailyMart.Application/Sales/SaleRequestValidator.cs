@@ -13,7 +13,6 @@ public class SaleRequestValidator : AbstractValidator<SaleRequestDto>
         RuleFor(x => x.SaleDate).NotEmpty();
         RuleFor(x => x.PaymentType).IsInEnum();
         RuleFor(x => x.DiscountAmount).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.VatAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.PaidAmount).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Notes).MaximumLength(500);
         RuleFor(x => x.Items).NotEmpty();

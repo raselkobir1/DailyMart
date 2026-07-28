@@ -45,13 +45,14 @@ export interface SaleItemRequest {
 }
 
 /** Create-only - matches the backend's SaleRequestDto. customerId is null for a walk-in Cash sale; the
- * server rejects Credit/Partial requests with no customer. */
+ * server rejects Credit/Partial requests with no customer. No vatAmount field - the backend always
+ * derives it from ShopSettings.DefaultVatPercentage (see SaleService.ComputeAmounts), so there's nothing
+ * for the client to submit. */
 export interface SaleRequest {
   customerId: number | null;
   saleDate: string;
   paymentType: number;
   discountAmount: number;
-  vatAmount: number;
   paidAmount: number;
   notes: string | null;
   items: SaleItemRequest[];

@@ -104,8 +104,8 @@
       <div class="row">
         <div class="field">
           <label>VAT</label>
-          <input class="input" type="number" formControlName="vatAmount" />
-          <span class="hint">Auto-filled from each product's Tax % - edit freely to override.</span>
+          <input class="input" type="number" [value]="vatAmount()" disabled />
+          <span class="hint">Auto-calculated at {{ defaultVatPercentage() }}% (Settings) - not editable.</span>
         </div>
 
         @if (formValue().paymentType === 2) {

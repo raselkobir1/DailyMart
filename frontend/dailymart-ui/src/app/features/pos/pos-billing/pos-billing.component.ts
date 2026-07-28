@@ -1,9 +1,10 @@
-import { Component, ElementRef, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
+import { SettingsService } from '../../settings/settings.service';
 import { Toast } from '../../../core/toast';
 import { CustomerDto } from '../../customers/customer.model';
 import { CustomerService } from '../../customers/customer.service';
@@ -32,8 +33,14 @@ export class PosBillingComponent implements OnInit {
   private readonly saleService = inject(SaleService);
   private readonly customerService = inject(CustomerService);
   private readonly productService = inject(ProductService);
+  private readonly settingsService = inject(SettingsService);
   private readonly router = inject(Router);
   private readonly toast = inject(Toast);
+
+  /** The shop-wide VAT rate (Settings) that drives vatAmount below - loaded once in ngOnInit. VAT is
+   * always this rate applied to the subtotal; it's never per-product or cashier-editable (see
+   * pos-billing.component.html's VAT field, a plain disabled display, not a form control). */
+  protected readonly defaultVatPercentage = signal(0);
 
   protected readonly paymentTypes = PAYMENT_TYPES;
   protected readonly customers = signal<CustomerDto[]>([]);
@@ -59,7 +66,6 @@ export class PosBillingComponent implements OnInit {
     customerId: [0],
     paymentType: [0, Validators.required],
     discountAmount: [0, [Validators.min(0)]],
-    vatAmount: [0, [Validators.min(0)]],
     paidAmount: [0, [Validators.min(0)]],
     notes: ['', Validators.maxLength(500)],
     items: this.fb.array<ReturnType<typeof this.createItemGroup>>([])
@@ -78,8 +84,12 @@ export class PosBillingComponent implements OnInit {
     )
   );
 
+  /** Always subtotal * shop-wide VAT % (Settings) - never per-product, never cashier-editable. See this
+   * class' own doc comment on defaultVatPercentage. */
+  protected readonly vatAmount = computed(() => (this.subtotal() * this.defaultVatPercentage()) / 100);
+
   protected readonly total = computed(
-    () => this.subtotal() - (this.formValue().discountAmount ?? 0) + (this.formValue().vatAmount ?? 0)
+    () => this.subtotal() - (this.formValue().discountAmount ?? 0) + this.vatAmount()
   );
 
   protected readonly due = computed(() => {
@@ -96,21 +106,6 @@ export class PosBillingComponent implements OnInit {
   /** True when the current payment type needs a customer on file - Cash (0) never does. */
   protected readonly customerRequired = computed(() => (this.formValue().paymentType ?? 0) !== 0);
 
-  /** Each product carries its own Tax % (captured on the product form since Module 4 but never actually
-   * applied anywhere until now) - this sums every cart line's (subtotal * product tax%) and the
-   * constructor's effect rolls it into the header VAT field below, which stays independently editable for
-   * any further shop-wide adjustment. */
-  protected readonly computedLineTax = computed(() =>
-    (this.formValue().items ?? []).reduce((sum, item) => {
-      const lineSubtotal = (item.quantity ?? 0) * (item.unitPrice ?? 0) - (item.discountAmount ?? 0);
-      return sum + lineSubtotal * ((item.taxPercentage ?? 0) / 100);
-    }, 0)
-  );
-
-  /** Tracks the last value we auto-filled into vatAmount, so we can tell "still ours" (keep auto-updating)
-   * apart from "the cashier typed their own number" (stop touching it from then on). */
-  private lastAutoVat = 0;
-
   constructor() {
     this.productQuery$
       .pipe(
@@ -122,19 +117,11 @@ export class PosBillingComponent implements OnInit {
         )
       )
       .subscribe((result) => this.productResults.set(result?.items ?? []));
-
-    effect(() => {
-      const autoVat = Math.round(this.computedLineTax() * 100) / 100;
-      const vatControl = this.form.controls.vatAmount;
-      if (vatControl.value === this.lastAutoVat) {
-        vatControl.setValue(autoVat);
-        this.lastAutoVat = autoVat;
-      }
-    });
   }
 
   ngOnInit(): void {
     this.customerService.getPaged({ pageNumber: 1, pageSize: 100 }).subscribe((result) => this.customers.set(result.items));
+    this.settingsService.get().subscribe((settings) => this.defaultVatPercentage.set(settings.defaultVatPercentage));
   }
 
   protected onBarcodeEnter(): void {
@@ -145,9 +132,7 @@ export class PosBillingComponent implements OnInit {
 
     this.productService.getByBarcode(code).subscribe({
       next: (product) => {
-        this.addOrIncrementItem(
-          product.id, product.name, product.code, product.sellingPrice, product.discountPercentage, product.taxPercentage
-        );
+        this.addOrIncrementItem(product.id, product.name, product.code, product.sellingPrice, product.discountPercentage);
         this.barcode.set('');
         this.focusBarcodeInput();
       },
@@ -171,9 +156,7 @@ export class PosBillingComponent implements OnInit {
   }
 
   protected selectProduct(product: ProductDto): void {
-    this.addOrIncrementItem(
-      product.id, product.name, product.code, product.sellingPrice, product.discountPercentage, product.taxPercentage
-    );
+    this.addOrIncrementItem(product.id, product.name, product.code, product.sellingPrice, product.discountPercentage);
     this.productSearchTerm.set('');
     this.productResults.set([]);
     this.showProductDropdown.set(false);
@@ -233,7 +216,6 @@ export class PosBillingComponent implements OnInit {
       saleDate: new Date().toISOString(),
       paymentType: raw.paymentType,
       discountAmount: raw.discountAmount,
-      vatAmount: raw.vatAmount,
       paidAmount: raw.paidAmount,
       notes: raw.notes || null,
       items
@@ -257,8 +239,7 @@ export class PosBillingComponent implements OnInit {
     productName: string,
     productCode: string,
     sellingPrice: number,
-    discountPercentage = 0,
-    taxPercentage = 0
+    discountPercentage = 0
   ): void {
     const existingIndex = this.itemsArray.controls.findIndex((row) => row.controls.productId.value === productId);
     if (existingIndex >= 0) {
@@ -268,30 +249,17 @@ export class PosBillingComponent implements OnInit {
     }
 
     const discountAmount = Math.round(sellingPrice * (discountPercentage / 100) * 100) / 100;
-    this.itemsArray.push(
-      this.createItemGroup(productId, productName, productCode, sellingPrice, discountAmount, taxPercentage)
-    );
+    this.itemsArray.push(this.createItemGroup(productId, productName, productCode, sellingPrice, discountAmount));
   }
 
-  private createItemGroup(
-    productId = 0,
-    productName = '',
-    productCode = '',
-    unitPrice = 0,
-    discountAmount = 0,
-    taxPercentage = 0
-  ) {
+  private createItemGroup(productId = 0, productName = '', productCode = '', unitPrice = 0, discountAmount = 0) {
     return this.fb.nonNullable.group({
       productId: [productId, Validators.required],
       productName: [productName],
       productCode: [productCode],
       quantity: [1, [Validators.required, Validators.min(0.001)]],
       unitPrice: [unitPrice, [Validators.required, Validators.min(0)]],
-      discountAmount: [discountAmount, [Validators.min(0)]],
-      /** Not submitted to the backend - purely local so computedLineTax can react to per-line quantity/
-       * price/discount edits. The product's Tax % only ever reaches the server pre-folded into the header
-       * VAT amount (see the constructor's effect), since SaleItem has no per-line tax column. */
-      taxPercentage: [taxPercentage]
+      discountAmount: [discountAmount, [Validators.min(0)]]
     });
   }
 
