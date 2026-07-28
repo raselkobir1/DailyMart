@@ -22,14 +22,17 @@ export const authGuard: CanActivateFn = () => {
   return true;
 };
 
-/** Gates the login/register routes - an already-authenticated session landing here (e.g. via the
- * browser back button right after logging in) should bounce back into the app instead of rendering the
- * login form, since app.html's shell/sidebar toggle keys off isAuthenticated() alone, not the route. */
+/** Gates the login/register/landing routes - an already-authenticated session landing here (e.g. via the
+ * browser back button right after logging in, or navigating to the public marketing page at '/') should
+ * bounce straight into the app instead of rendering a guest-facing page, since app.html's shell/sidebar
+ * toggle keys off isAuthenticated() alone, not the route. Targets /dashboard explicitly (not '/') since
+ * '/' is itself one of the guest-only routes this guards - redirecting there would just re-trigger this
+ * same check. */
 export const guestGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  return authService.isAuthenticated() ? router.createUrlTree(['/']) : true;
+  return authService.isAuthenticated() ? router.createUrlTree(['/dashboard']) : true;
 };
 
 /** Per-route factory guard - denies access to a menu the current user's role can't view, redirecting to

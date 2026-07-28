@@ -1,0 +1,85 @@
+<div class="landing">
+  <header class="landing-nav">
+    <div class="landing-brand"><span>🏪</span> DailyMart</div>
+    <nav class="landing-nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <div class="landing-nav-actions">
+      <a class="btn" routerLink="/login">Login</a>
+      <a class="btn btn-primary" routerLink="/register">Start Free</a>
+    </div>
+  </header>
+
+  <section class="landing-hero">
+    <h1>Run your departmental store, all in one place.</h1>
+    <p>
+      Barcode POS billing, inventory, purchases, supplier &amp; customer dues, expenses, and reports -
+      one account for your shop, ready in minutes.
+    </p>
+    <div class="landing-hero-actions">
+      <a class="btn btn-primary" style="padding: 0.85rem 1.75rem; font-size: 1rem" routerLink="/register">
+        Start Free - No Credit Card
+      </a>
+      <a class="btn" style="padding: 0.85rem 1.75rem; font-size: 1rem" routerLink="/login">
+        Login to your account
+      </a>
+    </div>
+  </section>
+
+  <section id="features" class="landing-section">
+    <h2>Everything your shop needs</h2>
+    <div class="landing-feature-grid">
+      @for (feature of features; track feature.title) {
+        <div class="card card-pad landing-feature-card">
+          <div class="landing-feature-icon">{{ feature.icon }}</div>
+          <h3>{{ feature.title }}</h3>
+          <p class="subtitle">{{ feature.description }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section id="pricing" class="landing-section">
+    <h2>Simple pricing</h2>
+    <p class="subtitle" style="text-align: center; margin-top: -0.5rem">
+      Start on Free, upgrade whenever your shop is ready.
+    </p>
+
+    @if (loadingPlans()) {
+      <div class="spinner-page"><span class="spinner lg"></span></div>
+    } @else {
+      <div class="landing-pricing-grid">
+        @for (plan of plans(); track plan.id) {
+          <div class="card card-pad landing-pricing-card" [class.featured]="plan.isFree">
+            @if (plan.isFree) {
+              <span class="badge on" style="margin-bottom: 0.75rem">Most Popular to Start</span>
+            }
+            <h3>{{ plan.name }}</h3>
+            <div class="landing-price">
+              @if (plan.isFree) {
+                Free
+              } @else {
+                {{ plan.price }} <span class="subtitle">/ {{ plan.billingCycle | lowercase }}</span>
+              }
+            </div>
+            <p class="subtitle">{{ plan.description }}</p>
+            <a class="btn btn-primary" style="width: 100%; margin-top: 1rem" routerLink="/register">
+              Get Started
+            </a>
+          </div>
+        } @empty {
+          <p class="empty-state">Pricing is being set up - check back shortly.</p>
+        }
+      </div>
+    }
+  </section>
+
+  <footer class="landing-footer">
+    <div>🏪 DailyMart - Departmental Store Management</div>
+    <div class="landing-footer-links">
+      <a routerLink="/login">Login</a>
+      <a routerLink="/register">Sign Up</a>
+    </div>
+  </footer>
+</div>

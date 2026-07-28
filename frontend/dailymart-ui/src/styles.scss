@@ -210,6 +210,9 @@ a {
     border-color 0.15s,
     opacity 0.15s;
   font-family: inherit;
+  /* Only ever visible when .btn is applied to an <a> (e.g. this landing page's CTAs, "Back to
+     Companies" on the platform tenant detail page) - a <button> never has one to begin with. */
+  text-decoration: none;
 }
 
 .btn:hover {

@@ -1,0 +1,169 @@
+.landing {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.landing-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.landing-nav-links {
+  display: none;
+  gap: 1.5rem;
+  flex: 1;
+
+  a {
+    color: var(--muted);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--ink);
+  }
+}
+
+@media (min-width: 700px) {
+  .landing-nav-links {
+    display: flex;
+  }
+}
+
+.landing-nav-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.landing-hero {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 5rem 1.5rem 4rem;
+  text-align: center;
+}
+
+.landing-hero h1 {
+  font-size: 2.5rem;
+  line-height: 1.15;
+  margin: 0 0 1.25rem;
+  background: linear-gradient(160deg, var(--brand) 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.landing-hero p {
+  color: var(--muted);
+  font-size: 1.1rem;
+  margin: 0 0 2rem;
+}
+
+.landing-hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.landing-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.landing-section h2 {
+  text-align: center;
+  font-size: 1.75rem;
+  margin: 0 0 2rem;
+}
+
+.landing-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.25rem;
+}
+
+.landing-feature-card {
+  text-align: left;
+}
+
+.landing-feature-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.landing-feature-card h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.landing-feature-card p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.landing-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.landing-pricing-card {
+  text-align: center;
+}
+
+.landing-pricing-card.featured {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-soft);
+}
+
+.landing-pricing-card h3 {
+  margin: 0 0 0.5rem;
+}
+
+.landing-price {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.landing-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 2.5rem 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.landing-footer-links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.landing-footer-links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.landing-footer-links a:hover {
+  color: var(--ink);
+}

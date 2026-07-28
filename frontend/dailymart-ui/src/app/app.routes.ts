@@ -3,6 +3,16 @@ import { authGuard, canView, guestGuard } from './core/auth/auth.guard';
 import { platformAuthGuard } from './core/auth/platform-auth.guard';
 
 export const routes: Routes = [
+  // The public marketing/landing page - listed first and matched with pathMatch: 'full', so it only ever
+  // claims the bare '/' URL, never '/dashboard' etc. (those fall through to the authGuard-wrapped block
+  // below). guestGuard bounces an already-authenticated visitor straight to /dashboard instead of
+  // showing this - see LandingComponent's own doc comment.
+  {
+    path: '',
+    pathMatch: 'full',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/landing/landing.component').then((m) => m.LandingComponent)
+  },
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -17,7 +27,9 @@ export const routes: Routes = [
     path: '',
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      // No pathMatch: 'full' redirect for '' here - the top-level landing route above already claims the
+      // bare '/' URL for every visitor (guest or authenticated, via guestGuard's redirect), so this
+      // child would never be reached.
       {
         path: 'dashboard',
         canActivate: [canView('dashboard')],
