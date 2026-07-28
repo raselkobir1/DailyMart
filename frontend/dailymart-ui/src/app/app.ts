@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -6,6 +6,7 @@ import { AuthService } from './core/auth/auth.service';
 import { MenuPermission } from './core/menu-permission.model';
 import { NavHistory } from './core/nav-history';
 import { Perms } from './core/perms';
+import { ShopBranding } from './core/shop-branding';
 import { ACCENT_NAMES, ACCENT_PREVIEW, AccentName, Theme } from './core/theme';
 import { ToastContainerComponent } from './shared/toast-container/toast-container.component';
 
@@ -24,6 +25,7 @@ export class App {
   private readonly router = inject(Router);
   protected readonly authService = inject(AuthService);
   protected readonly perms = inject(Perms);
+  protected readonly shopBranding = inject(ShopBranding);
   protected readonly theme = inject(Theme);
   /** Constructed here (root component) purely so it starts observing navigation from app bootstrap -
    * every page's "Back" button injects the same singleton to actually use it. */
@@ -32,6 +34,11 @@ export class App {
   protected readonly accents = ACCENT_NAMES;
   protected readonly accentPreview = ACCENT_PREVIEW;
   protected readonly userMenuOpen = signal(false);
+
+  /** Wraps both the account button and its dropdown (app.html) - a document-level click is checked
+   * against this so opening the menu (a click on the button, which is inside this element) never
+   * immediately closes it again in the same handler pass. */
+  @ViewChild('accountMenu') private accountMenuRef?: ElementRef<HTMLElement>;
 
   /** Builds a parent/child tree from the flat permitted-menu list, one level deep (grandchildren aren't
    * rendered - the seeded set never nests that deep, see Menu.ParentId's doc comment). */
@@ -138,6 +145,20 @@ export class App {
     this.userMenuOpen.set(false);
   }
 
+  /** Closes the account dropdown on a click anywhere outside it - the toggle button itself is inside
+   * accountMenuRef's element, so the click that opens the menu never also closes it here. */
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this.userMenuOpen()) {
+      return;
+    }
+
+    const target = event.target as Node | null;
+    if (target && !this.accountMenuRef?.nativeElement.contains(target)) {
+      this.closeUserMenu();
+    }
+  }
+
   protected setAccent(accent: AccentName): void {
     this.theme.setAccent(accent);
   }
@@ -155,6 +176,7 @@ export class App {
 
   private afterLogout(): void {
     this.perms.clear();
+    this.shopBranding.clear();
     this.router.navigateByUrl('/login');
   }
 }

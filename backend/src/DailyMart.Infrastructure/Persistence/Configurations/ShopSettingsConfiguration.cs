@@ -12,6 +12,12 @@ public class ShopSettingsConfiguration : IEntityTypeConfiguration<ShopSettings>
 
         builder.HasKey(s => s.Id);
 
+        // Exactly one (active) Settings row per tenant - see ShopSettings' doc comment. Without this,
+        // ShopSettingsRepository.GetSingletonAsync's FirstOrDefaultAsync() has no ORDER BY, so a second
+        // row for the same tenant (which nothing previously prevented) made GET/PUT /api/settings return
+        // a non-deterministic one of the two.
+        builder.HasIndex(s => s.TenantId).IsUnique().HasFilter("is_deleted = false");
+
         builder.Property(s => s.ShopName).HasMaxLength(200).IsRequired();
         builder.Property(s => s.ShopAddress).HasMaxLength(500);
         builder.Property(s => s.ShopPhone).HasMaxLength(50);

@@ -3,9 +3,12 @@ using DailyMart.Domain.Common;
 namespace DailyMart.Domain.Settings;
 
 /// <summary>
-/// Singleton shop-wide configuration - exactly one row ever exists (seeded at startup). Other modules
-/// read this for defaults (currency, VAT %, discount %) rather than each keeping its own copy.
-/// Named ShopSettings rather than Settings to avoid a type colliding with its own namespace.
+/// Singleton shop-wide configuration - exactly one row per tenant (seeded once at tenant provisioning,
+/// see TenantProvisioningService/AdminSeeder), enforced by a unique filtered index on TenantId
+/// (ShopSettingsConfiguration) so ShopSettingsRepository.GetSingletonAsync's unordered lookup can never
+/// return a non-deterministic result. Other modules read this for defaults (currency, VAT %, discount %)
+/// rather than each keeping its own copy. Named ShopSettings rather than Settings to avoid a type
+/// colliding with its own namespace.
 /// </summary>
 public class ShopSettings : TenantOwnedEntity
 {

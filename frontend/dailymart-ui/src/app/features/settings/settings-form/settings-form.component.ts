@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ShopBranding } from '../../../core/shop-branding';
 import { Toast } from '../../../core/toast';
 import { BackupFrequency, ShopSettingsDto } from '../settings.model';
 import { SettingsService } from '../settings.service';
@@ -14,6 +15,7 @@ import { SettingsService } from '../settings.service';
 export class SettingsFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly settingsService = inject(SettingsService);
+  private readonly shopBranding = inject(ShopBranding);
   private readonly toast = inject(Toast);
 
   protected readonly loading = signal(true);
@@ -98,6 +100,9 @@ export class SettingsFormComponent implements OnInit {
 
   private applySettings(settings: ShopSettingsDto): void {
     this.logoUrl.set(settings.shopLogoUrl);
+    // Pushes straight into the shared signal the app shell's sidebar reads (see ShopBranding's doc
+    // comment) - a plain PUT response wouldn't otherwise reach anything outside this component.
+    this.shopBranding.setShopName(settings.shopName);
     this.form.patchValue({
       shopName: settings.shopName,
       shopAddress: settings.shopAddress ?? '',

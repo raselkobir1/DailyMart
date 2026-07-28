@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Perms } from '../../../core/perms';
+import { ShopBranding } from '../../../core/shop-branding';
 
 @Component({
   selector: 'app-login',
@@ -15,6 +16,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly perms = inject(Perms);
+  private readonly shopBranding = inject(ShopBranding);
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
@@ -48,6 +50,12 @@ export class LoginComponent {
   }
 
   private afterLogin(): void {
+    // Fire-and-forget: the shell's brand text (see ShopBranding's doc comment) is decorative, not an
+    // access-control gate like Perms, so it doesn't need to block navigation or be re-checked on failure.
+    // provideAppInitializer only covers a hard page load while already authenticated - an in-app login
+    // needs its own load() call the same way Perms already does below.
+    this.shopBranding.load().subscribe();
+
     // Perms.load() never errors out to the subscriber - it catches internally and resolves to an empty
     // list, setting lastLoadFailed() so this distinguishes "couldn't check permissions" (a transient
     // failure right after a valid login - stay signed in, let them retry) from "checked, and this role

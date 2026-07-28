@@ -1,7 +1,7 @@
 @if (authService.isAuthenticated() && !isPlatformRoute()) {
   <div class="shell">
     <aside class="sidebar no-print">
-      <div class="brand"><span>🏪</span> DailyMart</div>
+      <div class="brand"><span>🏪</span> {{ shopBranding.shopName() ?? 'DailyMart' }}</div>
 
       <div class="section-label">Menu</div>
       <nav>
@@ -54,7 +54,7 @@
             {{ theme.getMode() === 'dark' ? '☀️' : '🌙' }}
           </button>
 
-          <div style="position: relative">
+          <div style="position: relative" #accountMenu>
             <button type="button" class="icon-btn" (click)="toggleUserMenu()" aria-label="Account menu">
               <span class="avatar sm">{{ initials() }}</span>
             </button>
