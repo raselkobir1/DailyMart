@@ -37,6 +37,11 @@
         @if (!s.isFree) {
           <button class="btn btn-primary" type="button" (click)="startRecordPayment()">Record Payment</button>
         }
+        @if (s.isOverdue || s.isFree) {
+          <button class="btn" type="button" [disabled]="sendingReminder()" (click)="sendReminder()">
+            {{ sendingReminder() ? 'Sending…' : 'Send Reminder' }}
+          </button>
+        }
       </div>
 
       @if (changingPlan()) {

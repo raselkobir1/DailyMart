@@ -6,6 +6,7 @@ import {
   ChangePlanRequest,
   RecordPaymentRequest,
   SubscriptionPaymentDto,
+  TenantReminderEmailResult,
   TenantSubscriptionDto
 } from './platform-subscription.model';
 
@@ -35,5 +36,9 @@ export class PlatformSubscriptionService {
 
   recordPayment(tenantId: number, request: RecordPaymentRequest): Observable<SubscriptionPaymentDto> {
     return this.http.post<SubscriptionPaymentDto>(`/platform/tenants/${tenantId}/subscription/payments`, request);
+  }
+
+  sendReminder(tenantId: number): Observable<TenantReminderEmailResult> {
+    return this.http.post<TenantReminderEmailResult>(`/platform/tenants/${tenantId}/subscription/send-reminder`, {});
   }
 }

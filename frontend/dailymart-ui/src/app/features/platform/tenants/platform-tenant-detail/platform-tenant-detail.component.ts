@@ -57,6 +57,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   protected readonly changingPlan = signal(false);
   protected readonly paymentFormVisible = signal(false);
   protected readonly recordingPayment = signal(false);
+  protected readonly sendingReminder = signal(false);
 
   protected readonly planForm = this.fb.nonNullable.group({
     planId: [0, Validators.required]
@@ -190,6 +191,22 @@ export class PlatformTenantDetailComponent implements OnInit {
           this.toast.error(error.error?.title ?? 'Could not record payment.');
         }
       });
+  }
+
+  protected sendReminder(): void {
+    this.sendingReminder.set(true);
+
+    this.subscriptionService.sendReminder(this.tenantId).subscribe({
+      next: (result) => {
+        this.sendingReminder.set(false);
+        const reason = result.reminderType === 'Overdue' ? 'overdue payment' : 'Free plan';
+        this.toast.success(`Reminder about their ${reason} sent to ${result.sentTo}.`);
+      },
+      error: (error) => {
+        this.sendingReminder.set(false);
+        this.toast.error(error.error?.title ?? 'Could not send the reminder.');
+      }
+    });
   }
 
   protected onPageChange(pageNumber: number): void {

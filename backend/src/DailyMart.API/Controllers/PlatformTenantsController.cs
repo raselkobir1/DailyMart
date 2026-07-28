@@ -25,17 +25,20 @@ public class PlatformTenantsController : ControllerBase
     private readonly ISubscriptionService _subscriptionService;
     private readonly IUsageAnalyticsService _usageAnalyticsService;
     private readonly IFeatureEntitlementService _featureEntitlementService;
+    private readonly ITenantReminderEmailService _tenantReminderEmailService;
 
     public PlatformTenantsController(
         IPlatformTenantService platformTenantService,
         ISubscriptionService subscriptionService,
         IUsageAnalyticsService usageAnalyticsService,
-        IFeatureEntitlementService featureEntitlementService)
+        IFeatureEntitlementService featureEntitlementService,
+        ITenantReminderEmailService tenantReminderEmailService)
     {
         _platformTenantService = platformTenantService;
         _subscriptionService = subscriptionService;
         _usageAnalyticsService = usageAnalyticsService;
         _featureEntitlementService = featureEntitlementService;
+        _tenantReminderEmailService = tenantReminderEmailService;
     }
 
     [HttpGet]
@@ -92,6 +95,12 @@ public class PlatformTenantsController : ControllerBase
     {
         var payment = await _subscriptionService.RecordPaymentAsync(id, request, cancellationToken);
         return Ok(payment);
+    }
+
+    [HttpPost("{id:long}/subscription/send-reminder")]
+    public async Task<ActionResult<TenantReminderEmailResultDto>> SendReminder(long id, CancellationToken cancellationToken)
+    {
+        return Ok(await _tenantReminderEmailService.SendReminderAsync(id, cancellationToken));
     }
 
     [HttpGet("{id:long}/usage")]

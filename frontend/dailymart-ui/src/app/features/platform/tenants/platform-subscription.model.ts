@@ -31,3 +31,8 @@ export interface RecordPaymentRequest {
   method: string;
   notes: string | null;
 }
+
+export interface TenantReminderEmailResult {
+  sentTo: string;
+  reminderType: 'Overdue' | 'Free';
+}

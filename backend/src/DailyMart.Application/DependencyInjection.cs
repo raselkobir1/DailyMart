@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IPlatformTenantService, PlatformTenantService>();
         services.AddScoped<IPlanService, PlanService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<ITenantReminderEmailService, TenantReminderEmailService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;

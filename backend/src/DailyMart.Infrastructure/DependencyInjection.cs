@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogRepository>(sp => new AuditLogRepository(sp.GetRequiredService<DailyMartDbContext>()));
 
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        services.AddScoped<ITenantContactLookupService, TenantContactLookupService>();
         services.AddScoped<IUsageAnalyticsService, UsageAnalyticsService>();
         services.AddScoped<AdminSeeder>();
         services.AddScoped<PlatformAdminSeeder>();
