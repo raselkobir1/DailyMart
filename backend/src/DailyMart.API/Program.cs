@@ -4,6 +4,7 @@ using DailyMart.API.Filters;
 using DailyMart.Application;
 using DailyMart.Application.Common.Options;
 using DailyMart.Infrastructure;
+using DailyMart.Infrastructure.Auth;
 using DailyMart.Infrastructure.Notifications;
 using DailyMart.Infrastructure.Persistence;
 using DailyMart.Infrastructure.Persistence.Seed;
@@ -80,6 +81,20 @@ try
 
     var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
 
+    // docker-compose.yml's Jwt__Secret fallback (used whenever an operator hasn't set JWT_SECRET in a
+    // .env file) is a fixed value committed to this repo - anyone can read it and forge a token, including
+    // a "PlatformAdmin"-role one, if a real deployment ever ends up running with it unchanged. Checking
+    // ASPNETCORE_ENVIRONMENT wouldn't catch this: docker-compose.yml itself sets that to "Development" even
+    // for what's otherwise a real deployment, so this fires purely on the secret value, not the environment.
+    const string KnownDefaultJwtSecret = "LFh+51qdDMsLmVWSCWiP3GvHTcICuDtpX7wj47FxuWIVvUIVaMe7/KbSiVlfme6u";
+    if (jwtSettings.Secret == KnownDefaultJwtSecret)
+    {
+        Log.Warning(
+            "Jwt:Secret is still the default value committed in docker-compose.yml. Anyone can read this " +
+            "value and forge access tokens (including a platform-admin one). Set JWT_SECRET in a .env file " +
+            "before this deployment serves any real tenant.");
+    }
+
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -123,6 +138,12 @@ try
         options.FallbackPolicy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .Build();
+
+        // Every api/platform/* controller and hub must use this instead of a bare
+        // [Authorize(Roles = "PlatformAdmin")] - see ClaimsPrincipalExtensions.IsGenuinePlatformAdmin's
+        // doc comment for why a role-name check alone is spoofable by a tenant's own Admin.
+        options.AddPolicy("PlatformAdminOnly", policy =>
+            policy.RequireAssertion(ctx => ctx.User.IsGenuinePlatformAdmin()));
     });
 
     var app = builder.Build();

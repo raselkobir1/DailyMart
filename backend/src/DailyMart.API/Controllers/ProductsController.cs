@@ -105,6 +105,10 @@ public class ProductsController : ControllerBase
             "product-import-template.xlsx");
     }
 
+    // Matches the size cap ProductService/ShopSettingsService already enforce on logo/product-image
+    // uploads, scaled up for a spreadsheet that can legitimately list hundreds of products.
+    private const long MaxImportSizeBytes = 10 * 1024 * 1024;
+
     /// <summary>Bulk create/update from an uploaded .xlsx - see IProductService.ImportAsync for the
     /// per-row create-vs-update rule and why one bad row doesn't fail the whole file.</summary>
     [HttpPost("import")]
@@ -114,6 +118,16 @@ public class ProductsController : ControllerBase
         if (file is null || file.Length == 0)
         {
             return BadRequest("No file was uploaded.");
+        }
+
+        if (file.Length > MaxImportSizeBytes)
+        {
+            return BadRequest($"File exceeds the {MaxImportSizeBytes / (1024 * 1024)} MB import limit.");
+        }
+
+        if (!string.Equals(Path.GetExtension(file.FileName), ".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Only .xlsx files are supported.");
         }
 
         await using var stream = file.OpenReadStream();
@@ -154,8 +168,19 @@ public class ProductsController : ControllerBase
         return builder.ToString();
     }
 
-    private static string EscapeCsvField(string value) =>
-        value.Contains(',') || value.Contains('"') || value.Contains('\n')
+    // A product Name/Code/Barcode/Category/Brand is free text a tenant user typed in - if it starts with
+    // =, +, -, or @, Excel/Sheets treats the cell as a formula when this CSV is opened, letting a crafted
+    // product name (e.g. "=cmd|' /C calc'!A0") execute when whoever exports it opens the file. Prefixing
+    // with a leading apostrophe forces those apps to treat it as literal text instead.
+    private static string EscapeCsvField(string value)
+    {
+        if (value.Length > 0 && (value[0] is '=' or '+' or '-' or '@'))
+        {
+            value = "'" + value;
+        }
+
+        return value.Contains(',') || value.Contains('"') || value.Contains('\n')
             ? $"\"{value.Replace("\"", "\"\"")}\""
             : value;
+    }
 }

@@ -1,5 +1,18 @@
 import JsBarcode from 'jsbarcode';
 
+/** `label` is a product name/barcode a tenant user typed in - it ends up inside HTML built as a plain
+ * string and fed to `document.write`, so it must be escaped the same way Angular's template interpolation
+ * would do automatically; a name like `<img src=x onerror=...>` would otherwise execute in the print
+ * window (same origin as the app, so it could read the JWT out of localStorage). */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Renders `value` into a new browser tab as a scannable barcode graphic and triggers the print dialog.
  * Uses CODE128 rather than EAN13 - a user-supplied barcode isn't guaranteed to be EAN13-checksum-valid
@@ -14,11 +27,12 @@ export function printBarcode(value: string, label: string): void {
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   JsBarcode(svg, value, { format: 'CODE128', displayValue: true });
+  const safeLabel = escapeHtml(label);
 
   printWindow.document.write(
-    `<html><head><title>${label}</title></head>` +
+    `<html><head><title>${safeLabel}</title></head>` +
       `<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;">` +
-      `<div>${svg.outerHTML}</div><p>${label}</p></body></html>`
+      `<div>${svg.outerHTML}</div><p>${safeLabel}</p></body></html>`
   );
   printWindow.document.close();
   printWindow.focus();
@@ -36,15 +50,16 @@ export function printBarcodeSheet(value: string, label: string, copies: number):
     return;
   }
 
+  const safeLabel = escapeHtml(label);
   const cells: string[] = [];
   for (let i = 0; i < copies; i++) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     JsBarcode(svg, value, { format: 'CODE128', displayValue: true, width: 1.5, height: 40, fontSize: 12, margin: 4 });
-    cells.push(`<div class="label-cell">${svg.outerHTML}<p>${label}</p></div>`);
+    cells.push(`<div class="label-cell">${svg.outerHTML}<p>${safeLabel}</p></div>`);
   }
 
   printWindow.document.write(
-    `<html><head><title>${label} - ${copies} labels</title><style>` +
+    `<html><head><title>${safeLabel} - ${copies} labels</title><style>` +
       '@page { size: A4; margin: 10mm; }' +
       'body { margin: 0; font-family: Arial, sans-serif; }' +
       '.sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }' +

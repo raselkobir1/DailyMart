@@ -9,16 +9,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace DailyMart.API.Controllers;
 
 /// <summary>Platform-operator only - lists/manages Tenant rows themselves, not any one tenant's
-/// business data. [Authorize(Roles = "PlatformAdmin")] works the same way [Authorize(Roles = "Admin")]
-/// already does for Users/Roles/Menus - the global JWT bearer scheme, just checking a different role
-/// claim value. A regular tenant User's token can never carry "PlatformAdmin", so this is naturally
-/// exclusive to platform-admin tokens. Also carries the {id}/subscription (billing), {id}/usage, and
-/// {id}/features (per-tenant feature entitlement - see IFeatureEntitlementService) sub-routes - nested
-/// resources in the same controller, matching PurchasesController's {id}/returns convention rather than
-/// a separate controller per concern.</summary>
+/// business data. The "PlatformAdminOnly" policy (Program.cs) checks both the "PlatformAdmin" role claim
+/// AND the absence of a tenant_id claim - a bare [Authorize(Roles = "PlatformAdmin")] isn't safe here,
+/// since a tenant's own Admin can name one of its own Roles "PlatformAdmin" and have that string land in
+/// its users' JWTs too (see ClaimsPrincipalExtensions.IsGenuinePlatformAdmin). Also carries the
+/// {id}/subscription (billing), {id}/usage, and {id}/features (per-tenant feature entitlement - see
+/// IFeatureEntitlementService) sub-routes - nested resources in the same controller, matching
+/// PurchasesController's {id}/returns convention rather than a separate controller per concern.</summary>
 [ApiController]
 [Route("api/platform/tenants")]
-[Authorize(Roles = "PlatformAdmin")]
+[Authorize(Policy = "PlatformAdminOnly")]
 public class PlatformTenantsController : ControllerBase
 {
     private readonly IPlatformTenantService _platformTenantService;

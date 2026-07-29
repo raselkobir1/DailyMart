@@ -1,4 +1,5 @@
 using DailyMart.Application.Common.Interfaces;
+using DailyMart.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -33,7 +34,7 @@ public class SupportChatHub : Hub
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, TenantGroupName(tenantId));
         }
-        else if (Context.User?.IsInRole("PlatformAdmin") == true)
+        else if (Context.User.IsGenuinePlatformAdmin())
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, PlatformAdminsGroupName);
         }
@@ -45,7 +46,7 @@ public class SupportChatHub : Hub
     /// tenant's) - only a platform-admin connection actually moves groups here.</summary>
     public async Task JoinTenantConversation(long tenantId)
     {
-        if (Context.User?.IsInRole("PlatformAdmin") == true)
+        if (Context.User.IsGenuinePlatformAdmin())
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, TenantGroupName(tenantId));
         }
@@ -53,7 +54,7 @@ public class SupportChatHub : Hub
 
     public async Task LeaveTenantConversation(long tenantId)
     {
-        if (Context.User?.IsInRole("PlatformAdmin") == true)
+        if (Context.User.IsGenuinePlatformAdmin())
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, TenantGroupName(tenantId));
         }

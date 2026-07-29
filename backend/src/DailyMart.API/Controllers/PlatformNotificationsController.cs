@@ -9,7 +9,7 @@ namespace DailyMart.API.Controllers;
 /// signup that happened while nobody was connected via SignalR is still visible here.</summary>
 [ApiController]
 [Route("api/platform/notifications")]
-[Authorize(Roles = "PlatformAdmin")]
+[Authorize(Policy = "PlatformAdminOnly")]
 public class PlatformNotificationsController : ControllerBase
 {
     private readonly IPlatformNotificationStore _platformNotificationStore;

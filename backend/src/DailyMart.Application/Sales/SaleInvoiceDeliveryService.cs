@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using DailyMart.Application.Common.Exceptions;
 using DailyMart.Application.Common.Interfaces;
@@ -107,9 +108,16 @@ public class SaleInvoiceDeliveryService : ISaleInvoiceDeliveryService
         return (sale, items, customer);
     }
 
+    // shop.ShopName/InvoiceFooterText and customer.Name are free text a tenant user typed in (Settings,
+    // Customer forms) - encoded before landing in an HTML email body so a name like
+    // "<a href=http://evil>Pay now</a>" can't render as live markup in the recipient's email client.
     private static string BuildEmailBody(
         ShopSettingsDto shop, string saleNumber, Sale sale, IReadOnlyList<SaleItem> items, Customer customer)
     {
+        var shopName = WebUtility.HtmlEncode(shop.ShopName);
+        var customerName = WebUtility.HtmlEncode(customer.Name);
+        var footerText = WebUtility.HtmlEncode(shop.InvoiceFooterText);
+
         var rows = new StringBuilder();
         foreach (var item in items)
         {
@@ -118,8 +126,8 @@ public class SaleInvoiceDeliveryService : ISaleInvoiceDeliveryService
         }
 
         return $"""
-            <h2>{shop.ShopName}</h2>
-            <p>Dear {customer.Name},</p>
+            <h2>{shopName}</h2>
+            <p>Dear {customerName},</p>
             <p>Here is your invoice <strong>{saleNumber}</strong> dated {sale.SaleDate:d}.</p>
             <table border="1" cellpadding="6" cellspacing="0">
               <thead><tr><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr></thead>
@@ -131,7 +139,7 @@ public class SaleInvoiceDeliveryService : ISaleInvoiceDeliveryService
               <strong>Outstanding due on your account: {shop.CurrencySymbol}{customer.CurrentDue:0.##}</strong>
             </p>
             <p>Please arrange payment at your earliest convenience.</p>
-            <p>{shop.InvoiceFooterText}</p>
+            <p>{footerText}</p>
             """;
     }
 

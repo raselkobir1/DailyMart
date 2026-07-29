@@ -6,11 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace DailyMart.API.Controllers;
 
 /// <summary>Platform-operator only - manages the Plan catalog (Free/Basic/Pro/...) tenants can be put
-/// on. See PlatformTenantsController's doc comment for the same [Authorize(Roles = "PlatformAdmin")]
-/// reasoning.</summary>
+/// on. See PlatformTenantsController's doc comment for why this uses the "PlatformAdminOnly" policy
+/// rather than a bare [Authorize(Roles = "PlatformAdmin")].</summary>
 [ApiController]
 [Route("api/platform/plans")]
-[Authorize(Roles = "PlatformAdmin")]
+[Authorize(Policy = "PlatformAdminOnly")]
 public class PlatformPlansController : ControllerBase
 {
     private readonly IPlanService _planService;
