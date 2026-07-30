@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DailyMart — System Design (HLD &amp; LLD)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --brand: #0f766e;
+    --brand-ink: #ffffff;
+    --bg: #f6f8f7;
+    --panel: #ffffff;
+    --ink: #10201d;
+    --muted: #5b6b68;
+    --border: #dfe7e4;
+    --soft: color-mix(in srgb, var(--brand) 10%, white);
+    --soft-border: color-mix(in srgb, var(--brand) 25%, white);
+    --code-bg: #0f1a18;
+    --code-ink: #d7f5ef;
+    --chip: color-mix(in srgb, var(--brand) 12%, white);
+    --shadow: 0 1px 2px rgba(16, 32, 29, .06), 0 8px 24px rgba(16, 32, 29, .05);
+  }
+  [data-theme="dark"] {
+    --bg: #0f1715;
+    --panel: #16211f;
+    --ink: #e9f3f0;
+    --muted: #9db3ae;
+    --border: #263733;
+    --soft: color-mix(in srgb, var(--brand) 22%, #16211f);
+    --soft-border: color-mix(in srgb, var(--brand) 35%, #16211f);
+    --code-bg: #0a1211;
+    --code-ink: #bdf0e4;
+    --chip: color-mix(in srgb, var(--brand) 28%, #16211f);
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1715;
+      --panel: #16211f;
+      --ink: #e9f3f0;
+      --muted: #9db3ae;
+      --border: #263733;
+      --soft: color-mix(in srgb, var(--brand) 22%, #16211f);
+      --soft-border: color-mix(in srgb, var(--brand) 35%, #16211f);
+      --code-bg: #0a1211;
+      --code-ink: #bdf0e4;
+      --chip: color-mix(in srgb, var(--brand) 28%, #16211f);
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  a { color: var(--brand); }
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 264px;
+    flex: 0 0 264px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 18px 14px 40px;
+  }
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 6px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: var(--brand); color: var(--brand-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; flex: none;
+  }
+  .brand-name { font-weight: 700; font-size: 15px; }
+  .brand-sub { font-size: 11px; color: var(--muted); }
+  .theme-toggle {
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--soft);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 12.5px;
+  }
+  .toc-group { margin-bottom: 6px; }
+  .toc-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); padding: 10px 8px 4px;
+  }
+  .toc-link {
+    display: block; padding: 6px 8px; border-radius: 7px;
+    font-size: 13.5px; color: var(--ink); text-decoration: none;
+  }
+  .toc-link:hover { background: var(--soft); }
+  .content { flex: 1; min-width: 0; padding: 36px 40px 100px; max-width: 1180px; }
+  header.hero {
+    margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+  }
+  header.hero h1 { margin: 0 0 6px; font-size: 27px; }
+  header.hero p { margin: 0; color: var(--muted); font-size: 14.5px; max-width: 74ch; }
+  .badges { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    background: var(--chip); border: 1px solid var(--soft-border); color: var(--ink);
+    font-size: 11.5px; padding: 3px 10px; border-radius: 999px;
+  }
+  section { margin: 44px 0; }
+  section h2 {
+    font-size: 21px; margin: 0 0 6px;
+    padding-top: 6px; scroll-margin-top: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  section h2 .num {
+    font-size: 12px; color: var(--brand); background: var(--soft);
+    border: 1px solid var(--soft-border); border-radius: 6px; padding: 1px 7px;
+  }
+  section > .lede { color: var(--muted); font-size: 14px; margin: 0 0 18px; max-width: 82ch; }
+  h3 { font-size: 16.5px; margin: 26px 0 10px; scroll-margin-top: 18px; }
+  h4 { font-size: 14px; margin: 18px 0 8px; color: var(--ink); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; box-shadow: var(--shadow); margin: 14px 0;
+  }
+  .diagram-card { overflow-x: auto; }
+  .diagram-card .mermaid { min-width: 560px; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0;
+  }
+  thead th {
+    text-align: left; background: var(--soft); color: var(--ink);
+    padding: 7px 10px; border: 1px solid var(--border); font-weight: 600;
+  }
+  tbody td { padding: 6px 10px; border: 1px solid var(--border); vertical-align: top; }
+  tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel) 96%, var(--ink) 4%); }
+  code, .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+  }
+  code {
+    background: var(--chip); padding: 1px 6px; border-radius: 5px;
+  }
+  .table-wrap { overflow-x: auto; }
+  details.entity {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    margin: 8px 0; box-shadow: var(--shadow);
+  }
+  details.entity > summary {
+    cursor: pointer; padding: 11px 16px; font-weight: 600; font-size: 13.5px;
+    list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  details.entity > summary::-webkit-details-marker { display: none; }
+  details.entity > summary .tag {
+    font-weight: 500; font-size: 11px; color: var(--brand);
+    background: var(--soft); border: 1px solid var(--soft-border);
+    padding: 1px 8px; border-radius: 999px;
+  }
+  details.entity > summary::after { content: "▸"; color: var(--muted); transition: transform .15s; }
+  details.entity[open] > summary::after { transform: rotate(90deg); }
+  details.entity .body { padding: 0 16px 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } .sidebar { display: none; } }
+  .note {
+    border-left: 3px solid var(--brand); background: var(--soft);
+    padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13px; color: var(--ink);
+    margin: 12px 0;
+  }
+  .flow-list { margin: 0; padding-left: 18px; font-size: 13.5px; }
+  .flow-list li { margin: 4px 0; }
+  footer {
+    margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar">
+    <div class="brand-row">
+      <div class="brand-mark">DM</div>
+      <div>
+        <div class="brand-name">DailyMart</div>
+        <div class="brand-sub">System Design</div>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle">🌓 Toggle light / dark</button>
+
+    <div class="toc-group">
+      <div class="toc-title">High-Level Design</div>
+      <a class="toc-link" href="#hld-context">System Context</a>
+      <a class="toc-link" href="#hld-layers">Clean Architecture Layers</a>
+      <a class="toc-link" href="#hld-tenancy">Multi-Tenancy Model</a>
+      <a class="toc-link" href="#hld-modules">Module Map</a>
+      <a class="toc-link" href="#hld-flows">Key Business Flows</a>
+      <a class="toc-link" href="#hld-deploy">Deployment Topology</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-title">Low-Level Design</div>
+      <a class="toc-link" href="#lld-conventions">Entity Conventions</a>
+      <a class="toc-link" href="#lld-erd">Entity Relationship Diagram</a>
+      <a class="toc-link" href="#lld-entities">Entity Field Reference</a>
+      <a class="toc-link" href="#lld-classes">Service / Repository Design</a>
+      <a class="toc-link" href="#lld-seq-login">Sequence — Login &amp; RBAC</a>
+      <a class="toc-link" href="#lld-seq-register">Sequence — Tenant Signup</a>
+      <a class="toc-link" href="#lld-seq-purchase">Sequence — Purchase</a>
+      <a class="toc-link" href="#lld-seq-sale">Sequence — POS Sale</a>
+      <a class="toc-link" href="#lld-api">API Surface by Module</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <header class="hero">
+      <h1>DailyMart — System Design</h1>
+      <p>High-level and low-level design for the multi-tenant SaaS departmental-store management system: Tenant/Role/Menu/User/Permission (RBAC), Purchase, Inventory, POS Sales, Dues, Expenses, P&amp;L, Reports, Audit Log and Dashboard. Reflects the architecture defined in <code>CLAUDE.md</code>.</p>
+      <div class="badges">
+        <span class="badge">.NET 8 Web API</span>
+        <span class="badge">EF Core + PostgreSQL</span>
+        <span class="badge">Angular (standalone + signals)</span>
+        <span class="badge">Clean Architecture</span>
+        <span class="badge">Multi-tenant (shared schema)</span>
+        <span class="badge">JWT + RBAC</span>
+      </div>
+    </header>
+
+    <!-- ===================== HLD ===================== -->
+
+    <section id="hld-context">
+      <h2><span class="num">HLD·1</span> System Context</h2>
+      <p class="lede">Three actors touch the system: a tenant's own staff (Admin, Cashier, ...), the SaaS vendor's platform-admin ops staff, and self-service signups. Everything goes through one Angular SPA and one Web API; in production nginx proxies <code>/api/*</code> so the browser sees a single origin.</p>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+flowchart LR
+  subgraph Clients
+    TA["Tenant User<br/>(Admin / Cashier / ...)"]
+    PA["Platform-Admin Ops Staff"]
+    VZ["Visitor (self-signup)"]
+  end
+  TA -->|HTTPS| WEB["Angular SPA<br/>dailymart-ui"]
+  PA -->|HTTPS, separate session| WEB
+  VZ -->|HTTPS| WEB
+  WEB -->|"/api/* (nginx proxy, same-origin)"| API[".NET 8 Web API"]
+  API --> APPL["Application Layer<br/>Services, DTOs, Validation"]
+  APPL --> DOM["Domain Layer<br/>Entities / Enums"]
+  API --> INFRA["Infrastructure Layer<br/>EF Core, Repositories, UoW"]
+  INFRA --> DOM
+  INFRA --> DB[("PostgreSQL<br/>single shared schema")]
+  API -. "JWT (role + tenant_id claims)" .-> WEB
+        </pre>
+      </div>
+    </section>
+
+    <section id="hld-layers">
+      <h2><span class="num">HLD·2</span> Clean Architecture Layers</h2>
+      <p class="lede">Dependency direction is one-way: <code>API → Application → Domain</code> and <code>Infrastructure → Application → Domain</code>. Domain has zero outward dependencies. Every layer is internally organized by module folders (Products, Purchases, Sales, ...).</p>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+flowchart TB
+  API["<b>DailyMart.API</b><br/>Controllers · DI wiring · JWT config · Middleware · Program.cs"]
+  APPL["<b>DailyMart.Application</b><br/>DTOs · Service interfaces + implementations · FluentValidation · Mapping"]
+  DOMAIN["<b>DailyMart.Domain</b><br/>Entities · Enums · Shared kernel (no dependencies)"]
+  INFRA["<b>DailyMart.Infrastructure</b><br/>DbContext (Npgsql) · Repositories · UnitOfWork · External services"]
+
+  API --> APPL --> DOMAIN
+  INFRA --> APPL
+  INFRA --> DOMAIN
+        </pre>
+      </div>
+      <div class="note">Controllers stay thin — all business rules (stock deduction, due calculation, profit calculation) live in Application-layer services, orchestrated through one <code>IUnitOfWork</code>.</div>
+    </section>
+
+    <section id="hld-tenancy">
+      <h2><span class="num">HLD·3</span> Multi-Tenancy Model</h2>
+      <p class="lede">One database, one schema — not database-per-tenant. Every <code>TenantOwnedEntity</code> carries a <code>tenant_id</code> column; isolation is enforced once at the EF Core model level, not per-service, so every existing/future repository query is automatically tenant-scoped.</p>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+flowchart TB
+  JWT["JWT claim: tenant_id"] --> CTS["ICurrentTenantService"]
+  PJWT["Platform-admin JWT<br/>(no tenant_id claim)"] --> CTS
+  CTS --> QF["TenancyModelExtensions.ApplyTenancyQueryFilters<br/>WHERE !IsDeleted AND TenantId == CurrentTenantId"]
+  QF --> TA[("Tenant A rows")]
+  QF --> TB2[("Tenant B rows")]
+  CTS -->|"tenant_id = null → fail closed"| ZERO["matches ZERO rows<br/>(never 'show everything')"]
+  FK["ApplyTenantForeignKeys<br/>(adds FK → Tenant for every TenantOwnedEntity)"] --- QF
+        </pre>
+      </div>
+      <table>
+        <thead><tr><th>Entity kind</th><th>Base type</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td>Tenant-owned (isolated per company)</td><td><code>TenantOwnedEntity : AuditableEntity</code></td><td>User, Role, RoleMenuPermission, Product, Category, Brand, Unit, Supplier, Customer, Purchase, PurchaseItem, InventoryTransaction, Sale, SaleItem, Expense, AuditLog, ShopSettings</td></tr>
+          <tr><td>Global (shared across all tenants)</td><td><code>AuditableEntity</code> directly</td><td>Tenant, PlatformAdmin, Menu, Plan, TenantSubscription, SubscriptionPayment, TenantFeatureGrant</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="hld-modules">
+      <h2><span class="num">HLD·4</span> Module Map</h2>
+      <p class="lede">Modules group into five bands: platform/billing (vendor-side), RBAC (access control), master/reference data, transactional business modules, and insight/reporting modules built on top of all the others.</p>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+flowchart TB
+  subgraph PLAT["Platform layer (vendor ops — outside tenant shell)"]
+    P1["PlatformAdmin auth"]
+    P2["Tenant list / suspend-activate"]
+    P3["Plan / TenantSubscription / SubscriptionPayment"]
+    P4["TenantFeatureGrant (per-tenant entitlement)"]
+  end
+  subgraph RBAC["Access control (per tenant)"]
+    R1["User"]
+    R2["Role"]
+    R3["Menu"]
+    R4["RoleMenuPermission"]
+  end
+  subgraph MASTER["Master / reference data"]
+    M1["Category / Brand / Unit"]
+    M2["Product"]
+    M3["Supplier"]
+    M4["Customer"]
+    M5["Shop Settings"]
+  end
+  subgraph TXN["Transactional modules"]
+    T1["Purchase"]
+    T2["Inventory"]
+    T3["POS Sales"]
+    T4["Customer Due"]
+    T5["Supplier Due"]
+    T6["Expense"]
+  end
+  subgraph INSIGHT["Insight / reporting"]
+    I1["Profit &amp; Loss"]
+    I2["Reports"]
+    I3["Audit Log"]
+    I4["Dashboard"]
+  end
+  PLAT -. entitles/limits .-> RBAC
+  RBAC -. secures .-> MASTER
+  RBAC -. secures .-> TXN
+  M2 --> T1
+  M3 --> T1
+  T1 --> T2
+  T2 --> T3
+  M4 --> T3
+  T3 --> T4
+  T1 --> T5
+  T1 --> I1
+  T3 --> I1
+  T6 --> I1
+  T2 --> I2
+  T3 --> I2
+  T4 --> I2
+  T5 --> I2
+  I1 --> I2
+  MASTER --> I4
+  TXN --> I4
+  I2 --> I4
+        </pre>
+      </div>
+    </section>
+
+    <section id="hld-flows">
+      <h2><span class="num">HLD·5</span> Key Business Flows</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h4>Purchase → Inventory → Supplier Due</h4>
+          <ol class="flow-list">
+            <li>Purchase entry increases <code>Product.StockQty</code> per line item.</li>
+            <li>Every stock-affecting change writes an <code>InventoryTransaction</code> row (traceability, not just a counter).</li>
+            <li>Credit purchase creates/increases <code>Supplier</code> due; cash purchase does not.</li>
+            <li>Supplier due always reconciles to unpaid purchases (recompute-and-compare, never trust incremental updates alone).</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h4>POS Sale → Inventory → Customer Due</h4>
+          <ol class="flow-list">
+            <li>Barcode scan resolves <code>Product</code>; stock can never go negative.</li>
+            <li>Sale decreases stock; writes an <code>InventoryTransaction</code> (SaleOut).</li>
+            <li>Cash sale → increases cash balance. Credit sale → increases customer due. Partial payment updates both simultaneously.</li>
+            <li>Customer due can never go negative; collection is capped at outstanding due.</li>
+            <li>Profit computed from Sale price vs. Purchase price at line-item level.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h4>RBAC — Login → Permissions → Menu Rendering</h4>
+          <ol class="flow-list">
+            <li>JWT carries only the coarse role <em>name</em> (<code>[Authorize(Roles="Admin")]</code> checks).</li>
+            <li>Fine-grained menu permissions are fetched separately via <code>GET /api/auth/me/permissions</code> — changes take effect without re-issuing tokens.</li>
+            <li><code>IFeatureEntitlementService</code> filters out any menu the tenant isn't entitled to before permissions are ever returned.</li>
+            <li>Angular's <code>canView(menuKey)</code> guard + sidebar both read this permission list.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h4>Self-Service Tenant Signup</h4>
+          <ol class="flow-list">
+            <li><code>POST /api/auth/register</code> → <code>ITenantProvisioningService</code> creates a new <code>Tenant</code>.</li>
+            <li>Tenant's own "Admin" role is created (per-tenant, not shared globally).</li>
+            <li><code>EnsureAdminRoleHasFullMenuAccessAsync</code> grants full CRUD on every generally-available <code>Menu</code>.</li>
+            <li>Tenant starts on the seeded <b>Free</b> Plan via a new <code>TenantSubscription</code>.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="hld-deploy">
+      <h2><span class="num">HLD·6</span> Deployment Topology</h2>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+flowchart LR
+  subgraph "docker-compose up --build"
+    WEBC["web container<br/>nginx + Angular build"]
+    APIC["api container<br/>.NET 8 API"]
+    DBC["db container<br/>Postgres 16"]
+  end
+  Browser -->|"http(s)"| WEBC
+  WEBC -->|"/api/* proxy (same-origin)"| APIC
+  APIC -->|"Database.MigrateAsync() on boot + retry loop"| DBC
+  APIC -->|seed on boot: AdminSeeder, RbacSeeder, PlanSeeder| DBC
+        </pre>
+      </div>
+      <div class="note">Dev-only split (<code>ng serve</code> on :4200 → API on :5299) uses the CORS policy instead; production never needs CORS because nginx makes it same-origin.</div>
+    </section>
+
+    <!-- ===================== LLD ===================== -->
+
+    <section id="lld-conventions">
+      <h2><span class="num">LLD·1</span> Entity Conventions</h2>
+      <p class="lede">Two base types everything inherits from, plus the rules that keep every module consistent.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Base type</th><th>Fields</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td><code>AuditableEntity</code></td><td><code>Id (uuid)</code>, <code>CreatedAt</code>, <code>CreatedBy</code>, <code>UpdatedAt</code>, <code>UpdatedBy</code>, <code>IsDeleted (bool)</code></td><td>Soft delete everywhere — global EF query filter excludes <code>IsDeleted = true</code>.</td></tr>
+            <tr><td><code>TenantOwnedEntity : AuditableEntity</code></td><td>+ <code>TenantId (uuid, FK → Tenant)</code></td><td>Query filter also requires <code>TenantId == CurrentTenantId</code>; FK auto-added via <code>ApplyTenantForeignKeys</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:13.5px;color:var(--muted)">Other invariants: money/quantity columns are always <code>numeric</code> (never float/double); every stock-affecting write also produces an <code>InventoryTransaction</code> row; payment history tables (<code>CustomerPayment</code>, <code>SupplierPayment</code>, <code>SubscriptionPayment</code>) are append-only, never overwritten; naming is snake_case in Postgres, PascalCase in C#.</p>
+    </section>
+
+    <section id="lld-erd">
+      <h2><span class="num">LLD·2</span> Entity Relationship Diagram</h2>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+erDiagram
+    TENANT ||--o{ USER : has
+    TENANT ||--o{ ROLE : has
+    TENANT ||--o{ ROLE_MENU_PERMISSION : has
+    TENANT ||--o{ PRODUCT : has
+    TENANT ||--o{ CATEGORY : has
+    TENANT ||--o{ BRAND : has
+    TENANT ||--o{ UNIT : has
+    TENANT ||--o{ SUPPLIER : has
+    TENANT ||--o{ CUSTOMER : has
+    TENANT ||--o{ PURCHASE : has
+    TENANT ||--o{ SALE : has
+    TENANT ||--o{ EXPENSE : has
+    TENANT ||--o{ AUDIT_LOG : has
+    TENANT ||--o| SHOP_SETTINGS : has
+    TENANT ||--o{ TENANT_SUBSCRIPTION : "billed via"
+    TENANT ||--o{ TENANT_FEATURE_GRANT : "entitled via"
+
+    ROLE ||--o{ ROLE_MENU_PERMISSION : grants
+    MENU ||--o{ ROLE_MENU_PERMISSION : "targeted by"
+    MENU ||--o{ MENU : "parent of"
+    MENU ||--o{ TENANT_FEATURE_GRANT : "restricted by"
+    PLAN ||--o{ TENANT_SUBSCRIPTION : defines
+    TENANT_SUBSCRIPTION ||--o{ SUBSCRIPTION_PAYMENT : records
+
+    CATEGORY ||--o{ PRODUCT : classifies
+    BRAND ||--o{ PRODUCT : classifies
+    UNIT ||--o{ PRODUCT : "measured in"
+
+    SUPPLIER ||--o{ PURCHASE : "sold to tenant via"
+    SUPPLIER ||--o{ SUPPLIER_PAYMENT : "paid via"
+    PURCHASE ||--o{ PURCHASE_ITEM : contains
+    PRODUCT ||--o{ PURCHASE_ITEM : "purchased as"
+
+    CUSTOMER ||--o{ SALE : "buys via"
+    CUSTOMER ||--o{ CUSTOMER_PAYMENT : "pays via"
+    SALE ||--o{ SALE_ITEM : contains
+    PRODUCT ||--o{ SALE_ITEM : "sold as"
+
+    PRODUCT ||--o{ INVENTORY_TRANSACTION : "stock moves on"
+    PURCHASE_ITEM ||--o| INVENTORY_TRANSACTION : "causes (PurchaseIn)"
+    SALE_ITEM ||--o| INVENTORY_TRANSACTION : "causes (SaleOut)"
+
+    TENANT {
+        uuid Id PK
+        string Name
+        string ContactEmail
+        string Status
+    }
+    USER {
+        uuid Id PK
+        uuid TenantId FK
+        string Username
+        string PasswordHash
+        string Role
+    }
+    ROLE {
+        uuid Id PK
+        uuid TenantId FK
+        string Name
+    }
+    MENU {
+        uuid Id PK
+        string Key
+        string Route
+        int SortOrder
+        uuid ParentId FK
+        bool IsGenerallyAvailable
+    }
+    ROLE_MENU_PERMISSION {
+        uuid Id PK
+        uuid TenantId FK
+        uuid RoleId FK
+        uuid MenuId FK
+        bool CanView
+        bool CanCreate
+        bool CanEdit
+        bool CanDelete
+    }
+    PRODUCT {
+        uuid Id PK
+        uuid TenantId FK
+        string Code
+        string Barcode
+        decimal PurchasePrice
+        decimal SellingPrice
+        decimal StockQty
+    }
+    PURCHASE {
+        uuid Id PK
+        uuid TenantId FK
+        uuid SupplierId FK
+        decimal TotalAmount
+        decimal DueAmount
+    }
+    PURCHASE_ITEM {
+        uuid Id PK
+        uuid PurchaseId FK
+        uuid ProductId FK
+        decimal Qty
+        decimal UnitCost
+    }
+    SALE {
+        uuid Id PK
+        uuid TenantId FK
+        uuid CustomerId FK
+        decimal TotalAmount
+        decimal PaidAmount
+        decimal DueAmount
+        string PaymentType
+    }
+    SALE_ITEM {
+        uuid Id PK
+        uuid SaleId FK
+        uuid ProductId FK
+        decimal Qty
+        decimal UnitPrice
+    }
+    INVENTORY_TRANSACTION {
+        uuid Id PK
+        uuid TenantId FK
+        uuid ProductId FK
+        string Type
+        decimal Qty
+        string ReferenceType
+        uuid ReferenceId
+    }
+        </pre>
+      </div>
+      <p style="font-size:12.5px;color:var(--muted)">Diagram trimmed to core fields for readability — the full column list per entity is in the <a href="#lld-entities">Entity Field Reference</a> below.</p>
+    </section>
+
+    <section id="lld-entities">
+      <h2><span class="num">LLD·3</span> Entity Field Reference</h2>
+      <p class="lede">Every entity below also inherits the base fields from <a href="#lld-conventions">§LLD·1</a> in addition to what's listed.</p>
+
+      <h3>Global entities (shared across all tenants)</h3>
+
+      <details class="entity"><summary>Tenant <span class="tag">AuditableEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Name</td><td>string</td><td>Company / shop display name</td></tr>
+          <tr><td>ContactEmail / ContactPhone</td><td>string</td><td>Signup contact</td></tr>
+          <tr><td>Status</td><td>enum</td><td>Active / Suspended (platform-admin controlled)</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>PlatformAdmin <span class="tag">AuditableEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Username</td><td>string</td><td>Vendor ops login, entirely separate identity from tenant Users</td></tr>
+          <tr><td>PasswordHash</td><td>string</td><td>ASP.NET Core <code>IPasswordHasher</code></td></tr>
+          <tr><td>FullName</td><td>string</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Menu <span class="tag">AuditableEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Key</td><td>string, unique</td><td>Stable identifier used by frontend guards (<code>canView(menuKey)</code>)</td></tr>
+          <tr><td>Label / Route / Icon</td><td>string</td><td>Nav rendering</td></tr>
+          <tr><td>SortOrder</td><td>int</td><td></td></tr>
+          <tr><td>ParentId</td><td>uuid, nullable FK → Menu</td><td>Optional nesting</td></tr>
+          <tr><td>IsGenerallyAvailable</td><td>bool, default true</td><td><code>false</code> = restricted/beta feature, requires a <code>TenantFeatureGrant</code></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Plan <span class="tag">AuditableEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Name</td><td>string</td><td>e.g. Free, Pro — billing label only, never gates features</td></tr>
+          <tr><td>IsFree</td><td>bool</td><td></td></tr>
+          <tr><td>Price</td><td>decimal</td><td></td></tr>
+          <tr><td>BillingCycleMonths</td><td>int</td><td></td></tr>
+          <tr><td>IsActive</td><td>bool</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>TenantSubscription <span class="tag">AuditableEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>TenantId</td><td>uuid FK → Tenant</td><td></td></tr>
+          <tr><td>PlanId</td><td>uuid FK → Plan</td><td></td></tr>
+          <tr><td>CurrentPeriodEnd</td><td>date, nullable</td><td><code>IsOverdue</code> is never stored — always recomputed as <code>!plan.IsFree &amp;&amp; (CurrentPeriodEnd is null or past)</code></td></tr>
+          <tr><td>Status</td><td>enum</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>SubscriptionPayment <span class="tag">AuditableEntity — append-only</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>TenantSubscriptionId</td><td>uuid FK</td><td></td></tr>
+          <tr><td>Amount</td><td>decimal</td><td>Manual payment record — no gateway/webhooks</td></tr>
+          <tr><td>PaidOn</td><td>date</td><td></td></tr>
+          <tr><td>Method / Notes</td><td>string</td><td>Bank transfer, mobile banking, cash, ...</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>TenantFeatureGrant <span class="tag">AuditableEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>TenantId</td><td>uuid FK → Tenant</td><td></td></tr>
+          <tr><td>MenuId</td><td>uuid FK → Menu</td><td>Must reference a Menu with <code>IsGenerallyAvailable = false</code></td></tr>
+          <tr><td>GrantedAt</td><td>datetime</td><td></td></tr>
+          <tr><td>GrantedByPlatformAdminId</td><td>uuid FK → PlatformAdmin</td><td>Independent of Plan/billing; not self-grantable by a tenant's own Admin</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <h3>Tenant-owned entities</h3>
+
+      <details class="entity"><summary>Role <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Name</td><td>string</td><td>Unique <b>per tenant</b> (each tenant gets its own "Admin" row)</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>RoleMenuPermission <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>RoleId</td><td>uuid FK → Role</td><td></td></tr>
+          <tr><td>MenuId</td><td>uuid FK → Menu</td><td></td></tr>
+          <tr><td>CanView / CanCreate / CanEdit / CanDelete</td><td>bool ×4</td><td>Independent flags, not a generic action-string list. One row per Role×Menu.</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>User <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Username</td><td>string</td><td><b>Globally</b> unique (not per-tenant) — lets login resolve the tenant without a separate picker step</td></tr>
+          <tr><td>PasswordHash</td><td>string</td><td></td></tr>
+          <tr><td>FullName</td><td>string</td><td></td></tr>
+          <tr><td>Role</td><td>string</td><td>Plain string matching JWT's <code>ClaimTypes.Role</code>, not a FK</td></tr>
+          <tr><td>IsActive</td><td>bool</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Category / Brand / Unit <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Name</td><td>string</td><td>Category, Brand</td></tr>
+          <tr><td>ShortCode</td><td>string</td><td>Unit only (e.g. kg, pcs)</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Product <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Code</td><td>string, unique per tenant</td><td></td></tr>
+          <tr><td>Barcode</td><td>string, unique per tenant</td><td>Barcode-generation + printing</td></tr>
+          <tr><td>Name</td><td>string</td><td></td></tr>
+          <tr><td>CategoryId / BrandId / UnitId</td><td>uuid FKs</td><td></td></tr>
+          <tr><td>PurchasePrice / SellingPrice</td><td>decimal</td><td>SellingPrice ≥ PurchasePrice unless explicitly overridden</td></tr>
+          <tr><td>StockQty</td><td>decimal</td><td>Never negative; source of truth reconciled against InventoryTransaction sum</td></tr>
+          <tr><td>ReorderLevel</td><td>decimal</td><td>Low-stock alert threshold</td></tr>
+          <tr><td>ImageUrl</td><td>string</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Supplier <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Name / Phone / Address</td><td>string</td><td></td></tr>
+          <tr><td>OpeningBalance</td><td>decimal</td><td>Seed value for due ledger</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Customer <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Name / Phone / Address</td><td>string</td><td></td></tr>
+          <tr><td>OpeningBalance</td><td>decimal</td><td>Seed value for due ledger</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Purchase <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>SupplierId</td><td>uuid FK</td><td></td></tr>
+          <tr><td>InvoiceNo / PurchaseDate</td><td>string / date</td><td></td></tr>
+          <tr><td>TotalAmount / PaidAmount / DueAmount</td><td>decimal</td><td><code>DueAmount = TotalAmount − PaidAmount</code></td></tr>
+          <tr><td>Status</td><td>enum</td><td>Draft / Posted / Returned</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>PurchaseItem <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>PurchaseId / ProductId</td><td>uuid FK</td><td></td></tr>
+          <tr><td>Qty / UnitCost / LineTotal</td><td>decimal</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>InventoryTransaction <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>ProductId</td><td>uuid FK</td><td></td></tr>
+          <tr><td>Type</td><td>enum</td><td>PurchaseIn / SaleOut / Adjustment / Damaged / Return</td></tr>
+          <tr><td>Qty</td><td>decimal, signed</td><td>+in / -out</td></tr>
+          <tr><td>ReferenceType / ReferenceId</td><td>string / uuid</td><td>Points back to the Purchase, Sale, or manual adjustment that caused it</td></tr>
+          <tr><td>OccurredAt / Notes</td><td>datetime / string</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Sale <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>CustomerId</td><td>uuid FK, nullable</td><td>Null = walk-in customer</td></tr>
+          <tr><td>InvoiceNo / SaleDate</td><td>string / date</td><td></td></tr>
+          <tr><td>SubTotal / DiscountAmount / TaxAmount / TotalAmount</td><td>decimal</td><td>VAT computed server-side from Shop Settings</td></tr>
+          <tr><td>PaidAmount / DueAmount</td><td>decimal</td><td>DueAmount can never go negative</td></tr>
+          <tr><td>PaymentType</td><td>enum</td><td>Cash / Credit / Partial</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>SaleItem <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>SaleId / ProductId</td><td>uuid FK</td><td></td></tr>
+          <tr><td>Qty / UnitPrice / LineTotal</td><td>decimal</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>SupplierPayment / CustomerPayment <span class="tag">TenantOwnedEntity — append-only</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>SupplierId / CustomerId</td><td>uuid FK</td><td>One of the two, per table</td></tr>
+          <tr><td>Amount / PaidOn / Notes</td><td>decimal / date / string</td><td>Reduces the corresponding due; history never overwritten</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>Expense <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>CategoryName</td><td>string</td><td>Rent, salary, electricity, internet, misc</td></tr>
+          <tr><td>Amount / ExpenseDate / Notes</td><td>decimal / date / string</td><td>Feeds into P&amp;L</td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>AuditLog <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>EntityName / EntityId</td><td>string / uuid</td><td></td></tr>
+          <tr><td>Action</td><td>enum</td><td>Created / Updated / Deleted / Sold</td></tr>
+          <tr><td>OldValue / NewValue</td><td>jsonb</td><td>Written via a <code>SaveChanges</code> interceptor — every module gets it for free</td></tr>
+          <tr><td>UserId / Timestamp</td><td>uuid / datetime</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+
+      <details class="entity"><summary>ShopSettings <span class="tag">TenantOwnedEntity</span></summary>
+        <div class="body table-wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>ShopName / LogoUrl</td><td>string</td><td></td></tr>
+          <tr><td>Currency / VatRate / DefaultDiscountPercent</td><td>string / decimal / decimal</td><td>Read by POS Sales for server-side VAT calc</td></tr>
+          <tr><td>InvoiceFooterText / InvoiceTemplate</td><td>string</td><td></td></tr>
+        </tbody></table></div>
+      </details>
+    </section>
+
+    <section id="lld-classes">
+      <h2><span class="num">LLD·4</span> Service / Repository Design</h2>
+      <p class="lede">One <code>IUnitOfWork</code> wraps <code>SaveChangesAsync</code> and repository access. A generic <code>IRepository&lt;T&gt;</code> covers common CRUD; module-specific repositories add custom queries. All business rules live in Application-layer services — controllers only call into services.</p>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+classDiagram
+    class IRepositoryT {
+      +GetByIdAsync(id) T
+      +GetAllAsync() List~T~
+      +Add(entity)
+      +Update(entity)
+      +Remove(entity)
+    }
+    class IUnitOfWork {
+      +Repository~T~() IRepositoryT
+      +SaveChangesAsync() int
+    }
+    class IPurchaseService {
+      +CreatePurchaseAsync(dto)
+      +ReturnPurchaseAsync(id, dto)
+      +GetPurchaseByIdAsync(id)
+    }
+    class IInventoryService {
+      +AdjustStockAsync(dto)
+      +RecordDamagedAsync(dto)
+      +GetLowStockAsync()
+      +GetHistoryAsync(productId)
+    }
+    class ISaleService {
+      +CreateSaleAsync(dto)
+      +ReturnSaleAsync(id, dto)
+      +GetInvoiceAsync(id)
+    }
+    class ISupplierService {
+      +GetLedgerAsync(id)
+      +AdjustDueAsync(id, amount)
+    }
+    class ICustomerService {
+      +GetLedgerAsync(id)
+      +AdjustDueAsync(id, amount)
+    }
+    class IRoleService {
+      +GetPermissionsAsync(roleId)
+      +SetPermissionsAsync(roleId, perms)
+    }
+    class IFeatureEntitlementService {
+      +GetEntitledMenuKeysAsync(tenantId)
+      +IsEntitledAsync(tenantId, menuKey)
+    }
+    class ITenantProvisioningService {
+      +ProvisionNewTenantAsync(dto)
+      +EnsureAdminRoleHasFullMenuAccessAsync(tenantId)
+    }
+    class ICurrentTenantService {
+      +TenantId Guid?
+    }
+
+    IUnitOfWork --> IRepositoryT
+    IPurchaseService --> IUnitOfWork
+    IInventoryService --> IUnitOfWork
+    ISaleService --> IUnitOfWork
+    ISaleService --> ICustomerService
+    IPurchaseService --> ISupplierService
+    IPurchaseService --> IInventoryService
+    ISaleService --> IInventoryService
+    IRoleService --> IFeatureEntitlementService
+    ITenantProvisioningService --> IRoleService
+    IUnitOfWork --> ICurrentTenantService
+        </pre>
+      </div>
+      <div class="note">Per §4 of <code>CLAUDE.md</code>: only <code>RolesController</code> / <code>MenusController</code> / <code>UsersController</code> carry an explicit <code>[Authorize(Roles="Admin")]</code> check — every other business controller relies on the frontend to hide what a role can't do. Don't add per-endpoint permission checks elsewhere without discussing the tradeoff first.</div>
+    </section>
+
+    <section id="lld-seq-login">
+      <h2><span class="num">LLD·5</span> Sequence — Login &amp; RBAC Permission Fetch</h2>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+sequenceDiagram
+    actor U as User (browser)
+    participant Auth as AuthController
+    participant Svc as AuthService
+    participant Feat as IFeatureEntitlementService
+    participant DB as PostgreSQL
+
+    U->>Auth: POST /api/auth/login {username, password}
+    Auth->>Svc: LoginAsync(username, password)
+    Svc->>DB: find User by Username (globally unique) -> resolve TenantId
+    Svc->>Svc: verify password hash
+    Svc-->>Auth: JWT {role, tenant_id}
+    Auth-->>U: 200 OK {accessToken, refreshToken}
+
+    U->>Auth: GET /api/auth/me/permissions (Bearer JWT)
+    Auth->>Svc: GetMyPermissionsAsync()
+    Svc->>Feat: GetEntitledMenuKeysAsync(tenantId)
+    Feat-->>Svc: [menuKey, ...] (excludes non-entitled restricted menus)
+    Svc->>DB: RoleMenuPermission rows for user's Role ∩ entitled menus
+    Svc-->>U: [{menuKey, canView, canCreate, canEdit, canDelete}]
+    U->>U: sidebar renders via canView(menuKey) guard
+        </pre>
+      </div>
+    </section>
+
+    <section id="lld-seq-register">
+      <h2><span class="num">LLD·6</span> Sequence — Self-Service Tenant Signup</h2>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+sequenceDiagram
+    actor V as Visitor
+    participant Auth as AuthController
+    participant Prov as ITenantProvisioningService
+    participant Plan as PlanSeeder / ISubscriptionService
+
+    V->>Auth: POST /api/auth/register {company, adminUser}
+    Auth->>Prov: ProvisionNewTenantAsync(dto)
+    Prov->>Prov: create Tenant
+    Prov->>Prov: create tenant-scoped "Admin" Role
+    Prov->>Prov: EnsureAdminRoleHasFullMenuAccessAsync (skips IsGenerallyAvailable=false menus)
+    Prov->>Prov: create first User, assign Admin role
+    Prov->>Plan: create TenantSubscription on seeded Free Plan
+    Prov-->>Auth: Tenant + User
+    Auth-->>V: 201 Created + JWT
+        </pre>
+      </div>
+    </section>
+
+    <section id="lld-seq-purchase">
+      <h2><span class="num">LLD·7</span> Sequence — Purchase Entry</h2>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+sequenceDiagram
+    actor U as Tenant User
+    participant C as PurchasesController
+    participant S as PurchaseService
+    participant Inv as InventoryService
+    participant Sup as SupplierService
+    participant UoW as IUnitOfWork
+    participant DB as PostgreSQL
+
+    U->>C: POST /api/purchases {supplierId, items[], paidAmount}
+    C->>S: CreatePurchaseAsync(dto)
+    S->>S: validate items, compute TotalAmount / DueAmount
+    S->>UoW: add Purchase + PurchaseItem rows
+    S->>Inv: increase Product.StockQty per line, write InventoryTransaction(PurchaseIn)
+    S->>Sup: AdjustDueAsync(supplierId, +DueAmount) if credit
+    S->>UoW: SaveChangesAsync()
+    UoW->>DB: commit (audit interceptor stamps TenantId/CreatedBy, writes AuditLog)
+    DB-->>C: success
+    C-->>U: 201 Created {purchaseId}
+        </pre>
+      </div>
+    </section>
+
+    <section id="lld-seq-sale">
+      <h2><span class="num">LLD·8</span> Sequence — POS Sale (Barcode Workflow)</h2>
+      <div class="card diagram-card">
+        <pre class="mermaid">
+sequenceDiagram
+    actor U as Cashier
+    participant C as SalesController
+    participant S as SaleService
+    participant Inv as InventoryService
+    participant Cust as CustomerService
+    participant UoW as IUnitOfWork
+    participant DB as PostgreSQL
+
+    U->>C: scan barcode -> GET /api/products/by-barcode/{code}
+    C-->>U: product + price
+    U->>C: POST /api/sales {customerId?, items[], paidAmount, paymentType}
+    C->>S: CreateSaleAsync(dto)
+    S->>Inv: check StockQty >= requested Qty (never negative)
+    alt insufficient stock
+        S-->>C: 400 Bad Request
+    else stock ok
+        S->>S: compute SubTotal/Tax(from ShopSettings)/Discount/Total
+        S->>UoW: add Sale + SaleItem rows
+        S->>Inv: decrease StockQty, write InventoryTransaction(SaleOut)
+        alt PaymentType = Credit or Partial
+            S->>Cust: AdjustDueAsync(customerId, +DueAmount)
+        end
+        S->>UoW: SaveChangesAsync()
+        UoW->>DB: commit
+        DB-->>C: success
+        C-->>U: 201 Created {invoice}
+        U->>U: print/receipt invoice
+    end
+        </pre>
+      </div>
+    </section>
+
+    <section id="lld-api">
+      <h2><span class="num">LLD·9</span> API Surface by Module</h2>
+      <p class="lede">Representative routes per module — every list endpoint follows the shared <code>PagedRequest</code> / <code>PagedResult&lt;T&gt;</code> convention.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Module</th><th>Key routes</th></tr></thead>
+          <tbody>
+            <tr><td>Auth</td><td><code>POST /api/auth/register</code>, <code>POST /api/auth/login</code>, <code>POST /api/auth/refresh</code>, <code>GET /api/auth/me/permissions</code>, <code>POST /api/auth/change-password</code></td></tr>
+            <tr><td>Platform Admin</td><td><code>POST /api/platform/auth/login</code>, <code>GET /api/platform/tenants</code>, <code>POST /api/platform/tenants/{id}/suspend</code>, <code>POST /api/platform/tenants/{id}/activate</code>, <code>GET/PUT /api/platform/tenants/{id}/subscription</code>, <code>GET/POST /api/platform/tenants/{id}/features</code>, <code>CRUD /api/platform/plans</code></td></tr>
+            <tr><td>RBAC</td><td><code>CRUD /api/users</code>, <code>CRUD /api/roles</code>, <code>CRUD /api/menus</code>, <code>GET/PUT /api/roles/{id}/permissions</code> — all <code>[Authorize(Roles="Admin")]</code></td></tr>
+            <tr><td>Settings</td><td><code>GET/PUT /api/settings</code> (shop info, VAT, currency, invoice template)</td></tr>
+            <tr><td>Master Data</td><td><code>CRUD /api/categories</code>, <code>CRUD /api/brands</code>, <code>CRUD /api/units</code></td></tr>
+            <tr><td>Products</td><td><code>CRUD /api/products</code>, <code>GET /api/products/by-barcode/{code}</code>, <code>GET /api/products/search?q=</code>, <code>POST /api/products/import</code>, <code>GET /api/products/export</code>, <code>GET /api/products/{id}/barcode-label</code></td></tr>
+            <tr><td>Suppliers</td><td><code>CRUD /api/suppliers</code>, <code>GET /api/suppliers/{id}/ledger</code>, <code>GET /api/suppliers/due-report</code>, <code>POST /api/suppliers/{id}/payments</code></td></tr>
+            <tr><td>Customers</td><td><code>CRUD /api/customers</code>, <code>GET /api/customers/{id}/ledger</code>, <code>GET /api/customers/due-report</code>, <code>POST /api/customers/{id}/payments</code></td></tr>
+            <tr><td>Purchases</td><td><code>POST /api/purchases</code>, <code>GET /api/purchases/{id}</code>, <code>POST /api/purchases/{id}/return</code></td></tr>
+            <tr><td>Inventory</td><td><code>POST /api/inventory/adjust</code>, <code>POST /api/inventory/damaged</code>, <code>GET /api/inventory/history/{productId}</code>, <code>GET /api/inventory/low-stock</code></td></tr>
+            <tr><td>POS Sales</td><td><code>POST /api/sales</code>, <code>GET /api/sales/{id}/invoice</code>, <code>POST /api/sales/{id}/return</code></td></tr>
+            <tr><td>Expenses</td><td><code>CRUD /api/expenses</code></td></tr>
+            <tr><td>Reports</td><td><code>GET /api/reports/profit-loss</code>, <code>GET /api/reports/sales</code>, <code>GET /api/reports/purchases</code>, <code>GET /api/reports/inventory</code>, <code>GET /api/reports/due</code>, <code>GET /api/reports/closing?period=</code>, all with export=<code>pdf|excel|print</code></td></tr>
+            <tr><td>Audit Log</td><td><code>GET /api/audit-log?entity=&amp;from=&amp;to=</code></td></tr>
+            <tr><td>Dashboard</td><td><code>GET /api/dashboard/summary</code> (today's sales/purchase/profit/expense, cash in hand, dues, inventory value, low stock, top sellers)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      DailyMart — System Design reference generated from <code>CLAUDE.md</code> conventions. Diagrams render via Mermaid; open in a browser with internet access for the CDN script to load.
+    </footer>
+  </main>
+</div>
+
+<script>
+  function currentIsDark() {
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark') return true;
+    if (attr === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function renderMermaid() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: currentIsDark() ? 'dark' : 'default',
+      securityLevel: 'loose',
+      themeVariables: { fontFamily: 'inherit' }
+    });
+    document.querySelectorAll('.mermaid').forEach(function (el) {
+      if (!el.dataset.src) el.dataset.src = el.textContent;
+      el.removeAttribute('data-processed');
+      el.innerHTML = el.dataset.src;
+    });
+    mermaid.run({ querySelector: '.mermaid' });
+  }
+
+  document.getElementById('themeToggle').addEventListener('click', function () {
+    var next = currentIsDark() ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    renderMermaid();
+  });
+
+  renderMermaid();
+</script>
+</body>
+</html>
